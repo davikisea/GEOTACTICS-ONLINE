@@ -1,0 +1,44 @@
+{
+  "name": "tactical-command",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "npx vite --port=3000 --host=0.0.0.0",
+    "build": "npx vite build",
+    "preview": "npx vite preview",
+    "clean": "node -e \"try { fs.rmSync('dist', { recursive: true, force: true }); } catch (e) {}\"",
+    "test:e2e": "npx tsx src/engine/e2eIntegration.test.ts",
+    "test:paso1": "npx tsx src/engine/subActionsAndArrow.test.ts",
+    "test:paso2": "npx tsx src/engine/advancedTactics.test.ts",
+    "test:paso3": "npx tsx src/engine/expandedCOs.test.ts",
+    "test:paso4": "npx tsx src/engine/advancedWarsWorldSystems.test.ts",
+    "test:pve": "npx tsx src/engine/autonomousOrchestrator.test.ts",
+    "test:sprint3": "npx tsx src/engine/deckAndSupply.test.ts",
+    "test:all": "npx tsx src/engine/subActionsAndArrow.test.ts && npx tsx src/engine/advancedTactics.test.ts && npx tsx src/engine/expandedCOs.test.ts && npx tsx src/engine/advancedWarsWorldSystems.test.ts && npx tsx src/engine/autonomousOrchestrator.test.ts && npx tsx src/engine/deckAndSupply.test.ts && npx tsx src/engine/e2eIntegration.test.ts",
+    "lint": "npx tsc --noEmit"
+  },
+  "dependencies": {
+    "@google/genai": "^2.4.0",
+    "@rolldown/binding-win32-x64-msvc": "^1.2.16",
+    "@supabase/supabase-js": "^2.118.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "@vitejs/plugin-react": "^6.1.1",
+    "dotenv": "^17.2.3",
+    "lucide-react": "^0.546.0",
+    "motion": "^12.23.24",
+    "react": "^19.0.1",
+    "react-dom": "^19.0.1",
+    "vite": "^8.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "autoprefixer": "^10.4.21",
+    "esbuild": "^0.25.0",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.21.0",
+    "typescript": "^7.0.2"
+  }
+}

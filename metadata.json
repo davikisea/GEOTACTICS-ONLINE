@@ -1,0 +1,8 @@
+{
+  "name": "Tactical Command: Wars of Legacy - Architecture & GDD",
+  "description": "Comprehensive Game Design Document, Database Schema, Realtime Networking, and Game Engine Architecture for a modern turn-based tactical strategy game with RPG progression in the style of Advance Wars.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
