@@ -68,10 +68,6 @@ export const GAME_DOCUMENTS: DocItem[] = [
   * Cruiser Dual: Capacidad para transportar hasta 2 helicópteros de combate.
 - Mapeador Universal AWBW (+190 Baldosas):
   * Soporte nativo para costuras de tubería de 100 HP destructibles (pipeSeam), ríos, carreteras, arrecifes y torres de telecomunicaciones (+10% ataque c/u).`
-  * Lander Dual: Capacidad de embarque para hasta 2 tanques pesados con desembarque selectivo individual.
-  * Cruiser Dual: Capacidad para transportar hasta 2 helicópteros de combate.
-- Mapeador Universal AWBW (+190 Baldosas):
-  * Soporte nativo para costuras de tubería de 100 HP destructibles (pipeSeam), ríos, carreteras, arrecifes y torres de telecomunicaciones.`
       },
       {
         heading: '5. Sistema de Diseño Frontend: Skill Canónica retro-futurism',

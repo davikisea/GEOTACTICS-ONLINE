@@ -85,7 +85,7 @@ const NearMissAnalysisModal = React.lazy(() => import('./components/battle/NearM
 const TiltEmergencyOfferModal = React.lazy(() => import('./components/shop/TiltEmergencyOfferModal').then(m => ({ default: m.TiltEmergencyOfferModal })));
 const CommanderProfileModal = React.lazy(() => import('./components/profile/CommanderProfileModal').then(m => ({ default: m.CommanderProfileModal })));
 
-function TacticalLoadingFallback() {
+export function TacticalLoadingFallback() {
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-12 text-[#F2E8D5] font-mono bg-[#181914]">
       <div className="relative w-14 h-14 flex items-center justify-center mb-3">
@@ -1030,16 +1030,6 @@ export default function App() {
         setIsBotThinking(false);
       }
     }
-  };
-    setTurn('p1');
-    setTurnNumber(prev => prev + 1);
-    setViewerPerspective('p1');
-    audioManager.playSFX('button_click');
-
-    const firstP1 = mutableUnits.find(unit => unit.owner === 'p1');
-    if (firstP1) setSelectedUnitId(firstP1.id);
-    const firstP2 = mutableUnits.find(unit => unit.owner === 'p2');
-    if (firstP2) setTargetEnemyId(firstP2.id);
   };
 
   // Finalizar turno canónico (Ingresos, reparaciones, resuministro y cambio de jugador)
@@ -2483,7 +2473,7 @@ export default function App() {
 
         </main>
       </div>
-    )}
+      )}
 
       {/* Modal Importador de Mapas de la Comunidad (AWBW) */}
       {isImportModalOpen && (
