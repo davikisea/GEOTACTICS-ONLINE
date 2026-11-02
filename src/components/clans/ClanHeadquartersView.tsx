@@ -336,7 +336,7 @@ export const ClanHeadquartersView: React.FC<ClanHeadquartersViewProps> = ({
       {/* Banner de Notificación */}
       {statusBanner && (
         <div
-          className={`mb-4 p-3 rounded-[15px_4px_15px_4px] border-2 flex items-center justify-between text-xs font-black shadow-[6px_6px_0px_rgba(0,0,0,0.6)] animate-in fade-in ${
+          className={`mb-4 p-3 rounded-[15px_4px_15px_4px] border-2 flex items-center justify-between text-xs font-black shadow-[6px_6px_0px_#0A0B08] animate-in fade-in ${
             statusBanner.type === 'alert'
               ? 'bg-[#C46A3A]/20 border-[#C46A3A] text-[#F2E8D5]'
               : 'bg-[#46521F]/40 border-[#7B8A4A] text-[#F2E8D5]'
@@ -346,17 +346,17 @@ export const ClanHeadquartersView: React.FC<ClanHeadquartersViewProps> = ({
             {statusBanner.type === 'alert' ? <AlertTriangle size={18} className="text-[#C46A3A]" /> : <CheckCircle2 size={18} className="text-emerald-400" />}
             <span>{statusBanner.message}</span>
           </div>
-          <button onClick={() => setStatusBanner(null)} className="text-[#7B8A4A] hover:text-[#F2E8D5]">
+          <button onClick={() => setStatusBanner(null)} className="text-[#7B8A4A] hover:text-[#F2E8D5] cursor-pointer">
             ✕
           </button>
         </div>
       )}
 
       {/* Cabecera Principal del Cuartel General */}
-      <div className="bg-[#2B2C24] border-4 border-[#46521F] rounded-[40px_10px_40px_10px] p-5 mb-6 shadow-[10px_10px_0px_rgba(0,0,0,0.5)]">
+      <div className="bg-[#2B2C24] border-4 border-[#46521F] rounded-[40px_10px_40px_10px] p-5 mb-6 shadow-[10px_10px_0px_#0A0B08]">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-[20px_5px_20px_5px] bg-[#181914] border-2 border-[#7B8A4A] flex items-center justify-center text-3xl shadow-[4px_4px_0px_rgba(0,0,0,0.5)]">
+            <div className="w-16 h-16 rounded-[20px_5px_20px_5px] bg-[#181914] border-2 border-[#7B8A4A] flex items-center justify-center text-3xl shadow-[4px_4px_0px_#0A0B08]">
               {clan.emblemIcon}
             </div>
             <div>
@@ -398,7 +398,8 @@ export const ClanHeadquartersView: React.FC<ClanHeadquartersViewProps> = ({
 
             <button
               onClick={handleToggleSafeguard}
-              className={`px-3 py-2 rounded-[12px_3px_12px_3px] border-2 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-[4px_4px_0px_rgba(0,0,0,0.5)] ${
+              onMouseEnter={() => audioManager.playHoverTick()}
+              className={`px-3 py-2 rounded-[12px_3px_12px_3px] border-2 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-[4px_4px_0px_#0A0B08] cursor-pointer ${
                 safeguardInventory.isEquipped
                   ? 'bg-emerald-700 hover:bg-emerald-600 border-emerald-400 text-[#F2E8D5]'
                   : 'bg-[#3B3C34] hover:bg-[#46521F] border-[#7B8A4A] text-[#7B8A4A] hover:text-[#F2E8D5]'
@@ -418,9 +419,10 @@ export const ClanHeadquartersView: React.FC<ClanHeadquartersViewProps> = ({
             audioManager.play('menu_select');
             setActiveTab('vault');
           }}
-          className={`px-4 py-2 rounded-[12px_3px_12px_3px] text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${
+          onMouseEnter={() => audioManager.playHoverTick()}
+          className={`px-4 py-2 rounded-[12px_3px_12px_3px] text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer ${
             activeTab === 'vault'
-              ? 'bg-[#46521F] text-[#F2E8D5] border-2 border-[#7B8A4A] shadow-[4px_4px_0px_rgba(0,0,0,0.5)]'
+              ? 'bg-[#46521F] text-[#F2E8D5] border-2 border-[#7B8A4A] shadow-[4px_4px_0px_#0A0B08]'
               : 'bg-[#2B2C24] text-[#7B8A4A] hover:text-[#F2E8D5] border border-[#46521F]'
           }`}
         >
@@ -432,9 +434,10 @@ export const ClanHeadquartersView: React.FC<ClanHeadquartersViewProps> = ({
             audioManager.play('menu_select');
             setActiveTab('territory');
           }}
-          className={`px-4 py-2 rounded-[12px_3px_12px_3px] text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${
+          onMouseEnter={() => audioManager.playHoverTick()}
+          className={`px-4 py-2 rounded-[12px_3px_12px_3px] text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer ${
             activeTab === 'territory'
-              ? 'bg-[#C46A3A] text-[#F2E8D5] border-2 border-[#F2E8D5]/30 shadow-[4px_4px_0px_rgba(0,0,0,0.5)]'
+              ? 'bg-[#C46A3A] text-[#F2E8D5] border-2 border-[#F2E8D5]/30 shadow-[4px_4px_0px_#0A0B08]'
               : 'bg-[#2B2C24] text-[#7B8A4A] hover:text-[#F2E8D5] border border-[#46521F]'
           }`}
         >
@@ -446,9 +449,10 @@ export const ClanHeadquartersView: React.FC<ClanHeadquartersViewProps> = ({
             audioManager.play('menu_select');
             setActiveTab('donations');
           }}
-          className={`px-4 py-2 rounded-[12px_3px_12px_3px] text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${
+          onMouseEnter={() => audioManager.playHoverTick()}
+          className={`px-4 py-2 rounded-[12px_3px_12px_3px] text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer ${
             activeTab === 'donations'
-              ? 'bg-[#46521F] text-[#F2E8D5] border-2 border-[#7B8A4A] shadow-[4px_4px_0px_rgba(0,0,0,0.5)]'
+              ? 'bg-[#46521F] text-[#F2E8D5] border-2 border-[#7B8A4A] shadow-[4px_4px_0px_#0A0B08]'
               : 'bg-[#2B2C24] text-[#7B8A4A] hover:text-[#F2E8D5] border border-[#46521F]'
           }`}
         >
@@ -460,9 +464,10 @@ export const ClanHeadquartersView: React.FC<ClanHeadquartersViewProps> = ({
             audioManager.play('menu_select');
             setActiveTab('treasury');
           }}
-          className={`px-4 py-2 rounded-[12px_3px_12px_3px] text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${
+          onMouseEnter={() => audioManager.playHoverTick()}
+          className={`px-4 py-2 rounded-[12px_3px_12px_3px] text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer ${
             activeTab === 'treasury'
-              ? 'bg-[#46521F] text-[#F2E8D5] border-2 border-[#7B8A4A] shadow-[4px_4px_0px_rgba(0,0,0,0.5)]'
+              ? 'bg-[#46521F] text-[#F2E8D5] border-2 border-[#7B8A4A] shadow-[4px_4px_0px_#0A0B08]'
               : 'bg-[#2B2C24] text-[#7B8A4A] hover:text-[#F2E8D5] border border-[#46521F]'
           }`}
         >
@@ -474,9 +479,10 @@ export const ClanHeadquartersView: React.FC<ClanHeadquartersViewProps> = ({
             audioManager.play('menu_select');
             setActiveTab('roster');
           }}
-          className={`px-4 py-2 rounded-[12px_3px_12px_3px] text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${
+          onMouseEnter={() => audioManager.playHoverTick()}
+          className={`px-4 py-2 rounded-[12px_3px_12px_3px] text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer ${
             activeTab === 'roster'
-              ? 'bg-[#46521F] text-[#F2E8D5] border-2 border-[#7B8A4A] shadow-[4px_4px_0px_rgba(0,0,0,0.5)]'
+              ? 'bg-[#46521F] text-[#F2E8D5] border-2 border-[#7B8A4A] shadow-[4px_4px_0px_#0A0B08]'
               : 'bg-[#2B2C24] text-[#7B8A4A] hover:text-[#F2E8D5] border border-[#46521F]'
           }`}
         >
@@ -488,9 +494,10 @@ export const ClanHeadquartersView: React.FC<ClanHeadquartersViewProps> = ({
             audioManager.play('menu_select');
             setActiveTab('safeguard');
           }}
-          className={`px-4 py-2 rounded-[12px_3px_12px_3px] text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${
+          onMouseEnter={() => audioManager.playHoverTick()}
+          className={`px-4 py-2 rounded-[12px_3px_12px_3px] text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer ${
             activeTab === 'safeguard'
-              ? 'bg-[#46521F] text-[#F2E8D5] border-2 border-[#7B8A4A] shadow-[4px_4px_0px_rgba(0,0,0,0.5)]'
+              ? 'bg-[#46521F] text-[#F2E8D5] border-2 border-[#7B8A4A] shadow-[4px_4px_0px_#0A0B08]'
               : 'bg-[#2B2C24] text-[#7B8A4A] hover:text-[#F2E8D5] border border-[#46521F]'
           }`}
         >
@@ -503,7 +510,7 @@ export const ClanHeadquartersView: React.FC<ClanHeadquartersViewProps> = ({
         <div className="space-y-6">
           {/* Alerta de Embargo por Deshonor si el usuario está afectado */}
           {isUserEmbargoed && (
-            <div className="bg-[#C46A3A]/20 border-4 border-[#C46A3A] rounded-[30px_10px_30px_10px] p-5 shadow-[10px_10px_0px_rgba(0,0,0,0.6)] flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="bg-[#C46A3A]/20 border-4 border-[#C46A3A] rounded-[30px_10px_30px_10px] p-5 shadow-[10px_10px_0px_#0A0B08] flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-[16px_4px_16px_4px] bg-[#C46A3A] flex items-center justify-center text-3xl text-[#F2E8D5]">
                   ⛓️
@@ -524,7 +531,7 @@ export const ClanHeadquartersView: React.FC<ClanHeadquartersViewProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   onClick={handlePayEmbargoFee}
-                  className="px-4 py-3 bg-[#C46A3A] hover:bg-[#b05d32] text-[#F2E8D5] font-black text-xs uppercase tracking-widest rounded-[12px_3px_12px_3px] shadow-[4px_4px_0px_rgba(0,0,0,0.5)] border border-[#F2E8D5]/20"
+                  className="px-4 py-3 bg-[#C46A3A] hover:bg-[#b05d32] text-[#F2E8D5] font-black text-xs uppercase tracking-widest rounded-[12px_3px_12px_3px] shadow-[4px_4px_0px_#0A0B08] border border-[#F2E8D5]/20"
                 >
                   Pagar Fianza (1,500G)
                 </button>
@@ -539,7 +546,7 @@ export const ClanHeadquartersView: React.FC<ClanHeadquartersViewProps> = ({
           )}
 
           {/* Tarjeta de la Bóveda Actual */}
-          <div className="bg-[#2B2C24] border-4 border-[#46521F] rounded-[30px_10px_30px_10px] p-6 shadow-[10px_10px_0px_rgba(0,0,0,0.5)]">
+          <div className="bg-[#2B2C24] border-4 border-[#46521F] rounded-[30px_10px_30px_10px] p-6 shadow-[10px_10px_0px_#0A0B08]">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b-2 border-[#46521F] pb-4 mb-4">
               <div>
                 <span className="text-xs text-[#7B8A4A] font-bold uppercase tracking-wider block">Recompensa Militar del Ciclo</span>
@@ -577,7 +584,7 @@ export const ClanHeadquartersView: React.FC<ClanHeadquartersViewProps> = ({
 
             <button
               onClick={handleClaimVault}
-              className={`w-full py-4 rounded-[18px_5px_18px_5px] font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2 border-2 shadow-[6px_6px_0px_rgba(0,0,0,0.5)] transition-all ${
+              className={`w-full py-4 rounded-[18px_5px_18px_5px] font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2 border-2 shadow-[6px_6px_0px_#0A0B08] transition-all ${
                 isUserEmbargoed
                   ? 'bg-[#3B3C34] text-[#7B8A4A] border-[#46521F] cursor-not-allowed'
                   : 'bg-[#46521F] hover:bg-[#576627] text-[#F2E8D5] border-[#7B8A4A]'
@@ -593,7 +600,7 @@ export const ClanHeadquartersView: React.FC<ClanHeadquartersViewProps> = ({
       {/* PESTAÑA 2: GUERRA TERRITORIAL (7 SECTORES) */}
       {activeTab === 'territory' && (
         <div className="space-y-6">
-          <div className="bg-[#2B2C24] border-4 border-[#C46A3A] rounded-[30px_10px_30px_10px] p-5 shadow-[10px_10px_0px_rgba(0,0,0,0.5)]">
+          <div className="bg-[#2B2C24] border-4 border-[#C46A3A] rounded-[30px_10px_30px_10px] p-5 shadow-[10px_10px_0px_#0A0B08]">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
                 <span className="text-xs bg-[#C46A3A] text-[#F2E8D5] px-2 py-0.5 rounded font-black tracking-widest uppercase">
@@ -623,7 +630,7 @@ export const ClanHeadquartersView: React.FC<ClanHeadquartersViewProps> = ({
               return (
                 <div
                   key={sec.sectorId}
-                  className={`bg-[#2B2C24] border-2 rounded-[25px_6px_25px_6px] p-4 flex flex-col justify-between shadow-[6px_6px_0px_rgba(0,0,0,0.4)] ${
+                  className={`bg-[#2B2C24] border-2 rounded-[25px_6px_25px_6px] p-4 flex flex-col justify-between shadow-[6px_6px_0px_#0A0B08] ${
                     isPriority ? 'border-[#C46A3A]' : 'border-[#46521F]'
                   }`}
                 >
@@ -665,7 +672,7 @@ export const ClanHeadquartersView: React.FC<ClanHeadquartersViewProps> = ({
                     </button>
                     <button
                       onClick={() => handleDeployToSector(sec, true)}
-                      className="flex-1 py-2 bg-[#C46A3A] hover:bg-[#b05d32] text-[#F2E8D5] text-[11px] font-black uppercase rounded-[10px_2px_10px_2px] border border-[#F2E8D5]/20 shadow-[2px_2px_0px_rgba(0,0,0,0.5)]"
+                      className="flex-1 py-2 bg-[#C46A3A] hover:bg-[#b05d32] text-[#F2E8D5] text-[11px] font-black uppercase rounded-[10px_2px_10px_2px] border border-[#F2E8D5]/20 shadow-[2px_2px_0px_#0A0B08]"
                     >
                       Dupla 2v2 (🔥 +200)
                     </button>
@@ -680,7 +687,7 @@ export const ClanHeadquartersView: React.FC<ClanHeadquartersViewProps> = ({
       {/* PESTAÑA 3: LOGÍSTICA Y DONACIONES FRATERNALES */}
       {activeTab === 'donations' && (
         <div className="space-y-6">
-          <div className="bg-[#2B2C24] border-4 border-[#46521F] rounded-[30px_10px_30px_10px] p-5 shadow-[10px_10px_0px_rgba(0,0,0,0.5)] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="bg-[#2B2C24] border-4 border-[#46521F] rounded-[30px_10px_30px_10px] p-5 shadow-[10px_10px_0px_#0A0B08] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
               <span className="text-xs bg-[#46521F] text-[#F2E8D5] px-2 py-0.5 rounded font-black tracking-widest uppercase border border-[#7B8A4A]">
                 TERMINAL DE SUMINISTROS Y PLANOS MILITARES
@@ -716,7 +723,7 @@ export const ClanHeadquartersView: React.FC<ClanHeadquartersViewProps> = ({
               return (
                 <div
                   key={req.id}
-                  className="bg-[#2B2C24] border-2 border-[#46521F] rounded-[20px_5px_20px_5px] p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-[4px_4px_0px_rgba(0,0,0,0.4)]"
+                  className="bg-[#2B2C24] border-2 border-[#46521F] rounded-[20px_5px_20px_5px] p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-[4px_4px_0px_#0A0B08]"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-[12px_3px_12px_3px] bg-[#181914] border-2 border-[#7B8A4A] flex items-center justify-center text-xl">
@@ -770,7 +777,7 @@ export const ClanHeadquartersView: React.FC<ClanHeadquartersViewProps> = ({
       {/* PESTAÑA 4: TESORERÍA Y PROYECTOS DEL ALTO MANDO */}
       {activeTab === 'treasury' && (
         <div className="space-y-6">
-          <div className="bg-[#2B2C24] border-4 border-[#46521F] rounded-[30px_10px_30px_10px] p-6 shadow-[10px_10px_0px_rgba(0,0,0,0.5)]">
+          <div className="bg-[#2B2C24] border-4 border-[#46521F] rounded-[30px_10px_30px_10px] p-6 shadow-[10px_10px_0px_#0A0B08]">
             <h2 className="text-lg font-black uppercase text-[#F2E8D5] mb-2">
               Bóveda de Fondos Estratégicos del Clan
             </h2>
@@ -877,7 +884,7 @@ export const ClanHeadquartersView: React.FC<ClanHeadquartersViewProps> = ({
                     {member.isEmbargoed && !isSelf && (
                       <button
                         onClick={() => handleConfirmRescue(member)}
-                        className="px-3 py-1.5 bg-[#C46A3A] hover:bg-[#b05d32] text-[#F2E8D5] text-xs font-black uppercase rounded-[8px_2px_8px_2px] shadow-[3px_3px_0px_rgba(0,0,0,0.5)] border border-[#F2E8D5]/20 flex items-center gap-1.5"
+                        className="px-3 py-1.5 bg-[#C46A3A] hover:bg-[#b05d32] text-[#F2E8D5] text-xs font-black uppercase rounded-[8px_2px_8px_2px] shadow-[3px_3px_0px_#0A0B08] border border-[#F2E8D5]/20 flex items-center gap-1.5"
                       >
                         <UserCheck size={14} /> Rescatar Camarada (1,500G)
                       </button>
@@ -908,7 +915,7 @@ export const ClanHeadquartersView: React.FC<ClanHeadquartersViewProps> = ({
       {/* PESTAÑA 6: TALLER DE SALVAGUARDA TÁCTICA */}
       {activeTab === 'safeguard' && (
         <div className="space-y-6">
-          <div className="bg-[#2B2C24] border-4 border-[#46521F] rounded-[30px_10px_30px_10px] p-6 shadow-[10px_10px_0px_rgba(0,0,0,0.5)]">
+          <div className="bg-[#2B2C24] border-4 border-[#46521F] rounded-[30px_10px_30px_10px] p-6 shadow-[10px_10px_0px_#0A0B08]">
             <h2 className="text-lg font-black uppercase text-[#F2E8D5] mb-2">
               Taller de Ensamblaje: Protocolo de Salvaguarda Táctica
             </h2>
@@ -936,7 +943,7 @@ export const ClanHeadquartersView: React.FC<ClanHeadquartersViewProps> = ({
             <div className="flex gap-3">
               <button
                 onClick={handleToggleSafeguard}
-                className={`flex-1 py-3 rounded-[15px_4px_15px_4px] font-black text-xs uppercase tracking-wider border-2 shadow-[4px_4px_0px_rgba(0,0,0,0.5)] transition-all ${
+                className={`flex-1 py-3 rounded-[15px_4px_15px_4px] font-black text-xs uppercase tracking-wider border-2 shadow-[4px_4px_0px_#0A0B08] transition-all ${
                   safeguardInventory.isEquipped
                     ? 'bg-emerald-700 hover:bg-emerald-600 border-emerald-400 text-[#F2E8D5]'
                     : 'bg-[#3B3C34] hover:bg-[#46521F] border-[#7B8A4A] text-[#7B8A4A] hover:text-[#F2E8D5]'
@@ -947,7 +954,7 @@ export const ClanHeadquartersView: React.FC<ClanHeadquartersViewProps> = ({
 
               <button
                 onClick={handleCraftSafeguard}
-                className="flex-1 py-3 bg-[#C46A3A] hover:bg-[#b05d32] text-[#F2E8D5] font-black text-xs uppercase tracking-wider rounded-[15px_4px_15px_4px] shadow-[4px_4px_0px_rgba(0,0,0,0.5)] border border-[#F2E8D5]/20 flex items-center justify-center gap-2"
+                className="flex-1 py-3 bg-[#C46A3A] hover:bg-[#b05d32] text-[#F2E8D5] font-black text-xs uppercase tracking-wider rounded-[15px_4px_15px_4px] shadow-[4px_4px_0px_#0A0B08] border border-[#F2E8D5]/20 flex items-center justify-center gap-2"
               >
                 <Hammer size={16} /> Forjar Nueva Salvaguarda (5,000G + 50 Acero)
               </button>

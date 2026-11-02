@@ -10,6 +10,7 @@ import {
 import { audioManager } from '../../engine/audioManager';
 import { triggerHaptic } from '../../engine/hapticFeedback';
 import { Zap, Flame, ShieldAlert, Sparkles, ChevronDown } from 'lucide-react';
+import { TacticalGhostBar } from '../lobby/TacticalGhostBar';
 
 interface COCommandBarProps {
   player: 'p1' | 'p2';
@@ -132,10 +133,10 @@ export const COCommandBar: React.FC<COCommandBarProps> = ({
 
   return (
     <div
-      className={`p-3.5 rounded-xl border transition-all ${
+      className={`p-3.5 tactical-comic-card transition-all ${
         player === 'p1'
-          ? 'bg-slate-950/90 border-blue-900/60 shadow-[0_0_15px_rgba(37,99,235,0.15)]'
-          : 'bg-slate-950/90 border-red-900/60 shadow-[0_0_15px_rgba(220,38,38,0.15)]'
+          ? 'border-[#1E64D0]'
+          : 'border-[#E84A27]'
       }`}
     >
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -143,9 +144,9 @@ export const COCommandBar: React.FC<COCommandBarProps> = ({
         <div className="flex items-center gap-3">
           <div className="relative shrink-0">
             <div
-              className={`w-12 h-12 rounded-lg overflow-hidden border-2 flex items-center justify-center bg-slate-900 ${
-                player === 'p1' ? 'border-blue-500' : 'border-red-500'
-              } ${isPowerActive ? 'ring-2 ring-amber-400 animate-pulse' : ''}`}
+              className={`w-12 h-12 rounded-[10px_2px_10px_2px] overflow-hidden border-2 flex items-center justify-center bg-[#181914] shadow-[2px_2px_0px_#0A0B08] ${
+                player === 'p1' ? 'border-[#1E64D0]' : 'border-[#E84A27]'
+              } ${isPowerActive ? 'ring-2 ring-[#F2B705] animate-pulse' : ''}`}
             >
               <img
                 src={co.portraitSmall}
@@ -167,8 +168,8 @@ export const COCommandBar: React.FC<COCommandBarProps> = ({
 
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xs uppercase text-slate-400">
-                {player === 'p1' ? 'Orange Star' : 'Blue Moon'}
+              <span className="font-mono text-xs font-black uppercase text-[#D8D1C5]">
+                {player === 'p1' ? 'Blue Moon' : 'Orange Star'}
               </span>
               {/* Selector de Comandante */}
               <div className="relative">
@@ -178,7 +179,7 @@ export const COCommandBar: React.FC<COCommandBarProps> = ({
                     audioManager.playSFX('button_click');
                     onSelectCO(e.target.value as COId);
                   }}
-                  className="bg-slate-900 border border-slate-700 text-white font-bold text-xs rounded px-2 py-0.5 font-mono cursor-pointer hover:border-emerald-500 focus:outline-none"
+                  className="bg-[#181914] border-2 border-[#0A0B08] text-[#F2E8D5] font-bold text-xs rounded-[6px_2px_6px_2px] px-2 py-0.5 font-mono cursor-pointer hover:border-[#F2B705] focus:outline-none shadow-[2px_2px_0px_#0A0B08]"
                 >
                   {Object.values(CANONICAL_CO_REGISTRY).map((c) => (
                     <option key={c.id} value={c.id}>
@@ -188,7 +189,7 @@ export const COCommandBar: React.FC<COCommandBarProps> = ({
                 </select>
               </div>
             </div>
-            <div className="text-[11px] font-mono text-slate-400 mt-0.5 line-clamp-1">
+            <div className="text-[11px] font-mono text-[#D8D1C5]/80 mt-0.5 line-clamp-1">
               {co.title} • {co.dayToDay.description}
             </div>
           </div>
@@ -198,49 +199,51 @@ export const COCommandBar: React.FC<COCommandBarProps> = ({
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
           <button
             disabled={!canCop}
+            onMouseEnter={() => canCop && audioManager.playHoverTick()}
             onClick={() => {
               triggerHaptic('co_power');
               audioManager.playSFX('co_power');
               onActivatePower('cop');
             }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-[10px_2px_10px_2px] text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer tactical-juice-btn ${
               canCop
-                ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-[0_0_12px_rgba(245,158,11,0.5)] animate-bounce'
-                : 'bg-slate-800/60 text-slate-500 border border-slate-800 cursor-not-allowed'
+                ? 'bg-[#F2B705] hover:bg-amber-300 text-[#0A0B08] border-2 border-[#0A0B08] shadow-[3px_3px_0px_#0A0B08] animate-bounce'
+                : 'bg-[#181914] text-[#D8D1C5]/40 border border-[#0A0B08] cursor-not-allowed'
             }`}
             title={`${co.powers.cop.description} - Atajo: [P]`}
           >
             <Zap className="w-3.5 h-3.5" />
             <span>COP: {co.powers.cop.name} ({copStars}★)</span>
-            <span className="text-[9px] px-1 py-0.5 rounded bg-slate-900/40 text-slate-950 font-black">[P]</span>
+            <span className="text-[9px] px-1 py-0.5 rounded bg-[#0A0B08]/20 text-[#0A0B08] font-black">[P]</span>
           </button>
 
           <button
             disabled={!canScop}
+            onMouseEnter={() => canScop && audioManager.playHoverTick()}
             onClick={() => {
               triggerHaptic('co_power');
               audioManager.playSFX('super_co_power');
               onActivatePower('scop');
             }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-[10px_2px_10px_2px] text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer tactical-juice-btn ${
               canScop
-                ? 'bg-gradient-to-r from-red-600 via-amber-500 to-yellow-400 text-slate-950 shadow-[0_0_16px_rgba(239,68,68,0.6)] animate-pulse'
-                : 'bg-slate-800/60 text-slate-500 border border-slate-800 cursor-not-allowed'
+                ? 'bg-gradient-to-r from-[#E84A27] via-[#F2B705] to-amber-300 text-[#0A0B08] border-2 border-[#0A0B08] shadow-[3px_3px_0px_#0A0B08] animate-pulse'
+                : 'bg-[#181914] text-[#D8D1C5]/40 border border-[#0A0B08] cursor-not-allowed'
             }`}
             title={`${co.powers.scop.description} - Atajo: [O]`}
           >
-            <Flame className="w-3.5 h-3.5 text-slate-950" />
+            <Flame className="w-3.5 h-3.5 text-[#0A0B08]" />
             <span>SCOP: {co.powers.scop.name} ({totalStars}★)</span>
-            <span className="text-[9px] px-1 py-0.5 rounded bg-slate-900/40 text-slate-950 font-black">[O]</span>
+            <span className="text-[9px] px-1 py-0.5 rounded bg-[#0A0B08]/20 text-[#0A0B08] font-black">[O]</span>
           </button>
         </div>
       </div>
 
       {/* Medidor de Estrellas de Poder */}
-      <div className="mt-3 pt-2.5 border-t border-slate-800/80">
+      <div className="mt-3 pt-2.5 border-t border-[#46521F]/60">
         <div className="flex items-center justify-between text-[11px] font-mono mb-1.5">
           <div className="flex items-center gap-2">
-            <span className="text-slate-400">MEDIDOR DE ENERGÍA TÁCTICA:</span>
+            <span className="text-[#D8D1C5]/80 font-bold">MEDIDOR DE ENERGÍA TÁCTICA:</span>
             <div className="flex items-center gap-1">
               {Array.from({ length: totalStars }).map((_, idx) => {
                 const starFilled = currentMeter >= (idx + 1) * STAR_CHARGE_VALUE;
@@ -251,9 +254,9 @@ export const COCommandBar: React.FC<COCommandBarProps> = ({
                     className={`text-xs ${
                       starFilled
                         ? isCopStar
-                          ? 'text-amber-400 filter drop-shadow-[0_0_4px_rgba(251,191,36,0.8)]'
-                          : 'text-red-400 filter drop-shadow-[0_0_4px_rgba(248,113,113,0.8)]'
-                        : 'text-slate-700'
+                          ? 'text-[#F2B705] filter drop-shadow-[0_0_4px_rgba(242,183,5,0.8)]'
+                          : 'text-[#E84A27] filter drop-shadow-[0_0_4px_rgba(232,74,39,0.8)]'
+                        : 'text-[#181914]'
                     }`}
                     title={`Estrella ${idx + 1} (${(idx + 1) * STAR_CHARGE_VALUE}G)`}
                   >
@@ -263,44 +266,41 @@ export const COCommandBar: React.FC<COCommandBarProps> = ({
               })}
             </div>
           </div>
-          <span className="text-slate-400 font-bold">
+          <span className="text-[#F2E8D5] font-bold tabular-nums">
             {currentMeter.toLocaleString()} / {maxMeter.toLocaleString()} pts ({meterPercent}%)
           </span>
         </div>
 
-        {/* Barra de progreso */}
-        <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800 relative">
-          <div
-            className={`h-2 transition-all duration-300 ${
-              currentMeter >= scopThreshold
-                ? 'bg-gradient-to-r from-amber-500 to-red-500'
-                : currentMeter >= copThreshold
-                ? 'bg-amber-500'
-                : player === 'p1'
-                ? 'bg-blue-500'
-                : 'bg-red-500'
-            }`}
-            style={{ width: `${meterPercent}%` }}
-          />
-          {/* Marcador divisor de COP */}
-          <div
-            className="absolute top-0 bottom-0 w-0.5 bg-white/40"
-            style={{ left: `${(copStars / totalStars) * 100}%` }}
-            title={`Umbral COP (${copStars} Estrellas)`}
-          />
-        </div>
+        {/* Barra de progreso con Ghost Trail Canónico */}
+        <TacticalGhostBar
+          value={currentMeter}
+          max={maxMeter}
+          heightClass="h-2.5"
+          fillClass={
+            currentMeter >= scopThreshold
+              ? 'bg-gradient-to-r from-[#F2B705] to-[#E84A27]'
+              : currentMeter >= copThreshold
+              ? 'bg-[#F2B705]'
+              : player === 'p1'
+              ? 'bg-[#1E64D0]'
+              : 'bg-[#E84A27]'
+          }
+          ghostClass="bg-[#F2E8D5]/60"
+          showMarkerAtPercent={(copStars / totalStars) * 100}
+          markerTitle={`Umbral COP (${copStars} Estrellas)`}
+        />
       </div>
 
       {/* Banner de Poder Activo */}
       {isPowerActive && activePowerDef && (
-        <div className="mt-2.5 p-2 rounded bg-amber-950/60 border border-amber-500/50 flex items-center justify-between text-xs font-mono text-amber-200 animate-pulse">
+        <div className="mt-2.5 p-2 rounded-[8px_2px_8px_2px] bg-[#181914] border-2 border-[#F2B705] shadow-[2px_2px_0px_#0A0B08] flex items-center justify-between text-xs font-mono text-[#F2E8D5] animate-pulse">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+            <Sparkles className="w-4 h-4 text-[#F2B705] shrink-0" />
             <span>
-              <b>¡{activePowerDef.name.toUpperCase()} ACTIVO!</b> {activePowerDef.description}
+              <b className="text-[#F2B705]">¡{activePowerDef.name.toUpperCase()} ACTIVO!</b> {activePowerDef.description}
             </span>
           </div>
-          <span className="text-[10px] uppercase px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-400/40">
+          <span className="text-[10px] uppercase px-2 py-0.5 rounded bg-[#F2B705] text-[#0A0B08] font-black">
             TURNO ACTUAL
           </span>
         </div>

@@ -29,10 +29,14 @@ import {
   Sparkles,
   MapPin,
   RefreshCcw,
-  Sliders
+  Sliders,
+  Undo2,
+  Redo2,
+  AlertTriangle
 } from 'lucide-react';
 import { TerrainType, GridPosition, TerrainTile } from '../../types';
 import { parseAWBWMap } from '../../engine/mapImporter';
+import { audioManager } from '../../engine/audioManager';
 
 export type SymmetryMode = 'none' | 'rotational_180' | 'horizontal' | 'vertical';
 
@@ -93,6 +97,84 @@ export const MapBuilder: React.FC = () => {
   const [ioText, setIoText] = useState<string>('');
   const [ioMode, setIoMode] = useState<'none' | 'export_json' | 'export_awbw' | 'import'>('none');
 
+  // Buffer de Deshacer / Rehacer (Hasta 20 pasos de historia para resiliencia de creación)
+  const historyRef = useRef<MapBuilderTile[][][]>([]);
+  const historyIndexRef = useRef<number>(-1);
+  const [canUndo, setCanUndo] = useState<boolean>(false);
+  const [canRedo, setCanRedo] = useState<boolean>(false);
+
+  // Confirmación de seguridad para vaciado de mapa
+  const [confirmClear, setConfirmClear] = useState<boolean>(false);
+
+  const updateUndoRedoState = () => {
+    setCanUndo(historyIndexRef.current > 0);
+    setCanRedo(historyIndexRef.current < historyRef.current.length - 1);
+  };
+
+  const pushSnapshot = useCallback((newGrid: MapBuilderTile[][]) => {
+    // Truncar historial si estábamos en medio de la pila
+    const newHistory = historyRef.current.slice(0, historyIndexRef.current + 1);
+    newHistory.push(newGrid.map(row => row.map(cell => ({ ...cell }))));
+    if (newHistory.length > 20) {
+      newHistory.shift();
+    }
+    historyRef.current = newHistory;
+    historyIndexRef.current = newHistory.length - 1;
+    updateUndoRedoState();
+  }, []);
+
+  // Inicializar primer snapshot del historial
+  useEffect(() => {
+    if (historyRef.current.length === 0) {
+      historyRef.current = [grid.map(row => row.map(cell => ({ ...cell })))];
+      historyIndexRef.current = 0;
+      updateUndoRedoState();
+    }
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    if (historyIndexRef.current > 0) {
+      historyIndexRef.current -= 1;
+      const targetGrid = historyRef.current[historyIndexRef.current];
+      setGrid(targetGrid.map(row => row.map(cell => ({ ...cell }))));
+      audioManager.playSFX('button_click');
+      updateUndoRedoState();
+    }
+  }, []);
+
+  const handleRedo = useCallback(() => {
+    if (historyIndexRef.current < historyRef.current.length - 1) {
+      historyIndexRef.current += 1;
+      const targetGrid = historyRef.current[historyIndexRef.current];
+      setGrid(targetGrid.map(row => row.map(cell => ({ ...cell }))));
+      audioManager.playSFX('button_click');
+      updateUndoRedoState();
+    }
+  }, []);
+
+  // Hotkeys globales de Undo / Redo (Ctrl+Z y Ctrl+Y / Ctrl+Shift+Z)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+        if (e.shiftKey) {
+          e.preventDefault();
+          handleRedo();
+        } else {
+          e.preventDefault();
+          handleUndo();
+        }
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleUndo, handleRedo]);
+
   // Redimensionar cuadrícula preservando celdas existentes
   const handleResize = (newW: number, newH: number) => {
     const clampedW = Math.max(8, Math.min(32, newW));
@@ -113,6 +195,7 @@ export const MapBuilder: React.FC = () => {
         }
         nextGrid.push(row);
       }
+      pushSnapshot(nextGrid);
       return nextGrid;
     });
   };
@@ -121,6 +204,8 @@ export const MapBuilder: React.FC = () => {
   const paintCell = useCallback(
     (x: number, y: number) => {
       if (x < 0 || x >= width || y < 0 || y >= height) return;
+
+      audioManager.playHoverTick();
 
       const defenseStars =
         selectedBrush.type === 'mountain' || selectedBrush.type === 'hq'
@@ -167,10 +252,11 @@ export const MapBuilder: React.FC = () => {
           }
         }
 
+        pushSnapshot(next);
         return next;
       });
     },
-    [width, height, selectedBrush, symmetryMode]
+    [width, height, selectedBrush, symmetryMode, pushSnapshot]
   );
 
   // Localizar HQs para el mapa de calor de AirDrops
@@ -309,26 +395,65 @@ export const MapBuilder: React.FC = () => {
           </p>
         </div>
 
-        {/* Acciones de Exportación e Importación */}
+        {/* Acciones de Edición, Exportación e Importación */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Botones de Deshacer / Rehacer con Atajos Visibles */}
+          <button
+            onClick={handleUndo}
+            disabled={!canUndo}
+            onMouseEnter={() => canUndo && audioManager.playHoverTick()}
+            className={`px-3 py-1.5 font-bold text-xs rounded-[10px_3px_10px_3px] border border-[#0A0B08] shadow-[3px_3px_0px_#0A0B08] flex items-center gap-1.5 transition-all ${
+              canUndo
+                ? 'bg-[#2B2C24] hover:bg-[#383a2e] text-[#F2E8D5] cursor-pointer active:translate-x-0.5 active:translate-y-0.5'
+                : 'bg-[#2B2C24]/40 text-[#7B8A4A]/50 border-transparent cursor-not-allowed shadow-none'
+            }`}
+            title="Deshacer última acción (Ctrl + Z)"
+          >
+            <Undo2 className="w-3.5 h-3.5" />
+            <span>Deshacer</span>
+            <span className="text-[9px] text-amber-300/80 font-mono hidden sm:inline">[Ctrl+Z]</span>
+          </button>
+
+          <button
+            onClick={handleRedo}
+            disabled={!canRedo}
+            onMouseEnter={() => canRedo && audioManager.playHoverTick()}
+            className={`px-3 py-1.5 font-bold text-xs rounded-[10px_3px_10px_3px] border border-[#0A0B08] shadow-[3px_3px_0px_#0A0B08] flex items-center gap-1.5 transition-all ${
+              canRedo
+                ? 'bg-[#2B2C24] hover:bg-[#383a2e] text-[#F2E8D5] cursor-pointer active:translate-x-0.5 active:translate-y-0.5'
+                : 'bg-[#2B2C24]/40 text-[#7B8A4A]/50 border-transparent cursor-not-allowed shadow-none'
+            }`}
+            title="Rehacer acción (Ctrl + Y)"
+          >
+            <Redo2 className="w-3.5 h-3.5" />
+            <span>Rehacer</span>
+            <span className="text-[9px] text-amber-300/80 font-mono hidden sm:inline">[Ctrl+Y]</span>
+          </button>
+
+          <span className="text-[#7B8A4A]">|</span>
+
           <button
             onClick={handleExportJSON}
-            className="px-3 py-1.5 bg-[#7B8A4A] hover:bg-[#68763d] text-[#F2E8D5] font-bold text-xs rounded-[10px_3px_10px_3px] border border-[#2B2C24] shadow-[3px_3px_0px_#2B2C24] flex items-center gap-1.5 cursor-pointer"
+            onMouseEnter={() => audioManager.playHoverTick()}
+            className="px-3 py-1.5 bg-[#7B8A4A] hover:bg-[#68763d] text-[#F2E8D5] font-bold text-xs rounded-[10px_3px_10px_3px] border border-[#0A0B08] shadow-[3px_3px_0px_#0A0B08] flex items-center gap-1.5 cursor-pointer active:translate-x-0.5 active:translate-y-0.5"
           >
             <Download className="w-3.5 h-3.5" /> Exportar JSON
           </button>
           <button
             onClick={handleExportAWBW}
-            className="px-3 py-1.5 bg-[#46521F] hover:bg-[#384219] text-[#F2E8D5] font-bold text-xs rounded-[10px_3px_10px_3px] border border-[#7B8A4A] shadow-[3px_3px_0px_#2B2C24] flex items-center gap-1.5 cursor-pointer"
+            onMouseEnter={() => audioManager.playHoverTick()}
+            className="px-3 py-1.5 bg-[#46521F] hover:bg-[#384219] text-[#F2E8D5] font-bold text-xs rounded-[10px_3px_10px_3px] border border-[#0A0B08] shadow-[3px_3px_0px_#0A0B08] flex items-center gap-1.5 cursor-pointer active:translate-x-0.5 active:translate-y-0.5"
           >
             <Download className="w-3.5 h-3.5" /> Exportar AWBW
           </button>
           <button
             onClick={() => {
+              audioManager.playSFX('button_click');
               setIoText('');
               setIoMode('import');
             }}
-            className="px-3 py-1.5 bg-[#C46A3A] hover:bg-[#b05c2e] text-[#F2E8D5] font-bold text-xs rounded-[10px_3px_10px_3px] border border-[#2B2C24] shadow-[3px_3px_0px_#2B2C24] flex items-center gap-1.5 cursor-pointer"
+            onMouseEnter={() => audioManager.playHoverTick()}
+            className="px-3 py-1.5 bg-[#C46A3A] hover:bg-[#b05c2e] text-[#F2E8D5] font-bold text-xs rounded-[10px_3px_10px_3px] border border-[#0A0B08] shadow-[3px_3px_0px_#0A0B08] flex items-center gap-1.5 cursor-pointer active:translate-x-0.5 active:translate-y-0.5"
           >
             <Upload className="w-3.5 h-3.5" /> Importar Mapa
           </button>
@@ -472,17 +597,35 @@ export const MapBuilder: React.FC = () => {
             })}
           </div>
 
-          <div className="pt-2 border-t border-[#7B8A4A] text-[10px] text-[#F2E8D5]/70 flex justify-between">
-            <span>Zona AirDrops: {airDropCandidates.size} celdas</span>
-            <button
-              onClick={() => {
-                // Reset a llanuras
-                setGrid(prev => prev.map(row => row.map(() => ({ type: 'plains', defenseStars: 1 }))));
-              }}
-              className="hover:text-red-400 cursor-pointer flex items-center gap-1"
-            >
-              <RefreshCcw className="w-2.5 h-2.5" /> Limpiar
-            </button>
+          <div className="pt-2 border-t border-[#7B8A4A] text-[10px] text-[#F2E8D5]/70 flex items-center justify-between">
+            <span>AirDrops: {airDropCandidates.size} celdas</span>
+            {confirmClear ? (
+              <button
+                onClick={() => {
+                  const clearedGrid = grid.map(row => row.map(() => ({ type: 'plains' as TerrainType, defenseStars: 1 })));
+                  setGrid(clearedGrid);
+                  pushSnapshot(clearedGrid);
+                  audioManager.playSFX('button_click');
+                  setConfirmClear(false);
+                }}
+                className="px-2 py-0.5 rounded bg-rose-600 hover:bg-rose-500 text-white font-black text-[9px] uppercase cursor-pointer flex items-center gap-1 border border-[#0A0B08] animate-pulse"
+                title="Haz clic de nuevo para vaciar todo el mapa"
+              >
+                <AlertTriangle className="w-2.5 h-2.5" /> ¿Confirmar vaciado?
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  audioManager.playHoverTick();
+                  setConfirmClear(true);
+                  setTimeout(() => setConfirmClear(false), 3500);
+                }}
+                className="hover:text-amber-400 cursor-pointer flex items-center gap-1 text-[10px]"
+                title="Limpiar mapa a llanuras (requiere 2 clics para prevenir pérdidas)"
+              >
+                <RefreshCcw className="w-2.5 h-2.5" /> Limpiar
+              </button>
+            )}
           </div>
         </div>
 

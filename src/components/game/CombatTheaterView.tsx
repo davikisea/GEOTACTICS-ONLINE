@@ -219,6 +219,18 @@ export const CombatTheaterView: React.FC<CombatTheaterViewProps> = ({
         setSelectedUnitId(null);
         setTargetEnemyId(null);
         triggerHaptic('error');
+      } else if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        if (tileContextMenu) {
+          const waitAction = tileContextMenu.actions.find(a => a.type === 'wait') || tileContextMenu.actions[0];
+          if (waitAction) {
+            triggerHaptic('selection');
+            tileContextMenu.onSelectAction(waitAction);
+          }
+        } else if (selectedUnit && selectedUnit.owner === turn && !selectedUnit.hasActed) {
+          triggerHaptic('movement');
+          handleMoveUnit({ x: selectedUnit.x, y: selectedUnit.y });
+        }
       } else if (e.ctrlKey && e.key === 'Enter') {
         e.preventDefault();
         triggerHaptic('movement');
@@ -229,30 +241,45 @@ export const CombatTheaterView: React.FC<CombatTheaterViewProps> = ({
       } else if ((e.key === 'o' || e.key === 'O') && !e.ctrlKey) {
         triggerHaptic('co_power');
         handleActivateCOPower(turn, 'scop');
-      } else if (tileContextMenu && ['1', '2', '3', '4', '5', '6', '7'].includes(e.key)) {
-        const actionIdx = parseInt(e.key, 10) - 1;
-        if (tileContextMenu.actions[actionIdx]) {
+      } else if (tileContextMenu) {
+        let actionToTrigger = null;
+        if (['1', '2', '3', '4', '5', '6', '7'].includes(e.key)) {
+          const actionIdx = parseInt(e.key, 10) - 1;
+          actionToTrigger = tileContextMenu.actions[actionIdx];
+        } else {
+          const k = e.key.toLowerCase();
+          if (k === 'w') actionToTrigger = tileContextMenu.actions.find(a => a.type === 'wait');
+          else if (k === 'l') actionToTrigger = tileContextMenu.actions.find(a => a.type === 'load');
+          else if (k === 'c') actionToTrigger = tileContextMenu.actions.find(a => a.type === 'capture');
+          else if (k === 'a') actionToTrigger = tileContextMenu.actions.find(a => a.type === 'attack');
+          else if (k === 'r') actionToTrigger = tileContextMenu.actions.find(a => a.type === 'repair');
+          else if (k === 'h') actionToTrigger = tileContextMenu.actions.find(a => a.type === 'hide' || a.type === 'show');
+          else if (k === 'x') actionToTrigger = tileContextMenu.actions.find(a => a.type === 'explode');
+        }
+        if (actionToTrigger) {
+          e.preventDefault();
           triggerHaptic('selection');
-          tileContextMenu.onSelectAction(tileContextMenu.actions[actionIdx]);
+          tileContextMenu.onSelectAction(actionToTrigger);
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [units, selectedUnit, turn, tileContextMenu, handleEndTurn, handleActivateCOPower, setSelectedUnitId, setTargetEnemyId]);
+  }, [units, selectedUnit, turn, tileContextMenu, handleEndTurn, handleMoveUnit, handleActivateCOPower, setSelectedUnitId, setTargetEnemyId]);
 
   return (
-    <div className="flex-1 flex flex-col w-full h-[calc(100vh-42px)] overflow-hidden bg-[#181914] relative font-sans select-none">
+    <div className="flex-1 flex flex-col w-full h-screen max-h-screen overflow-hidden bg-[#161712] relative font-sans select-none">
       {/* CABECERA BÉLICA SUPERIOR */}
-      <header className="border-b-2 border-[#181914] bg-[#2B2C24] px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 shadow-[0_3px_0px_#181914] shrink-0 z-30">
+      <header className="border-b-2 border-[#0A0B08] bg-[#2B2C24] px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 shadow-[0_3px_0px_#0A0B08] ben-day-dark shrink-0 z-30">
         <div className="flex items-center gap-2">
           <button
+            onMouseEnter={() => audioManager.playHoverTick()}
             onClick={onRetreatToLobby}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-[6px_2px_6px_2px] bg-[#46521F] hover:bg-[#586827] text-[#F2E8D5] text-[11px] font-mono font-black border-2 border-[#181914] shadow-[2px_2px_0px_#181914] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all cursor-pointer"
+            className="tactical-juice-btn flex items-center gap-1.5 px-2.5 py-1 bg-[#46521F] hover:bg-[#586827] text-[#F2E8D5] text-[11px] font-display font-extrabold border-2 border-[#0A0B08]"
             title="Retirarse al Cuartel General (Lobby Bélico)"
           >
-            <ArrowLeft className="w-3.5 h-3.5 text-[#C46A3A]" />
+            <ArrowLeft className="w-3.5 h-3.5 text-amber-300" />
             <span className="hidden sm:inline">Cuartel</span>
           </button>
 
@@ -329,20 +356,24 @@ export const CombatTheaterView: React.FC<CombatTheaterViewProps> = ({
           {/* Botón de Ceder Turno */}
           <button
             onClick={handleEndTurn}
+            onMouseEnter={() => audioManager.playHoverTick()}
             disabled={isBotThinking || (gameMode === 'vs_bot' && turn === 'p2')}
-            className="px-3 py-1 rounded-[6px_2px_6px_2px] font-black text-xs bg-emerald-600 hover:bg-emerald-500 text-slate-950 border-2 border-[#181914] shadow-[2px_2px_0px_#181914] flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40"
+            className="px-3 py-1 rounded-[6px_2px_6px_2px] font-black text-xs bg-emerald-600 hover:bg-emerald-500 text-slate-950 border-2 border-[#0A0B08] shadow-[2px_2px_0px_#0A0B08] flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40 active:translate-x-0.5 active:translate-y-0.5"
+            title="Ceder Turno [Ctrl+Enter]"
           >
             <RotateCcw className={`w-3.5 h-3.5 ${isBotThinking ? 'animate-spin' : ''}`} />
             <span>{isBotThinking ? 'IA...' : 'Ceder Turno'}</span>
+            <span className="hidden xl:inline text-[9px] font-mono text-emerald-950/80 font-bold ml-0.5">[Ctrl+↵]</span>
           </button>
 
           {/* Conmutador Consola Táctica Lateral */}
           <button
             onClick={() => setIsTacticalDrawerOpen(!isTacticalDrawerOpen)}
-            className={`px-2.5 py-1 rounded-[6px_2px_6px_2px] text-xs font-mono font-black border-2 border-[#181914] flex items-center gap-1 transition-all cursor-pointer ${
+            onMouseEnter={() => audioManager.playHoverTick()}
+            className={`px-2.5 py-1 rounded-[6px_2px_6px_2px] text-xs font-mono font-black border-2 border-[#0A0B08] flex items-center gap-1 transition-all cursor-pointer ${
               isTacticalDrawerOpen
-                ? 'bg-[#C46A3A] text-[#F2E8D5] shadow-[2px_2px_0px_#181914]'
-                : 'bg-[#46521F] text-[#F2E8D5] shadow-[2px_2px_0px_#181914]'
+                ? 'bg-[#C46A3A] text-[#F2E8D5] shadow-[2px_2px_0px_#0A0B08]'
+                : 'bg-[#46521F] text-[#F2E8D5] shadow-[2px_2px_0px_#0A0B08]'
             }`}
             title="Abrir o cerrar la consola lateral de táctica, balística y mapas"
           >

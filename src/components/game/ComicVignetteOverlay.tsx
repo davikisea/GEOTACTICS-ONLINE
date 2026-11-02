@@ -76,9 +76,20 @@ export const ComicVignetteOverlay: React.FC<ComicVignetteOverlayProps> = ({
   // Renderizador de formas de bocadillo de diálogo (Taxonomía Canónica)
   const renderBubbleWrapper = (children: React.ReactNode, shape: BubbleShape) => {
     switch (shape) {
+      case 'panic':
+        return (
+          <div className="relative p-5 bg-[#991B1B] text-[#F2E8D5] font-black border-4 border-[#EF4444] shadow-[8px_8px_0px_#0A0B08] animate-pulse">
+            <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[10px] border-t-transparent border-b-[10px] border-b-transparent border-r-[14px] border-r-[#EF4444]" />
+            <div className="text-[10px] uppercase font-mono tracking-widest text-amber-300 mb-1 flex items-center gap-1 font-black">
+              <span>⚠️ ALERTA MÁXIMA DEFCON 1</span>
+            </div>
+            {children}
+          </div>
+        );
+
       case 'shout':
         return (
-          <div className="relative p-5 bg-[#C46A3A] text-white font-bold border-4 border-yellow-300 shadow-[8px_8px_0px_rgba(0,0,0,0.6)] animate-pulse">
+          <div className="relative p-5 bg-[#C46A3A] text-white font-bold border-4 border-yellow-300 shadow-[8px_8px_0px_#0A0B08] animate-pulse">
             {/* Puntas de explosión cómics */}
             <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[10px] border-t-transparent border-b-[10px] border-b-transparent border-r-[14px] border-r-yellow-300" />
             {children}
@@ -87,7 +98,7 @@ export const ComicVignetteOverlay: React.FC<ComicVignetteOverlayProps> = ({
 
       case 'thought':
         return (
-          <div className="relative p-5 bg-[#F2E8D5] text-[#2B2C24] font-semibold border-4 border-[#7B8A4A] rounded-[30px] shadow-[8px_8px_0px_rgba(0,0,0,0.5)]">
+          <div className="relative p-5 bg-[#F2E8D5] text-[#2B2C24] font-semibold border-4 border-[#7B8A4A] rounded-[30px] shadow-[8px_8px_0px_#0A0B08]">
             {/* Burbujas flotantes de pensamiento */}
             <div className="absolute -left-4 bottom-2 w-3.5 h-3.5 rounded-full bg-[#F2E8D5] border-2 border-[#7B8A4A]" />
             <div className="absolute -left-7 bottom-0 w-2 h-2 rounded-full bg-[#F2E8D5] border-2 border-[#7B8A4A]" />
@@ -97,7 +108,7 @@ export const ComicVignetteOverlay: React.FC<ComicVignetteOverlayProps> = ({
 
       case 'whisper':
         return (
-          <div className="relative p-4 bg-[#2B2C24]/90 text-[#F2E8D5] border-4 border-dashed border-[#7B8A4A] rounded-2xl shadow-[6px_6px_0px_rgba(0,0,0,0.6)] backdrop-blur-sm">
+          <div className="relative p-4 bg-[#2B2C24]/90 text-[#F2E8D5] border-4 border-dashed border-[#7B8A4A] rounded-2xl shadow-[6px_6px_0px_#0A0B08] backdrop-blur-sm">
             <div className="text-[10px] uppercase font-mono tracking-widest text-[#7B8A4A] mb-1 flex items-center gap-1">
               <span>● SUSURRO DE EMBOSCADA</span>
             </div>
@@ -107,7 +118,7 @@ export const ComicVignetteOverlay: React.FC<ComicVignetteOverlayProps> = ({
 
       case 'radio':
         return (
-          <div className="relative p-5 bg-[#2B2C24] text-[#F2E8D5] border-4 border-[#7B8A4A] shadow-[8px_8px_0px_rgba(0,0,0,0.6)]">
+          <div className="relative p-5 bg-[#2B2C24] text-[#F2E8D5] border-4 border-[#7B8A4A] shadow-[8px_8px_0px_#0A0B08]">
             {/* Efecto de estática y líneas de barrido militar */}
             <div className="absolute top-2 right-2 flex items-center gap-1 text-[10px] font-mono text-emerald-400 bg-black/60 px-2 py-0.5 rounded border border-emerald-500/40">
               <Radio className="w-3 h-3 animate-pulse" />
@@ -120,7 +131,7 @@ export const ComicVignetteOverlay: React.FC<ComicVignetteOverlayProps> = ({
       case 'speech':
       default:
         return (
-          <div className="relative p-5 bg-[#F2E8D5] text-[#2B2C24] font-medium border-4 border-[#7B8A4A] rounded-[40px_10px_40px_10px] shadow-[8px_8px_0px_rgba(0,0,0,0.5)]">
+          <div className="relative p-5 bg-[#F2E8D5] text-[#2B2C24] font-medium border-4 border-[#7B8A4A] rounded-[40px_10px_40px_10px] shadow-[8px_8px_0px_#0A0B08]">
             {/* Cola curva tradicional de bocadillo */}
             <div className="absolute -left-3 top-6 w-0 h-0 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-r-[12px] border-r-[#7B8A4A]" />
             {children}
@@ -133,7 +144,7 @@ export const ComicVignetteOverlay: React.FC<ComicVignetteOverlayProps> = ({
     <div className="fixed bottom-6 right-6 z-50 max-w-xl w-full pointer-events-auto transition-all duration-300 animate-in fade-in slide-in-from-bottom-5">
       {/* Contenedor Principal: Skill retro-futurism (Aerodinámico Atompunk con sombra dura) */}
       <div
-        className="relative bg-[#46521F] border-4 border-[#7B8A4A] shadow-[15px_15px_0px_rgba(0,0,0,0.6)] rounded-[40px_10px_40px_10px] p-5 overflow-hidden"
+        className="relative bg-[#46521F] border-4 border-[#7B8A4A] shadow-[12px_12px_0px_#0A0B08] rounded-[40px_10px_40px_10px] p-5 overflow-hidden"
         style={{
           fontFamily: "'Futura', 'Trebuchet MS', sans-serif",
         }}

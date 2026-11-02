@@ -31,8 +31,6 @@ export const ProductionModal: React.FC<ProductionModalProps> = ({
   activeDeck,
   currentUnitCount = 0,
 }) => {
-  if (!isOpen || !facilityCoord) return null;
-
   const facilityType = facilityTile?.type === 'airport' ? 'airport' : facilityTile?.type === 'port' ? 'port' : 'factory';
 
   // Filtrar según el Mazo de 10 Cartas Activo (Libertad Orgánica - Sin Cooldowns)
@@ -46,6 +44,38 @@ export const ProductionModal: React.FC<ProductionModalProps> = ({
 
   const supplyStatus = DeckManager.calculateSupplyStatus(currentUnitCount);
 
+  // Atajos de teclado numéricos [1]-[9] y ESC para despliegue de alta velocidad
+  React.useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        audioManager.playSFX('button_click');
+        onClose();
+        return;
+      }
+
+      const num = parseInt(e.key, 10);
+      if (!isNaN(num) && num >= 1 && num <= availableUnits.length) {
+        const [code, unit] = availableUnits[num - 1];
+        const effectiveCost = coId ? COEngine.getProductionCostModifier(coId, unit.cost) : unit.cost;
+        if (currentFunds >= effectiveCost) {
+          e.preventDefault();
+          audioManager.playSFX('unit_order');
+          audioManager.playGoldTick(8);
+          onProduce(code);
+        } else {
+          audioManager.playSFX('button_click');
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, availableUnits, currentFunds, coId, onClose, onProduce]);
+
+  if (!isOpen || !facilityCoord) return null;
+
   const getFacilityName = () => {
     switch (facilityType) {
       case 'airport':
@@ -57,163 +87,195 @@ export const ProductionModal: React.FC<ProductionModalProps> = ({
     }
   };
 
+  const handleUnitClick = (code: string, effectiveCost: number) => {
+    if (currentFunds >= effectiveCost) {
+      audioManager.playSFX('unit_order');
+      audioManager.playGoldTick(8);
+      onProduce(code);
+    } else {
+      audioManager.playSFX('button_click');
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="bg-slate-900 border border-slate-700 w-full max-w-2xl rounded-xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
-        {/* Encabezado */}
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in font-mono select-none"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          audioManager.playSFX('button_click');
+          onClose();
+        }
+      }}
+    >
+      <div className="bg-[#2B2C24] border-4 border-[#0A0B08] w-full max-w-4xl rounded-[24px_6px_24px_6px] shadow-[12px_12px_0px_#0A0B08] flex flex-col max-h-[92vh] overflow-hidden text-[#F2E8D5] ben-day-dark">
+        {/* Encabezado C4ISR */}
+        <div className="p-4 border-b-2 border-[#0A0B08] flex items-center justify-between bg-[#181914]">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${player === 'p1' ? 'bg-blue-600/20 text-blue-400 border border-blue-500/40' : 'bg-red-600/20 text-red-400 border border-red-500/40'}`}>
+            <div className={`p-2 rounded-[8px_2px_8px_2px] border-2 border-[#0A0B08] shadow-[2px_2px_0px_#0A0B08] ${
+              player === 'p1' ? 'bg-[#46521F] text-amber-300' : 'bg-[#7F1D1D] text-amber-300'
+            }`}>
               <Factory className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-white text-sm font-mono tracking-wide">
+                <h3 className="font-black text-[#F2E8D5] text-sm uppercase tracking-wide">
                   ENSAMBLAJE MILITAR CANÓNICO
                 </h3>
-                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase font-mono ${player === 'p1' ? 'bg-blue-950 text-blue-300 border border-blue-800' : 'bg-red-950 text-red-300 border border-red-800'}`}>
-                  {player === 'p1' ? 'Orange Star (Azul)' : 'Blue Moon (Rojo)'}
+                <span className={`px-2 py-0.5 rounded-[4px_1px_4px_1px] text-[10px] font-black uppercase border border-[#0A0B08] ${
+                  player === 'p1' ? 'bg-[#46521F] text-[#F2E8D5]' : 'bg-[#7F1D1D] text-[#F2E8D5]'
+                }`}>
+                  {player === 'p1' ? 'Orange Star' : 'Blue Moon'}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 font-mono mt-0.5">
-                {getFacilityName()} • Coordenadas [{facilityCoord.x}, {facilityCoord.y}]
+              <p className="text-[11px] text-[#7B8A4A] mt-0.5 font-bold">
+                {getFacilityName()} • Sector [{facilityCoord.x}, {facilityCoord.y}]
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 font-mono">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-[8px_2px_8px_2px] bg-[#2B2C24] border-2 border-[#0A0B08] shadow-[2px_2px_0px_#0A0B08] tabular-nums">
               <Coins className="w-4 h-4 text-amber-400" />
-              <span className="text-xs text-slate-400">Fondos:</span>
-              <span className="text-xs font-bold text-emerald-400">{currentFunds.toLocaleString()}G</span>
+              <span className="text-[11px] text-[#7B8A4A] font-bold">Fondos:</span>
+              <span className="text-xs font-black text-amber-400">{currentFunds.toLocaleString()}G</span>
             </div>
             <button
               onClick={() => {
                 audioManager.playSFX('button_click');
                 onClose();
               }}
-              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+              onMouseEnter={() => audioManager.playHoverTick()}
+              className="text-[#F2E8D5]/70 hover:text-white p-1.5 rounded-[6px_2px_6px_2px] bg-[#2B2C24] border border-[#7B8A4A]/50 hover:bg-[#34352C] transition-colors cursor-pointer flex items-center gap-1 text-[10px] font-bold"
+              title="Cerrar (ESC)"
             >
-              <X className="w-5 h-5" />
+              <span className="text-[9px] text-amber-400/80 hidden sm:inline">[ESC]</span>
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Sub-Barra de Mazo Táctico y Capacidad de Suministros (Libertad Orgánica) */}
-        <div className="bg-slate-950/90 border-b border-slate-800 px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono">
+        {/* Sub-Barra de Mazo Táctico y Capacidad de Suministros */}
+        <div className="bg-[#181914]/80 border-b-2 border-[#0A0B08] px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-[11px]">
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded bg-emerald-950 border border-emerald-500/40 text-emerald-400 font-bold flex items-center gap-1">
-              <Layers className="w-3 h-3" />
-              Mazo Táctico: 10 Cartas
+            <span className="px-2 py-0.5 rounded-[4px_1px_4px_1px] bg-[#46521F] border border-[#7B8A4A] text-[#F2E8D5] font-black flex items-center gap-1">
+              <Layers className="w-3 h-3 text-amber-300" />
+              Mazo Táctico ({availableUnits.length} disponibles)
             </span>
-            <span className="text-slate-400">
-              Despliegue directo sin cooldowns artificiales
+            <span className="text-[#7B8A4A] hidden sm:inline font-bold">
+              Pulsa [1]–[{Math.min(9, availableUnits.length)}] para ensamblar
             </span>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className={`px-2 py-0.5 rounded border font-bold flex items-center gap-1 ${
+            <span className={`px-2 py-0.5 rounded-[4px_1px_4px_1px] border font-black flex items-center gap-1 ${
               supplyStatus.isOverCapacity
                 ? 'bg-amber-950/80 border-amber-500/50 text-amber-300'
-                : 'bg-slate-900 border-slate-800 text-slate-300'
+                : 'bg-[#2B2C24] border-[#7B8A4A]/40 text-[#F2E8D5]'
             }`}>
               {supplyStatus.isOverCapacity ? <AlertCircle className="w-3 h-3 text-amber-400" /> : <Shield className="w-3 h-3 text-emerald-400" />}
-              Tropas: {supplyStatus.unitCount} / {supplyStatus.freeThreshold} {supplyStatus.isOverCapacity ? `(Mantenimiento: -${supplyStatus.totalUpkeepG}G/t)` : '(Suministro Pleno)'}
+              Tropas: {supplyStatus.unitCount} / {supplyStatus.freeThreshold} {supplyStatus.isOverCapacity ? `(Penalización: -${supplyStatus.totalUpkeepG}G/t)` : '(Suministro Óptimo)'}
             </span>
           </div>
         </div>
 
-        {/* Lista de Unidades Desplegables */}
-        <div className="p-4 overflow-y-auto space-y-2.5 flex-1 font-mono text-xs">
-          {availableUnits.map(([code, unit]) => {
-            const effectiveCost = coId ? COEngine.getProductionCostModifier(coId, unit.cost) : unit.cost;
-            const hasDiscount = effectiveCost < unit.cost;
-            const canAfford = currentFunds >= effectiveCost;
+        {/* Cuadrícula Táctica de Fichas de Producción */}
+        <div className="p-4 overflow-y-auto flex-1">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            {availableUnits.map(([code, unit], idx) => {
+              const effectiveCost = coId ? COEngine.getProductionCostModifier(coId, unit.cost) : unit.cost;
+              const hasDiscount = effectiveCost < unit.cost;
+              const canAfford = currentFunds >= effectiveCost;
+              const hotkey = idx < 9 ? `${idx + 1}` : null;
 
-            return (
-              <div
-                key={code}
-                className={`p-3 rounded-lg border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
-                  canAfford
-                    ? 'bg-slate-950/80 border-slate-800 hover:border-emerald-500/50 hover:bg-slate-950'
-                    : 'bg-slate-950/40 border-slate-800/50 opacity-60'
-                }`}
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-slate-100 text-sm">{unit.displayName}</span>
-                    <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400 font-mono">
-                      {unit.movementType.toUpperCase()}
-                    </span>
-                    {hasDiscount && (
-                      <span className="px-1.5 py-0.5 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-800 font-bold">
-                        -20% COLIN
-                      </span>
-                    )}
+              return (
+                <div
+                  key={code}
+                  onClick={() => canAfford && handleUnitClick(code, effectiveCost)}
+                  onMouseEnter={() => canAfford && audioManager.playHoverTick()}
+                  className={`relative p-3 rounded-[12px_3px_12px_3px] border-2 flex flex-col justify-between transition-all select-none ${
+                    canAfford
+                      ? 'bg-[#181914] border-[#0A0B08] shadow-[4px_4px_0px_#0A0B08] hover:border-amber-400 hover:bg-[#20211A] cursor-pointer active:translate-x-0.5 active:translate-y-0.5 group'
+                      : 'bg-[#181914]/50 border-[#0A0B08]/60 opacity-45 cursor-not-allowed shadow-none'
+                  }`}
+                >
+                  {/* Badge de Atajo Numérico */}
+                  {hotkey && (
+                    <div className="absolute top-2 left-2 z-10 px-1.5 py-0.2 rounded-[3px_1px_3px_1px] bg-[#0A0B08] text-amber-300 font-mono text-[9px] font-black border border-[#7B8A4A]/40">
+                      [{hotkey}]
+                    </div>
+                  )}
+
+                  {/* Insignia de Descuento */}
+                  {hasDiscount && (
+                    <div className="absolute top-2 right-2 z-10 px-1 py-0.2 rounded-[3px_1px_3px_1px] bg-[#C46A3A] text-[#F2E8D5] text-[8px] font-black uppercase">
+                      -20%
+                    </div>
+                  )}
+
+                  {/* Silueta / Icono de Unidad */}
+                  <div className="h-16 flex items-center justify-center relative mt-3 mb-1">
+                    <div className={`w-12 h-12 rounded-[10px_2px_10px_2px] border-2 border-[#0A0B08] shadow-[2px_2px_0px_#0A0B08] flex items-center justify-center text-xl ${
+                      canAfford ? 'bg-[#46521F] text-amber-300 group-hover:scale-105' : 'bg-[#2B2C24] text-slate-500'
+                    } transition-transform`}>
+                      {unit.facility === 'airport' ? '✈️' : unit.facility === 'port' ? '🚢' : '🛡️'}
+                    </div>
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                    {unit.description}
-                  </p>
-                  
-                  {/* Atributos Clave */}
-                  <div className="flex flex-wrap items-center gap-3 mt-2 text-[10px] text-slate-400">
-                    <span className="flex items-center gap-1">
-                      <Gauge className="w-3 h-3 text-emerald-400" />
-                      Mov: <b className="text-slate-200">{unit.movementPoints}</b>
+
+                  {/* Nombre y Tipo */}
+                  <div className="text-center">
+                    <h4 className="font-black text-xs text-[#F2E8D5] uppercase truncate">
+                      {unit.displayName}
+                    </h4>
+                    <span className="text-[9px] text-[#7B8A4A] font-black uppercase tracking-wider block">
+                      {unit.movementType}
                     </span>
-                    <span className="flex items-center gap-1">
-                      <Crosshair className="w-3 h-3 text-amber-400" />
-                      Rango: <b className="text-slate-200">[{unit.minRange}-{unit.maxRange}]</b>
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Shield className="w-3 h-3 text-blue-400" />
-                      Poder: <b className="text-slate-200">{unit.baseAttack}</b>
-                    </span>
-                    <span>
-                      Mun: <b className="text-slate-200">{unit.ammo}</b> | Fuel: <b className="text-slate-200">{unit.fuel}</b>
-                    </span>
+                  </div>
+
+                  {/* Estadísticas Compactas */}
+                  <div className="grid grid-cols-2 gap-1 my-2 text-[9px] text-[#7B8A4A] bg-[#2B2C24]/60 p-1.5 rounded border border-[#7B8A4A]/20 font-bold tabular-nums">
+                    <span>MOV: <b className="text-[#F2E8D5]">{unit.movementPoints}</b></span>
+                    <span>RNG: <b className="text-[#F2E8D5]">{unit.minRange}-{unit.maxRange}</b></span>
+                    <span>ATK: <b className="text-[#F2E8D5]">{unit.baseAttack}</b></span>
+                    <span>MUN: <b className="text-[#F2E8D5]">{unit.ammo}</b></span>
+                  </div>
+
+                  {/* Placa de Costo y Botón de Ensamble */}
+                  <div className="pt-1.5 border-t border-[#7B8A4A]/30 flex items-center justify-between">
+                    <div className="font-black text-xs tabular-nums">
+                      <span className={canAfford ? 'text-amber-400' : 'text-red-400'}>
+                        {effectiveCost.toLocaleString()}G
+                      </span>
+                    </div>
+
+                    <button
+                      disabled={!canAfford}
+                      className={`px-2 py-0.5 rounded-[4px_1px_4px_1px] text-[10px] font-black uppercase tracking-wider border transition-all ${
+                        canAfford
+                          ? 'bg-amber-400 hover:bg-amber-300 text-slate-950 border-[#0A0B08] shadow-[2px_2px_0px_#0A0B08] cursor-pointer'
+                          : 'bg-[#2B2C24] text-[#7B8A4A] border-transparent cursor-not-allowed'
+                      }`}
+                    >
+                      Crear
+                    </button>
                   </div>
                 </div>
-
-                <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80">
-                  <div className="font-bold text-sm text-right">
-                    {hasDiscount && (
-                      <span className="text-[10px] text-slate-500 line-through mr-1.5">
-                        {unit.cost.toLocaleString()}G
-                      </span>
-                    )}
-                    <span className={canAfford ? 'text-amber-400' : 'text-red-400'}>
-                      {effectiveCost.toLocaleString()}G
-                    </span>
-                  </div>
-                  <button
-                    disabled={!canAfford}
-                    onClick={() => onProduce(code)}
-                    className={`px-3 py-1.5 rounded text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                      canAfford
-                        ? 'bg-emerald-600 hover:bg-emerald-500 text-slate-950 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
-                        : 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                    }`}
-                  >
-                    Desplegar
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
 
         {/* Pie de Modal */}
-        <div className="p-3 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-[11px] font-mono text-slate-400">
-          <span>* La unidad desplegada comenzará en estado de espera en este turno.</span>
+        <div className="p-3 bg-[#181914] border-t-2 border-[#0A0B08] flex items-center justify-between text-[11px] text-[#7B8A4A]">
+          <span>* La unidad ensamblada iniciará en espera activa en este turno.</span>
           <button
             onClick={() => {
               audioManager.playSFX('button_click');
               onClose();
             }}
-            className="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
+            onMouseEnter={() => audioManager.playHoverTick()}
+            className="px-3 py-1 rounded-[6px_2px_6px_2px] bg-[#2B2C24] hover:bg-[#34352C] text-[#F2E8D5] border border-[#7B8A4A]/50 transition-colors cursor-pointer text-xs font-bold"
           >
-            Cerrar
+            Cerrar [ESC]
           </button>
         </div>
       </div>

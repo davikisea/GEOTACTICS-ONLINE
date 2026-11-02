@@ -70,28 +70,34 @@ export const GAME_DOCUMENTS: DocItem[] = [
   * Soporte nativo para costuras de tubería de 100 HP destructibles (pipeSeam), ríos, carreteras, arrecifes y torres de telecomunicaciones (+10% ataque c/u).`
       },
       {
-        heading: '5. Sistema de Diseño Frontend: Skill Canónica retro-futurism',
-        content: `Toda la interfaz del juego (HUD, barras de mando, modales de producción, armería, tienda y viñetas de cómic) sigue de manera estricta y vinculante la especificación de diseño de la skill **retro-futurism** (agents/skills/retro-futurism/skill.md):
-- **Estética Atompunk / Space-Age 1950s:** Diseño limpio, optimista y brillante ("Clean, optimistic and shiny", no steampunk sucio).
-- **Geometría Aerodinámica Asimétrica:** Sin rectángulos genéricos. Las tarjetas tácticas y modales aplican bordes asimétricos curvos (border-radius: 40px 10px 40px 10px) y remates en estrella atómica (starburst).
+        heading: '5. Sistema de Diseño Frontend: Skill Canónica tactical-command-intel',
+        content: `Toda la interfaz del juego (HUD, barras de mando, modales de producción, armería, tienda y paneles de inteligencia) sigue de manera estricta y vinculante la especificación de diseño de la skill (agents/skills/retro-futurism/skill.md):
+- **Estética Central de Inteligencia Militar (C4ISR):** Maquinaria militar pesada, consolas blindadas de búnker de mando, radares terrestres y cero motivos espaciales/Googie. Inspiración en la claridad táctica estilo Advance Wars dentro de un universo 100% original.
+- **Bordes Afilados & Chaflanes a 45°:** Cero bordes redondeados orgánicos. Se emplean ángulos rectos a 90° o cortes chaflanados a 45° (clip-path) y pernos hexagonales de titanio.
 - **Paleta Cromática Oficial:**
-  * Fondo base ultra-oscuro: #2B2C24
-  * Superficies de tarjetas y modales: Oliva Oscuro (#46521F)
-  * Biseles y acentos de control: Verde Apagado (#7B8A4A)
-  * Acciones primarias y alertas de combate: Naranja Óxido (#C46A3A)
-  * Texto y números de máxima legibilidad: Crema (#F2E8D5)
-  * Biseles cromados reflectantes mediante gradientes lineales.
-- **Sombras Duras y Dramáticas:** box-shadow: 15px 15px 0px rgba(0,0,0,0.5).
-- **Tipografía:** Geometric sans-serif de mediados de siglo (Futura, Trebuchet MS).`,
+  * Fondo base ultra-oscuro: #161712 / #2B2C24
+  * Superficies de tarjetas y blindaje: Oliva Oscuro (#46521F)
+  * Biseles y cantos de acero mecanizado: Verde Cromo-Níquel (#7B8A4A)
+  * Acciones primarias y alertas DEFCON: Naranja Óxido (#C46A3A)
+  * Texto y números de máxima legibilidad: Crema Fósforo Calibrado (#F2E8D5)
+  * **Nuevo Acento Terminal e Inteligencia:** Verde Fósforo Matrix (#00FF66) para radares, telemetría y retículas de detección.
+- **Texturas Metálicas e Industriales:** Acero balístico cepillado, rejillas de ventilación y remaches de fijación.
+- **Sombras Duras y Dramáticas:** box-shadow físico sin desenfoque (blur: 0px).
+- **Tipografía:** Geometric sans-serif militar (Futura, Jost) y monospaciado táctico (Share Tech Mono).`,
         codeSnippet: {
           language: 'css',
-          code: `.atompunk-tactical-card {
-  background-color: #46521F; /* Dark Olive */
-  border: 4px solid #7B8A4A; /* Muted Green */
-  border-radius: 40px 10px 40px 10px; /* Aerodynamic corners */
-  box-shadow: 15px 15px 0px rgba(0,0,0,0.5); /* Hard offset shadow */
-  color: #F2E8D5; /* Cream */
-  font-family: 'Futura', 'Trebuchet MS', sans-serif;
+          code: `.tactical-intel-armor-card {
+  background: linear-gradient(180deg, #2B2C24 0%, #1E1F18 100%);
+  border: 1px solid #7B8A4A;
+  clip-path: polygon(
+    14px 0, calc(100% - 14px) 0,
+    100% 14px, 100% calc(100% - 14px),
+    calc(100% - 14px) 100%, 14px 100%,
+    0 calc(100% - 14px), 0 14px
+  );
+  box-shadow: 5px 5px 0px #0A0B08;
+  color: #F2E8D5;
+  font-family: 'Futura', 'Jost', sans-serif;
 }`
         }
       },

@@ -15,6 +15,37 @@
  */
 
 import { supabase } from '../lib/supabase/client';
+import { CANONICAL_CO_REGISTRY, COId, getCOFullBodyUrl, resolveCanonicalCOId } from './coSystem';
+
+export type LobbyBarkIntent =
+  | 'time_of_day'
+  | 'last_match_victory'
+  | 'last_match_defeat'
+  | 'commander_poke'
+  | 'hover_deploy'
+  | 'hover_blitz'
+  | 'hover_armory'
+  | 'hover_war_room'
+  | 'hover_industry'
+  | 'hover_shop'
+  | 'hover_marketplace'
+  | 'hover_clans'
+  | 'hover_profile'
+  | 'hover_docs'
+  | 'hover_rotor';
+
+export interface LobbyContextualBark {
+  id: string;
+  commanderId: COId;
+  commanderName: string;
+  commanderTitle: string;
+  faction: string;
+  bubbleShape: BubbleShape;
+  onomatopoeia: OnomatopoeiaStamp;
+  contextLabel: string;
+  text: string;
+  stampRotationDeg: number;
+}
 
 export type BarkTriggerContext =
   | 'match_start'
@@ -32,7 +63,7 @@ export type BarkTriggerContext =
   | 'tilt_streak'
   | 'idle_funds';
 
-export type BubbleShape = 'speech' | 'shout' | 'thought' | 'whisper' | 'radio';
+export type BubbleShape = 'speech' | 'shout' | 'thought' | 'whisper' | 'radio' | 'panic';
 
 export type OnomatopoeiaStamp =
   | '¡BOOM!'
@@ -564,23 +595,27 @@ class ProceduralBarkEngine {
     let selectedTemplate: BarkTemplate | null = null;
 
     try {
-      const { data, error } = await supabase.rpc('rpc_get_contextual_bark', {
+      const rpcFn = supabase.rpc as unknown as (
+        fn: string,
+        args: Record<string, unknown>
+      ) => Promise<{ data: Record<string, unknown> | null; error: unknown }>;
+      const { data, error } = await rpcFn('rpc_get_contextual_bark', {
         p_commander_id: context.commanderId,
         p_trigger_context: context.triggerContext,
       });
 
       if (!error && data && data.has_bark) {
         selectedTemplate = {
-          id: data.bark_id,
-          commanderId: data.commander_id,
+          id: String(data.bark_id),
+          commanderId: String(data.commander_id),
           triggerContext: context.triggerContext,
           bubbleShape: data.speaker_shape as BubbleShape,
           onomatopoeia: data.onomatopoeia as OnomatopoeiaStamp,
           mood: data.vignette_mood as VignetteMood,
-          minBondingLevel: data.bonding_level,
+          minBondingLevel: Number(data.bonding_level ?? 1),
           priorityWeight: 10,
           cooldownTurns: 2,
-          text: data.dialogue_text,
+          text: String(data.dialogue_text),
         };
       }
     } catch {
@@ -638,9 +673,9 @@ class ProceduralBarkEngine {
     if (this.activeTimeoutId) {
       clearTimeout(this.activeTimeoutId);
     }
-    this.activeTimeoutId = window.setTimeout(() => {
+    this.activeTimeoutId = setTimeout(() => {
       this.clearActiveBark();
-    }, activeDisplay.durationMs);
+    }, activeDisplay.durationMs) as unknown as number;
 
     return activeDisplay;
   }
@@ -679,8 +714,32 @@ class ProceduralBarkEngine {
       const fallbackCandidates = CANONICAL_BARK_TEMPLATES.filter(
         t => (t.commanderId === commanderId || t.commanderId === 'all') && t.triggerContext === context
       );
-      if (fallbackCandidates.length === 0) return null;
-      return fallbackCandidates[Math.floor(Math.random() * fallbackCandidates.length)];
+      if (fallbackCandidates.length > 0) {
+        return fallbackCandidates[Math.floor(Math.random() * fallbackCandidates.length)];
+      }
+
+      // Respaldo dinámico para los 28 Comandantes de CANONICAL_CO_REGISTRY sin plantilla estática explícita
+      const canonicalCo = CANONICAL_CO_REGISTRY[resolveCanonicalCOId(commanderId)];
+      if (canonicalCo) {
+        return {
+          id: `dynamic_${canonicalCo.id}_${context}`,
+          commanderId: canonicalCo.id,
+          triggerContext: context,
+          bubbleShape: context === 'scop_activated' || context === 'victory' ? 'shout' : 'speech',
+          onomatopoeia: context === 'scop_activated' ? '¡BOOM!' : context === 'victory' ? '¡CLUTCH!' : '¡TACTICAL!',
+          mood: context === 'defeat' ? 'angry' : 'proud',
+          minBondingLevel: 1,
+          priorityWeight: 10,
+          cooldownTurns: 2,
+          text:
+            context === 'scop_activated'
+              ? `¡${canonicalCo.powers.scop.name.toUpperCase()}! ${canonicalCo.powers.scop.description}`
+              : context === 'cop_activated' && canonicalCo.powers.cop
+              ? `¡${canonicalCo.powers.cop.name}! ${canonicalCo.powers.cop.description}`
+              : `¡Aquí ${canonicalCo.name} (${canonicalCo.title})! ${canonicalCo.dayToDay.description}`,
+        };
+      }
+      return null;
     }
 
     // Muestreo estocástico ponderado por priorityWeight
@@ -704,55 +763,250 @@ class ProceduralBarkEngine {
     }
   }
 
+  /**
+   * Genera un Bark contextual inmediato para la Gran Viñeta Viva ("The Living Comic Canvas")
+   * en función de la hora del día, resultado reciente, clic directo o hover sobre terminales.
+   */
+  public getLobbyContextualBark(params: {
+    commanderId: string;
+    intent: LobbyBarkIntent;
+    pokeCounter?: number;
+    playerName?: string;
+    bondingLevel?: number;
+    hourOfDay?: number;
+  }): LobbyContextualBark {
+    const canonicalId = resolveCanonicalCOId(params.commanderId);
+    const co = CANONICAL_CO_REGISTRY[canonicalId];
+    const hour = params.hourOfDay ?? new Date().getHours();
+    const player = (params.bondingLevel ?? 1) >= 3 ? (params.playerName || 'Comandante') : 'Cadete';
+    const pokeIdx = params.pokeCounter ?? 0;
+
+    let bubbleShape: BubbleShape = 'speech';
+    let onomatopoeia: OnomatopoeiaStamp = '¡TACTICAL!';
+    let contextLabel = 'PARTE DE MANDO // EN LÍNEA';
+    let text = '';
+
+    switch (params.intent) {
+      case 'last_match_victory': {
+        bubbleShape = 'shout';
+        onomatopoeia = '¡CLUTCH!';
+        contextLabel = 'PARTE POST-COMBATE // VICTORIA';
+        text = `¡Excelente ejecución táctica, ${player}! Con ${co.powers.scop.name} listo y nuestra doctrina activa, ninguna división rival podrá sostener el frente.`;
+        break;
+      }
+
+      case 'last_match_defeat': {
+        bubbleShape = 'shout';
+        onomatopoeia = '¡HOLD!';
+        contextLabel = 'DIRECTIVA DE CONTRAOFENSIVA';
+        text = `¡Esa retirada fue solo un reajuste balístico, ${player}! Revisa el Mazo de 10 Cartas en el Hangar, recalibra ${co.powers.scop.name} y volvamos al frente.`;
+        break;
+      }
+
+      case 'commander_poke': {
+        const pokeVariants: {
+          shape: BubbleShape;
+          stamp: OnomatopoeiaStamp;
+          label: string;
+          line: string;
+        }[] = [
+          {
+            shape: 'shout',
+            stamp: '¡TACTICAL!',
+            label: `DOCTRINA D2D // ${co.name.toUpperCase()}`,
+            line: `${co.dayToDay.description} ¡Dame la orden de salida cuando estés listo, ${player}!`,
+          },
+          {
+            shape: 'speech',
+            stamp: '¡BOOM!',
+            label: `SUPERPODER SCOP (${co.powers.scop.stars}★)`,
+            line: `Mi protocolo supremo es «${co.powers.scop.name}»: ${co.powers.scop.description}`,
+          },
+          {
+            shape: 'radio',
+            stamp: '¡RATATAT!',
+            label: 'ENLACE DE COMANDO ACTIVO',
+            line: co.powers.cop
+              ? `Con ${co.powers.cop.stars} estrellas activo «${co.powers.cop.name}»: ${co.powers.cop.description}`
+              : `No requiero poder intermedio: concentro toda la energía en «${co.powers.scop.name}» (${co.powers.scop.stars}★).`,
+          },
+          {
+            shape: 'thought',
+            stamp: '¡CALCULATED!',
+            label: 'EVALUACIÓN ESTRATÉGICA',
+            line: `Los sensores C4ISR marcan actividad enemiga. ¿Desplegamos en Duelo Espejo (15s) o Escaramuza Blitz (30s), ${player}?`,
+          },
+        ];
+        const chosen = pokeVariants[pokeIdx % pokeVariants.length];
+        bubbleShape = chosen.shape;
+        onomatopoeia = chosen.stamp;
+        contextLabel = chosen.label;
+        text = chosen.line;
+        break;
+      }
+
+      case 'hover_deploy': {
+        bubbleShape = 'shout';
+        onomatopoeia = '¡BOOM!';
+        contextLabel = 'TERMINAL // DESPLIEGUE DE COMBATE';
+        text = `¡Sala de Operaciones lista! Elige entre Duelo Espejo 1v1 (15s), Escaramuza Blitz (30s) o Gran Campaña. ¡Mis unidades esperan tu señal!`;
+        break;
+      }
+
+      case 'hover_blitz': {
+        bubbleShape = 'shout';
+        onomatopoeia = '¡RATATAT!';
+        contextLabel = 'ACCIÓN RÁPIDA // BLITZ 1-CLIC';
+        text = `¡Despliegue relámpago en 1 clic! Entraremos directo a Escaramuza Blitz con economía 2.0x y reloj Fischer de 30 segundos.`;
+        break;
+      }
+
+      case 'hover_armory': {
+        bubbleShape = 'speech';
+        onomatopoeia = '¡TACTICAL!';
+        contextLabel = 'ESTACIÓN 03 // HANGAR DE TROPAS';
+        text = `En el Hangar configuramos el Mazo Táctico de 10 Cartas y el camuflaje de nuestras unidades antes de entrar en combate.`;
+        break;
+      }
+
+      case 'hover_war_room': {
+        bubbleShape = 'radio';
+        onomatopoeia = '¡CALCULATED!';
+        contextLabel = 'CUARTEL DE OFICIALES // DOSSIER CO';
+        text = `Consulta los expedientes de los 28 Comandantes, nuestras pasivas Día a Día, umbrales de estrellas COP/SCOP y nivel de Vínculo.`;
+        break;
+      }
+
+      case 'hover_industry': {
+        bubbleShape = 'speech';
+        onomatopoeia = '¡HOLD!';
+        contextLabel = 'ESTACIÓN 02 // COMPLEJO INDUSTRIAL';
+        text = `La refinería procesa hierro en acero blindado y microchips. Mantén los silos activos para sostener la logística de guerra.`;
+        break;
+      }
+
+      case 'hover_shop': {
+        bubbleShape = 'speech';
+        onomatopoeia = '¡AIRDROP!';
+        contextLabel = 'ESTACIÓN 01 // INTENDENCIA MILITAR';
+        text = `Intendencia dispone de acabados cosméticos de facción y suministros tácticos. 100% identidad visual, cero ventajas injustas.`;
+        break;
+      }
+
+      case 'hover_marketplace': {
+        bubbleShape = 'thought';
+        onomatopoeia = '¡CALCULATED!';
+        contextLabel = 'ESTACIÓN 04 // BOLSA NEGRA P2P';
+        text = `Intercambia excedentes de acero, hormigón y microchips con otros comandantes bajo banda de precios regulada.`;
+        break;
+      }
+
+      case 'hover_clans': {
+        bubbleShape = 'radio';
+        onomatopoeia = '¡HOLD!';
+        contextLabel = 'ESTACIÓN 05 // CORPORACIÓN & ALIANZA';
+        text = `Coordina suministros con tu Corporación Militar, activa la Salvaguarda de racha y refuerza el tesoro aliado.`;
+        break;
+      }
+
+      case 'hover_profile': {
+        bubbleShape = 'speech';
+        onomatopoeia = '¡CLUTCH!';
+        contextLabel = 'EXPEDIENTE MILITAR & RÉCORDS';
+        text = `Revisa tu hoja de servicio, ELO competitivo, medallas condecoradas y personaliza tu estandarte de mando.`;
+        break;
+      }
+
+      case 'hover_docs': {
+        bubbleShape = 'thought';
+        onomatopoeia = '¡CALCULATED!';
+        contextLabel = 'ESTACIÓN 06 // ARCHIVOS DE DOCTRINA';
+        text = `Manuales balísticos, tablas deterministas de daño y especificaciones técnicas del Estado Mayor.`;
+        break;
+      }
+
+      case 'hover_rotor': {
+        bubbleShape = 'shout';
+        onomatopoeia = '¡AIRDROP!';
+        contextLabel = 'ROTOR C4ISR // REABASTECIMIENTO';
+        text = `¡El Rotor Mecánico de Suministros está cargado! Actívalo para extraer fondos ($G), acero refinado o células de energía.`;
+        break;
+      }
+
+      case 'time_of_day':
+      default: {
+        if (hour >= 5 && hour < 12) {
+          bubbleShape = 'speech';
+          onomatopoeia = '¡TACTICAL!';
+          contextLabel = 'GUARDIA MATUTINA // PARTE DIARIO';
+          text = `Buenos días, ${player}. Soy ${co.name}, ${co.title}. Motores calientes y telemetría en verde: ${co.dayToDay.description}`;
+        } else if (hour >= 12 && hour < 19) {
+          bubbleShape = 'speech';
+          onomatopoeia = '¡HOLD!';
+          contextLabel = 'OPERACIONES DIURNAS // ESTADO MAYOR';
+          text = `Turno operativo de tarde activo, ${player}. Mi poder «${co.powers.scop.name}» (${co.powers.scop.stars}★) está calibrado para dominar el teatro.`;
+        } else {
+          bubbleShape = 'radio';
+          onomatopoeia = '¡ALERT!';
+          contextLabel = 'GUARDIA NOCTURNA // VIGILANCIA C4ISR';
+          text = `Guardia nocturna en curso, ${player}. Radares en máxima sensibilidad. Con ${co.name} al mando, ningún ataque sorpresa romperá nuestras líneas.`;
+        }
+        break;
+      }
+    }
+
+    const deterministicAngle = ((canonicalId.charCodeAt(0) + pokeIdx * 5) % 9) - 4;
+
+    return {
+      id: `lobby_bark_${canonicalId}_${params.intent}_${pokeIdx}`,
+      commanderId: canonicalId,
+      commanderName: co.name,
+      commanderTitle: co.title,
+      faction: co.faction,
+      bubbleShape,
+      onomatopoeia,
+      contextLabel,
+      text,
+      stampRotationDeg: deterministicAngle === 0 ? -3 : deterministicAngle,
+    };
+  }
+
   private getCommanderDisplayName(coId: string): string {
-    const names: Record<string, string> = {
+    const legacyNames: Record<string, string> = {
       stella: 'Mayor Stella',
       volkov: 'Coronel Volkov',
       vance: 'Gral. Vance',
-      colin: 'Colin',
-      andy: 'Andy',
-      hawke: 'Hawke',
-      rachel: 'Rachel',
-      sami: 'Sami',
-      kanbei: 'Kanbei',
-      grit: 'Grit',
-      max: 'Max',
-      eagle: 'Eagle',
     };
-    return names[coId] || coId.toUpperCase();
+    if (coId in legacyNames) return legacyNames[coId];
+    const canonical = CANONICAL_CO_REGISTRY[resolveCanonicalCOId(coId)];
+    return canonical ? canonical.name : coId.toUpperCase();
   }
 
   private getCommanderTitle(coId: string): string {
-    const titles: Record<string, string> = {
+    const legacyTitles: Record<string, string> = {
       stella: 'Especialista en Blindados Ligeros',
       volkov: 'Maestro de Balística de Asedio',
       vance: 'Comandante de la Vanguardia de Hierro',
-      colin: 'Heredero Financiero de Blue Moon',
-      andy: 'Especialista Mecánico de Reparación',
-      hawke: 'Brigadier de Supremacía Táctica',
-      rachel: 'Coordinadora de Artillería Estratégica',
-      sami: 'Capitana de Infantería Aerotransportada',
     };
-    return titles[coId] || 'Oficial Táctico';
+    if (coId in legacyTitles) return legacyTitles[coId];
+    const canonical = CANONICAL_CO_REGISTRY[resolveCanonicalCOId(coId)];
+    return canonical ? canonical.title : 'Oficial Táctico';
   }
 
   private getCommanderFaction(coId: string): string {
-    const factions: Record<string, string> = {
+    const legacyFactions: Record<string, string> = {
       stella: 'iron-vanguard',
       volkov: 'frost-legion',
       vance: 'iron-vanguard',
-      colin: 'frost-legion',
-      andy: 'aurora-dominion',
-      hawke: 'shadow-syndicate',
-      rachel: 'aurora-dominion',
-      sami: 'aurora-dominion',
     };
-    return factions[coId] || 'coalition';
+    if (coId in legacyFactions) return legacyFactions[coId];
+    const canonical = CANONICAL_CO_REGISTRY[resolveCanonicalCOId(coId)];
+    return canonical ? canonical.faction : 'coalition';
   }
 
-  private getCommanderPortraitUrl(coId: string, mood: VignetteMood): string {
-    // Retratos en base pública con fallback a los retratos estándar
-    return `/assets/CO/pixelated/${coId}-full.png`;
+  private getCommanderPortraitUrl(coId: string, _mood: VignetteMood): string {
+    // Retratos Full Body garantizados en smoothFull sin errores 404
+    return getCOFullBodyUrl(coId);
   }
 }
 

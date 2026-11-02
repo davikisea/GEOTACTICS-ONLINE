@@ -13,6 +13,17 @@ export function createBrowserClient(): SupabaseClient<Database> {
   const supabaseUrl = env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
   const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || 'placeholder-anon-key';
 
+  // Fallback para ejecución de suites de pruebas CLI en Node < 22 sin WebSocket global nativo
+  if (typeof globalThis.WebSocket === 'undefined') {
+    (globalThis as Record<string, unknown>).WebSocket = class MockWebSocket {
+      readyState = 3;
+      close() {}
+      send() {}
+      addEventListener() {}
+      removeEventListener() {}
+    };
+  }
+
   browserClient = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: true,

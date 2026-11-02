@@ -1,1 +1,260 @@
 @import "tailwindcss";
+
+@theme {
+  --font-sans: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --font-display: 'Chakra Petch', 'Space Grotesk', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+:root {
+  /* Resortes y Curvas Balísticas Canónicas (indie-game-ui-architect + tactical-command-intel v4.0.0) */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Núcleo Blindado (Chasis C4ISR) */
+  --color-bunker-void: #161712;
+  --color-ink-black: #0A0B08;
+  --color-armor-base: #2B2C24;
+  --color-military-olive: #46521F;
+  --color-metal-edge: #7B8A4A;
+  --color-olive-high: #A9B87A;
+  --color-rust-alert: #C46A3A;
+  --color-data-cream: #F2E8D5;
+  --color-paper-tactical: #F4F1EA;
+
+  /* Telemetría y Alertas (Uso Restringido) */
+  --color-crt-radar: #00FF66;
+  --color-amber-command: #F59E0B;
+  --color-defcon-crimson: #EF4444;
+
+  /* Facciones Heráldicas Canónicas */
+  --color-fac-orange: #E65100;
+  --color-fac-amber: #F59E0B;
+  --color-fac-blue: #1D4ED8;
+  --color-fac-ice: #93C5FD;
+  --color-fac-green: #15803D;
+  --color-fac-nickel: #86EFAC;
+  --color-fac-gold: #D97706;
+  --color-fac-sand: #FDE047;
+  --color-fac-void: #4C1D95;
+  --color-fac-crimson: #991B1B;
+}
+
+/* Utilidades de Tipografía Expresiva y Tabular */
+.font-display {
+  font-family: var(--font-display);
+}
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================================
+   1. GEOMETRÍA HÍBRIDA: ASIMETRÍA CÓMIC + CHAFLANES CON SOMBRA DE TINTA SÓLIDA
+   ============================================================================ */
+
+/* Tarjeta Táctica Asimétrica (14px 4px 14px 4px) con sombra dura de tinta sin recorte */
+.tactical-comic-card {
+  background-color: var(--color-armor-base);
+  border: 2px solid var(--color-ink-black);
+  outline: 1px solid rgba(123, 138, 74, 0.45);
+  outline-offset: -3px;
+  border-radius: 14px 4px 14px 4px;
+  box-shadow: 4px 4px 0px var(--color-ink-black);
+  transition:
+    transform 0.2s var(--ease-spring),
+    box-shadow 0.2s var(--ease-spring),
+    border-color 0.15s ease;
+}
+
+.tactical-comic-card-interactive {
+  background-color: var(--color-armor-base);
+  border: 2px solid var(--color-ink-black);
+  outline: 1px solid rgba(123, 138, 74, 0.45);
+  outline-offset: -3px;
+  border-radius: 14px 4px 14px 4px;
+  box-shadow: 4px 4px 0px var(--color-ink-black);
+  transition:
+    transform 0.2s var(--ease-spring),
+    box-shadow 0.2s var(--ease-spring),
+    border-color 0.15s ease,
+    filter 0.15s ease;
+  cursor: pointer;
+}
+.tactical-comic-card-interactive:hover {
+  transform: translateY(-2px) scale(1.015);
+  box-shadow: 6px 6px 0px var(--color-ink-black);
+}
+.tactical-comic-card-interactive:active {
+  transform: translateY(2px) scale(1.03, 0.96);
+  box-shadow: 2px 2px 0px var(--color-ink-black);
+}
+
+/* Dossier en Papel Táctico Crema (#F2E8D5) para Misiones y Bocadillos */
+.tactical-dossier-card {
+  background-color: var(--color-data-cream);
+  color: var(--color-ink-black);
+  border: 2.5px solid var(--color-ink-black);
+  border-radius: 14px 4px 14px 4px;
+  box-shadow: 5px 5px 0px var(--color-ink-black);
+  background-image: radial-gradient(rgba(196, 106, 58, 0.16) 18%, transparent 19%);
+  background-size: 8px 8px;
+  transition:
+    transform 0.2s var(--ease-spring),
+    box-shadow 0.2s var(--ease-spring);
+}
+.tactical-dossier-card:hover {
+  transform: translateY(-2px) rotate(-0.4deg);
+  box-shadow: 7px 7px 0px var(--color-ink-black);
+}
+
+/* Contenedor Padre para Módulos con Clip-Path (Preserva la Sombra Dura Externa) */
+.tactical-chamfer-shadow {
+  filter: drop-shadow(4px 4px 0px #0A0B08);
+}
+.tactical-chamfer-shadow-lg {
+  filter: drop-shadow(7px 7px 0px #0A0B08);
+}
+
+/* Chaflanes Mecanizados a 45° */
+.tactical-chamfer-8 {
+  clip-path: polygon(
+    10px 0, calc(100% - 10px) 0,
+    100% 10px, 100% calc(100% - 10px),
+    calc(100% - 10px) 100%, 10px 100%,
+    0 calc(100% - 10px), 0 10px
+  );
+}
+
+/* ============================================================================
+   2. MOTOR DE GAME FEEL: BOTONES CON HUNDIMIENTO FÍSICO 3D Y SQUASH & STRETCH
+   ============================================================================ */
+
+.tactical-btn-heavy {
+  background: linear-gradient(180deg, #e58350 0%, #C46A3A 58%, #873612 100%);
+  color: var(--color-data-cream);
+  border: 2px solid var(--color-data-cream);
+  border-bottom: 5px solid #521b04;
+  border-radius: 14px 4px 14px 4px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  box-shadow: 4px 4px 0px var(--color-ink-black);
+  cursor: pointer;
+  transition:
+    transform 0.16s var(--ease-spring),
+    border-bottom-width 0.06s ease,
+    box-shadow 0.12s ease,
+    filter 0.12s ease;
+  will-change: transform;
+}
+.tactical-btn-heavy:hover {
+  transform: translateY(-2px) scale(1.025);
+  filter: brightness(1.1);
+  box-shadow: 6px 6px 0px var(--color-ink-black);
+}
+.tactical-btn-heavy:active {
+  transform: translateY(3px) scale(1.07, 0.91);
+  border-bottom-width: 2px;
+  box-shadow: 1px 1px 0px var(--color-ink-black);
+}
+
+.tactical-juice-btn {
+  border-bottom: 4px solid #0A0B08;
+  border-radius: 12px 3px 12px 3px;
+  box-shadow: 3px 3px 0px var(--color-ink-black);
+  transition:
+    transform 0.18s var(--ease-spring),
+    border-bottom-width 0.06s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+  will-change: transform;
+  cursor: pointer;
+}
+.tactical-juice-btn:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 4px 4px 0px var(--color-ink-black);
+}
+.tactical-juice-btn:active {
+  transform: translateY(3px) scale(1.09, 0.89);
+  border-bottom-width: 1.5px;
+  box-shadow: 1px 1px 0px var(--color-ink-black);
+}
+
+/* ============================================================================
+   3. TRAMAS BEN-DAY Y BARRAS DE DOBLE CAPA (GHOST DRAIN / SURGE TRAIL)
+   ============================================================================ */
+
+.ben-day-dark {
+  background-image: radial-gradient(rgba(123, 138, 74, 0.22) 16%, transparent 17%);
+  background-size: 8px 8px;
+}
+
+.ben-day-rust {
+  background-image: radial-gradient(rgba(196, 106, 58, 0.22) 18%, transparent 19%);
+  background-size: 7px 7px;
+}
+
+.ben-day-cream {
+  background-color: #F2E8D5;
+  background-image: radial-gradient(rgba(10, 11, 8, 0.13) 18%, transparent 19%);
+  background-size: 9px 9px;
+}
+
+/* Viñeta Viva Principal del Comandante (Living Comic Canvas) */
+.living-comic-vignette {
+  background-color: #F2E8D5;
+  border: 4px solid #0A0B08;
+  outline: 2px solid rgba(123, 138, 74, 0.55);
+  outline-offset: -6px;
+  border-radius: 26px 6px 26px 6px;
+  box-shadow: 10px 10px 0px #0A0B08;
+}
+
+/* Respiración Procedural Continua para el Sprite Full Body del Comandante */
+@keyframes coIdleBreathe {
+  0%, 100% {
+    transform: translateY(0px) scale(1, 1);
+  }
+  50% {
+    transform: translateY(-5px) scale(1.012, 0.992);
+  }
+}
+
+.co-idle-breathe {
+  animation: coIdleBreathe 3.8s ease-in-out infinite;
+  transform-origin: bottom center;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .co-idle-breathe {
+    animation: none !important;
+  }
+}
+
+.bar-ghost-trail {
+  transition: width 0.55s var(--ease-out-expo) 0.22s;
+}
+
+.bar-fill-spring {
+  transition: width 0.16s var(--ease-spring);
+}
+
+/* Scrollbar Táctico Discreto */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #161712;
+}
+::-webkit-scrollbar-thumb {
+  background: #46521F;
+  border: 1px solid #0A0B08;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #7B8A4A;
+}

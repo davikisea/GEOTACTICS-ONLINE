@@ -74,4 +74,34 @@ describe('Bark Engine Procedural Test Suite', () => {
       expect(whisperResult.onomatopoeia).toBe('¡TRAP!');
     }
   });
+
+  it('debe generar barks contextuales de Lobby según hora del día, victoria/derrota, clic y hover de estaciones', () => {
+    const morningBark = barkEngine.getLobbyContextualBark({
+      commanderId: 'andy',
+      intent: 'time_of_day',
+      hourOfDay: 9,
+      bondingLevel: 5,
+      playerName: 'Comandante',
+    });
+    expect(morningBark.commanderId).toBe('andy');
+    expect(morningBark.contextLabel).toContain('MATUTINA');
+    expect(morningBark.text).toContain('Andy');
+
+    const hoverArmoryBark = barkEngine.getLobbyContextualBark({
+      commanderId: 'sami',
+      intent: 'hover_armory',
+      bondingLevel: 8,
+    });
+    expect(hoverArmoryBark.commanderId).toBe('sami');
+    expect(hoverArmoryBark.contextLabel).toContain('HANGAR');
+    expect(hoverArmoryBark.onomatopoeia).toBe('¡TACTICAL!');
+
+    const victoryBark = barkEngine.getLobbyContextualBark({
+      commanderId: 'von_bolt',
+      intent: 'last_match_victory',
+      bondingLevel: 8,
+    });
+    expect(victoryBark.commanderId).toBe('von_bolt');
+    expect(victoryBark.onomatopoeia).toBe('¡CLUTCH!');
+  });
 });

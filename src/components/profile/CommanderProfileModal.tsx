@@ -89,6 +89,19 @@ export const CommanderProfileModal: React.FC<CommanderProfileModalProps> = ({
   const [selectedFrame, setSelectedFrame] = useState(profile.activeAvatarFrameId);
   const [feedback, setFeedback] = useState<string | null>(null);
 
+  // Escuchar atajo ESC para cierre rápido
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        audioManager.play('menu_cancel');
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleSaveCustomization = () => {
@@ -108,8 +121,16 @@ export const CommanderProfileModal: React.FC<CommanderProfileModalProps> = ({
   const currentFlagObj = FACTION_FLAGS.find(f => f.code === profile.countryCode) || FACTION_FLAGS[0];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-3xl bg-[#2B2C24] border-4 border-[#46521F] rounded-[40px_10px_40px_10px] shadow-[15px_15px_0px_rgba(0,0,0,0.7)] text-[#F2E8D5] font-mono overflow-hidden flex flex-col max-h-[90vh]">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          audioManager.play('menu_cancel');
+          onClose();
+        }
+      }}
+    >
+      <div className="relative w-full max-w-3xl bg-[#2B2C24] border-4 border-[#46521F] rounded-[40px_10px_40px_10px] shadow-[12px_12px_0px_#0A0B08] text-[#F2E8D5] font-mono overflow-hidden flex flex-col max-h-[90vh]">
         {/* Cabecera Técnica Retro-Futurista */}
         <div className="flex items-center justify-between px-6 py-4 bg-[#181914] border-b-2 border-[#46521F]">
           <div className="flex items-center gap-3">
@@ -136,9 +157,12 @@ export const CommanderProfileModal: React.FC<CommanderProfileModalProps> = ({
               audioManager.play('menu_cancel');
               onClose();
             }}
-            className="w-8 h-8 rounded-[8px_2px_8px_2px] bg-[#3B3C34] hover:bg-[#C46A3A] border border-[#7B8A4A] flex items-center justify-center text-[#F2E8D5] transition-colors"
+            onMouseEnter={() => audioManager.playHoverTick()}
+            className="h-8 px-2.5 rounded-[8px_2px_8px_2px] bg-[#3B3C34] hover:bg-[#C46A3A] border border-[#7B8A4A] flex items-center justify-center gap-1.5 text-[#F2E8D5] transition-colors cursor-pointer text-xs font-bold"
+            title="Cerrar (ESC)"
           >
-            <X size={18} />
+            <span className="text-[10px] text-amber-400/90 hidden sm:inline">[ESC]</span>
+            <X size={16} />
           </button>
         </div>
 
@@ -156,7 +180,8 @@ export const CommanderProfileModal: React.FC<CommanderProfileModalProps> = ({
               audioManager.play('menu_select');
               setActiveTab('dossier');
             }}
-            className={`flex-1 py-3 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+            onMouseEnter={() => audioManager.playHoverTick()}
+            className={`flex-1 py-3 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer ${
               activeTab === 'dossier'
                 ? 'bg-[#2B2C24] text-[#F2E8D5] border-b-4 border-[#C46A3A]'
                 : 'text-[#7B8A4A] hover:bg-[#2B2C24]/50'
@@ -169,7 +194,8 @@ export const CommanderProfileModal: React.FC<CommanderProfileModalProps> = ({
               audioManager.play('menu_select');
               setActiveTab('customize');
             }}
-            className={`flex-1 py-3 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+            onMouseEnter={() => audioManager.playHoverTick()}
+            className={`flex-1 py-3 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer ${
               activeTab === 'customize'
                 ? 'bg-[#2B2C24] text-[#F2E8D5] border-b-4 border-[#C46A3A]'
                 : 'text-[#7B8A4A] hover:bg-[#2B2C24]/50'
@@ -182,7 +208,8 @@ export const CommanderProfileModal: React.FC<CommanderProfileModalProps> = ({
               audioManager.play('menu_select');
               setActiveTab('medals');
             }}
-            className={`flex-1 py-3 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+            onMouseEnter={() => audioManager.playHoverTick()}
+            className={`flex-1 py-3 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer ${
               activeTab === 'medals'
                 ? 'bg-[#2B2C24] text-[#F2E8D5] border-b-4 border-[#C46A3A]'
                 : 'text-[#7B8A4A] hover:bg-[#2B2C24]/50'

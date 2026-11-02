@@ -1170,3 +1170,93 @@ export class COEngine {
     return soldierHp;
   }
 }
+
+export const ALL_CANONICAL_CO_IDS: COId[] = Object.keys(CANONICAL_CO_REGISTRY) as COId[];
+
+const CO_LEGACY_ALIAS_MAP: Record<string, COId> = {
+  stella: 'sami',
+  volkov: 'grit',
+  vance: 'max',
+  vonbolt: 'von_bolt',
+  'von-bolt': 'von_bolt',
+};
+
+/**
+ * Normaliza cualquier identificador de comandante (incluyendo alias de lore) a un COId canónico válido
+ * de los 28 oficiales con arte en smoothFull, evitando errores 404 por IDs huérfanos.
+ */
+export function resolveCanonicalCOId(rawId?: string | null): COId {
+  if (!rawId) return 'andy';
+  const normalized = rawId.trim().toLowerCase();
+  if (normalized in CANONICAL_CO_REGISTRY) {
+    return normalized as COId;
+  }
+  if (normalized in CO_LEGACY_ALIAS_MAP) {
+    return CO_LEGACY_ALIAS_MAP[normalized];
+  }
+  return 'andy';
+}
+
+/**
+ * Devuelve la ruta pública garantizada del arte Full Body en /assets/CO/smoothFull/Awds-[slug].webp
+ * para cualquiera de los 28 comandantes del registro canónico.
+ */
+export function getCOFullBodyUrl(coId?: string | null): string {
+  const canonicalId = resolveCanonicalCOId(coId);
+  const fileSlug = canonicalId === 'von_bolt' ? 'von-bolt' : canonicalId;
+  return `/assets/CO/smoothFull/Awds-${fileSlug}.webp`;
+}
+
+export const CO_FACTION_META: Record<
+  CODefinition['faction'],
+  {
+    label: string;
+    shortCode: string;
+    primaryHex: string;
+    accentHex: string;
+    badgeBgClass: string;
+    borderClass: string;
+  }
+> = {
+  'orange-star': {
+    label: 'Orange Star',
+    shortCode: 'OS // VANGUARDIA',
+    primaryHex: '#E65100',
+    accentHex: '#F59E0B',
+    badgeBgClass: 'bg-[#E65100] text-[#F2E8D5]',
+    borderClass: 'border-[#E65100]',
+  },
+  'blue-moon': {
+    label: 'Blue Moon',
+    shortCode: 'BM // FRENTE ÁRTICO',
+    primaryHex: '#1D4ED8',
+    accentHex: '#93C5FD',
+    badgeBgClass: 'bg-[#1D4ED8] text-[#F2E8D5]',
+    borderClass: 'border-[#1D4ED8]',
+  },
+  'green-earth': {
+    label: 'Green Earth',
+    shortCode: 'GE // ESCUADRÓN AÉREO-NAVAL',
+    primaryHex: '#15803D',
+    accentHex: '#86EFAC',
+    badgeBgClass: 'bg-[#15803D] text-[#F2E8D5]',
+    borderClass: 'border-[#15803D]',
+  },
+  'yellow-comet': {
+    label: 'Yellow Comet',
+    shortCode: 'YC // GUARDIA IMPERIAL',
+    primaryHex: '#D97706',
+    accentHex: '#FDE047',
+    badgeBgClass: 'bg-[#D97706] text-[#0A0B08]',
+    borderClass: 'border-[#D97706]',
+  },
+  'black-hole': {
+    label: 'Black Hole',
+    shortCode: 'BH // DIVISIÓN SOMBRA',
+    primaryHex: '#4C1D95',
+    accentHex: '#EF4444',
+    badgeBgClass: 'bg-[#4C1D95] text-[#F2E8D5]',
+    borderClass: 'border-[#4C1D95]',
+  },
+};
+

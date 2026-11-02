@@ -333,10 +333,10 @@ export default function App() {
     setAirDrops([]);
     setIsProductionModalOpen(false);
     setSelectedFactoryCoord(null);
-    setPlayerCOs({
-      p1: { coId: 'andy', powerMeter: 27000, activePower: null },
-      p2: { coId: 'colin', powerMeter: 18000, activePower: null },
-    });
+    setPlayerCOs(prev => ({
+      p1: { coId: prev.p1.coId, powerMeter: 27000, activePower: null },
+      p2: { coId: prev.p2.coId, powerMeter: 18000, activePower: null },
+    }));
     setTurnTimeRemaining(formatConfig.turnTimeLimitSec);
 
     const newUnits: SimUnit[] = activeMap.startingUnits.map(u => ({
@@ -417,7 +417,7 @@ export default function App() {
   const [isTacticalDrawerOpen, setIsTacticalDrawerOpen] = useState<boolean>(false);
 
   // Despliegue de Combate Inmersivo desde el Lobby Bélico (1 Clic)
-  const handleStartMatchFromLobby = (format: 'mirror_duel' | 'blitz_skirmish' | 'campaign') => {
+  const handleStartMatchFromLobby = (format: MatchFormat | 'campaign') => {
     const canonicalFormat: MatchFormat = format === 'campaign' ? 'grand_campaign' : format;
     setMatchFormat(canonicalFormat);
     if (canonicalFormat === 'mirror_duel') {
@@ -569,10 +569,11 @@ export default function App() {
     winrate1v1: 64.2,
     winrate2v2: 71.8,
     eloRating: 4850,
-    favoriteCommanderId: 'stella',
+    favoriteCommanderId: 'andy',
     commanderBondLevel: 8,
   });
   const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
+  const [lastMatchResult, setLastMatchResult] = useState<'victory' | 'defeat' | null>(null);
 
   // Estados de Ladder Asimétrico, Near-Miss y Tilt (Fase 7)
   const [isTournamentMode, setIsTournamentMode] = useState<boolean>(false);
@@ -602,6 +603,7 @@ export default function App() {
 
   const handleConcludeMatch = (won: boolean) => {
     setIsVictory(won);
+    setLastMatchResult(won ? 'victory' : 'defeat');
     const outcome = ClanEngine.processMatchOutcome(safeguardInventory, won);
     setSafeguardInventory(outcome.updatedInventory);
     setIsSummaryModalOpen(true);
@@ -2043,211 +2045,9 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950">
-      {/* Cabecera Militar Contextual para Sub-Vistas (Desacoplada del Lobby y del Combate) */}
-      {mainNav !== 'lobby' && mainNav !== 'combat' && (
-        <header className="border-b-2 border-[#181914] bg-[#2B2C24] px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-[0_4px_0px_#181914] sticky top-0 z-40 shrink-0 font-sans">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => {
-                setMainNav('lobby');
-                audioManager.playSFX('button_click');
-              }}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-[8px_2px_8px_2px] bg-[#46521F] hover:bg-[#586827] text-[#F2E8D5] font-black text-xs uppercase tracking-wider border-2 border-[#181914] shadow-[3px_3px_0px_#181914] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all cursor-pointer"
-              title="Volver al Cuartel General (Lobby Bélico)"
-            >
-              <ArrowLeft className="w-4 h-4 text-[#C46A3A]" />
-              <span>Cuartel General</span>
-            </button>
-            <div className="h-6 w-0.5 bg-[#181914] hidden sm:block" />
-            <div className="flex items-center gap-2">
-              <span className="font-black text-xs sm:text-sm text-[#F2E8D5] uppercase tracking-wide">
-                {mainNav === 'shop' && 'Intendencia Militar • Suministros'}
-                {mainNav === 'armory' && 'Hangar de Personalización de Tropas'}
-                {mainNav === 'industry' && 'Complejo Industrial Militar'}
-                {mainNav === 'marketplace' && 'Bolsa Negra P2P • Comercio Táctico'}
-                {mainNav === 'clans' && 'Cuartel General Corporativo'}
-                {mainNav === 'docs' && 'Archivos de Doctrina Militar & Inteligencia'}
-                {mainNav === 'qa' && 'Centro de Telemetría Táctica'}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Medidores de Recursos en Tiempo Real */}
-            <div className="flex items-center gap-2 text-xs font-mono font-bold">
-              <span className="px-2.5 py-1 rounded bg-[#181914] border border-[#7B8A4A]/50 text-amber-400">
-                💰 {userGold.toLocaleString()}G
-              </span>
-              <span className="px-2.5 py-1 rounded bg-[#181914] border border-[#7B8A4A]/50 text-purple-300">
-                💎 {userGems.toLocaleString()}
-              </span>
-              <span className="px-2.5 py-1 rounded bg-[#181914] border border-[#7B8A4A]/50 text-[#7B8A4A]">
-                ⚙️ {industrialInventory.refinedSteel} Acero
-              </span>
-            </div>
-
-            {/* Expediente Militar del Comandante */}
-            <button
-              onClick={() => {
-                setIsProfileModalOpen(true);
-                audioManager.playSFX('button_click');
-              }}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-[6px_2px_6px_2px] bg-[#46521F] hover:bg-[#586827] text-[#F2E8D5] text-xs font-mono font-bold border-2 border-[#181914] shadow-[2px_2px_0px_#181914] transition-all cursor-pointer"
-              title="Abrir Expediente Militar, Identidad y Cosméticos"
-            >
-              <User className="w-3.5 h-3.5 text-[#C46A3A]" />
-              <span className="hidden sm:inline">{userProfileIdentity.displayName}</span>
-              <span className="text-[#7B8A4A]">{userProfileIdentity.tagId}</span>
-            </button>
-
-            {/* Selector de Modo Competitivo: Torneo (Cap N11) vs Ladder (N1-N15) */}
-            <button
-              onClick={() => {
-                setIsTournamentMode(!isTournamentMode);
-                audioManager.playSFX('button_click');
-              }}
-              className={`hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-[6px_2px_6px_2px] text-xs font-mono font-bold border-2 border-[#181914] shadow-[2px_2px_0px_#181914] transition-all cursor-pointer ${
-                isTournamentMode
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
-                  : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'
-              }`}
-              title="Conmutar entre Cap de Torneo Esports (Nivel 11) y Ladder Asimétrico Diario (Nivel 1-15)"
-            >
-              <Trophy className="w-3.5 h-3.5" />
-              <span>{isTournamentMode ? 'Torneo (Cap N11)' : 'Ladder (N1-N15)'}</span>
-            </button>
-
-            {/* Botón de Despliegue Rápido al Frente (Garantía Red Teaming: 1 Clic desde Cualquier Menú) */}
-            <button
-              onClick={() => handleStartMatchFromLobby('blitz_skirmish')}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-[8px_2px_8px_2px] bg-[#C46A3A] hover:bg-[#d67440] text-[#F2E8D5] font-black text-xs uppercase tracking-wider border-2 border-[#181914] shadow-[3px_3px_0px_#181914] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all cursor-pointer animate-pulse"
-              title="Desplegar inmediatamente al campo de batalla en 1 solo clic"
-            >
-              <Sword className="w-3.5 h-3.5 text-yellow-300" />
-              <span>Desplegar al Frente</span>
-            </button>
-          </div>
-        </header>
-      )}
-
-      {/* Renderizado Condicional de Vistas: Lobby Bélico Principal */}
-      {mainNav === 'lobby' ? (
-        <WarLobbyHub
-          userGold={userGold}
-          userGems={userGems}
-          userSteel={industrialInventory.refinedSteel}
-          userLevel={simLevel}
-          userXp={850}
-          nextLevelXp={requiredXpForLevel}
-          clanName={clan.name}
-          clanTag={clan.tag}
-          clanEmblem={clan.emblemIcon}
-          clan={clan}
-          industrialInventory={industrialInventory}
-          safeguardInventory={safeguardInventory}
-          winStreak={safeguardInventory.currentStreak}
-          userTrophies={userTrophies}
-          shieldCharges={shieldCharges}
-          isTournamentMode={isTournamentMode}
-          onToggleTournament={() => {
-            setIsTournamentMode(!isTournamentMode);
-            audioManager.playSFX('button_click');
-          }}
-          onStartMatch={handleStartMatchFromLobby}
-          onOpenShop={() => setMainNav('shop')}
-          onOpenArmory={() => setMainNav('armory')}
-          onOpenIndustry={() => setMainNav('industry')}
-          onOpenMarketplace={() => setMainNav('marketplace')}
-          onOpenClans={() => setMainNav('clans')}
-          onOpenDocs={() => setMainNav('docs')}
-          onOpenEditor={() => setIsDevStudioOpen(true)}
-          onOpenProfile={() => setIsProfileModalOpen(true)}
-        />
-      ) : mainNav === 'shop' ? (
-        <React.Suspense fallback={<TacticalLoadingFallback />}>
-          <div className="flex-1 overflow-y-auto p-4 lg:p-6 max-w-7xl mx-auto w-full">
-            <ShopCatalog
-              userGold={userGold}
-              userGems={userGems}
-              unlockedSkinIds={unlockedSkinIds}
-              equippedSkins={equippedCosmetics}
-              onPurchaseSuccess={handlePurchaseSuccess}
-              onEquipSkin={handleEquipSkin}
-            />
-          </div>
-        </React.Suspense>
-      ) : mainNav === 'armory' ? (
-        <React.Suspense fallback={<TacticalLoadingFallback />}>
-          <div className="flex-1 overflow-y-auto p-4 lg:p-6 max-w-7xl mx-auto w-full">
-            <LoadoutCustomizer
-              equippedCosmetics={equippedCosmetics}
-              unlockedSkinIds={unlockedSkinIds}
-              activeLoadoutUnits={activeLoadoutUnits}
-              onEquipSkin={handleEquipSkin}
-              onUpdateLoadout={setActiveLoadoutUnits}
-              onNavigateToShop={() => setMainNav('shop')}
-            />
-          </div>
-        </React.Suspense>
-      ) : mainNav === 'industry' ? (
-        <React.Suspense fallback={<TacticalLoadingFallback />}>
-          <div className="flex-1 overflow-y-auto w-full flex flex-col">
-            <IndustrialComplexView
-              inventory={industrialInventory}
-              onUpdateInventory={setIndustrialInventory}
-              activeJobs={activeRefiningJobs}
-              onUpdateJobs={setActiveRefiningJobs}
-              onNavigateToMarket={() => setMainNav('marketplace')}
-              userCredits={userGold}
-              onUpdateUserCredits={setUserGold}
-              accountLevel={simLevel}
-            />
-          </div>
-        </React.Suspense>
-      ) : mainNav === 'marketplace' ? (
-        <React.Suspense fallback={<TacticalLoadingFallback />}>
-          <div className="flex-1 overflow-y-auto w-full flex flex-col">
-            <P2PMarketplaceView
-              currentUserId="user_commander_01"
-              currentUserName="Comandante en Jefe"
-              userGold={userGold}
-              onUpdateUserGold={setUserGold}
-              inventory={industrialInventory}
-              onUpdateInventory={setIndustrialInventory}
-              onNavigateToIndustry={() => setMainNav('industry')}
-            />
-          </div>
-        </React.Suspense>
-      ) : mainNav === 'clans' ? (
-        <React.Suspense fallback={<TacticalLoadingFallback />}>
-          <div className="flex-1 overflow-y-auto w-full flex flex-col">
-            <ClanHeadquartersView
-              clan={clan}
-              onUpdateClan={setClan}
-              members={clanMembers}
-              onUpdateMembers={setClanMembers}
-              currentUserId="user_commander_01"
-              userGold={userGold}
-              onUpdateUserGold={setUserGold}
-              userSteel={industrialInventory.refinedSteel}
-              onUpdateUserSteel={newSteel =>
-                setIndustrialInventory(prev => ({ ...prev, refinedSteel: newSteel }))
-              }
-              userChips={industrialInventory.refinedMicrochip}
-              onUpdateUserChips={newChips =>
-                setIndustrialInventory(prev => ({ ...prev, refinedMicrochip: newChips }))
-              }
-              safeguardInventory={safeguardInventory}
-              onUpdateSafeguardInventory={setSafeguardInventory}
-            />
-          </div>
-        </React.Suspense>
-      ) : mainNav === 'qa' ? (
-        <React.Suspense fallback={<TacticalLoadingFallback />}>
-          <QADevOpsRunner />
-        </React.Suspense>
-      ) : mainNav === 'combat' ? (
+    <div className="h-screen max-h-screen w-full overflow-hidden bg-[#161712] text-[#F2E8D5] flex flex-col font-sans selection:bg-[#C46A3A] selection:text-[#F2E8D5]">
+      {/* Renderizado Principal: Teatro de Combate vs Shell Persistente del Cuartel General (Zero-Unmount) */}
+      {mainNav === 'combat' ? (
         <CombatTheaterView
           matchFormat={matchFormat}
           turn={turn}
@@ -2324,220 +2124,363 @@ export default function App() {
           }}
         />
       ) : (
-        /* Contenedor Principal en Layout Dual */
-        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        {/* Barra Lateral Izquierda: Selector de Documentos */}
-        <aside className="w-full lg:w-80 border-r border-slate-800 bg-slate-900/50 p-4 flex flex-col gap-3 shrink-0">
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
-            <input
-              type="text"
-              placeholder="Buscar en documentación..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 text-xs rounded pl-9 pr-3 py-2 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
-            />
-          </div>
-
-          <div className="text-[11px] font-mono uppercase tracking-wider text-slate-400 px-1 pt-1 flex items-center justify-between">
-            <span>Archivos /docs</span>
-            <span>{filteredDocs.length} specs</span>
-          </div>
-
-          <div className="space-y-1.5 overflow-y-auto max-h-[40vh] lg:max-h-[calc(100vh-230px)] pr-1">
-            {filteredDocs.map(doc => {
-              const isActive = doc.id === activeTab;
-              return (
-                <button
-                  key={doc.id}
-                  onClick={() => setActiveTab(doc.id)}
-                  className={`w-full text-left p-3 rounded border transition-all text-xs flex flex-col gap-1.5 ${
-                    isActive
-                      ? 'bg-emerald-950/40 border-emerald-500/50 text-white shadow-[0_0_12px_rgba(16,185,129,0.15)]'
-                      : 'bg-slate-900/40 border-slate-800/80 hover:bg-slate-800/60 text-slate-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between w-full">
-                    <span className="font-mono text-[10px] text-emerald-400 font-semibold">{doc.badge}</span>
-                    <span className="font-mono text-[9px] text-slate-500">{doc.filename.split('/').pop()}</span>
-                  </div>
-                  <div className="font-semibold text-slate-200 line-clamp-1">{doc.title}</div>
-                  <div className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">{doc.summary}</div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Acceso Táctico a Despliegue en el Frente */}
-          <div className="mt-auto pt-3 border-t border-[#181914]">
-            <div className="p-3 rounded-[8px_2px_8px_2px] bg-[#181914] border-2 border-[#181914] flex flex-col gap-2">
-              <div className="flex items-center gap-2 text-xs font-mono text-[#F2E8D5] font-black uppercase">
-                <Crosshair className="w-3.5 h-3.5 text-[#C46A3A]" />
-                TEATRO DE COMBATE DIRECTO
+        <WarLobbyHub
+          userGold={userGold}
+          userGems={userGems}
+          userSteel={industrialInventory.refinedSteel}
+          userLevel={userProfileIdentity.commanderBondLevel ?? simLevel ?? 5}
+          userXp={850}
+          nextLevelXp={requiredXpForLevel}
+          clanName={clan.name}
+          clanTag={clan.tag}
+          clanEmblem={clan.emblemIcon}
+          clan={clan}
+          industrialInventory={industrialInventory}
+          safeguardInventory={safeguardInventory}
+          winStreak={safeguardInventory.currentStreak}
+          userTrophies={userTrophies}
+          shieldCharges={shieldCharges}
+          isTournamentMode={isTournamentMode}
+          onToggleTournament={() => {
+            setIsTournamentMode(!isTournamentMode);
+            audioManager.playSFX('button_click');
+          }}
+          activeCommanderId={playerCOs.p1.coId}
+          onSelectCommander={(coId) => {
+            setPlayerCOs((prev) => ({
+              ...prev,
+              p1: { ...prev.p1, coId },
+            }));
+            setUserProfileIdentity((prev) => ({
+              ...prev,
+              favoriteCommanderId: coId,
+            }));
+          }}
+          commanderBondLevel={userProfileIdentity.commanderBondLevel}
+          lastMatchResult={lastMatchResult}
+          activeDeckCount={activeLoadoutUnits.length}
+          onStartMatch={handleStartMatchFromLobby}
+          onOpenShop={() => setMainNav('shop')}
+          onOpenArmory={() => setMainNav('armory')}
+          onOpenIndustry={() => setMainNav('industry')}
+          onOpenMarketplace={() => setMainNav('marketplace')}
+          onOpenClans={() => setMainNav('clans')}
+          onOpenDocs={() => setMainNav('docs')}
+          onOpenEditor={() => setIsDevStudioOpen(true)}
+          onOpenProfile={() => setIsProfileModalOpen(true)}
+          activeStation={mainNav === 'lobby' ? null : mainNav}
+          onCloseStation={() => setMainNav('lobby')}
+          onGainGold={(delta) => setUserGold((g) => g + delta)}
+          onGainSteel={(delta) =>
+            setIndustrialInventory((prev) => ({
+              ...prev,
+              refinedSteel: prev.refinedSteel + delta,
+            }))
+          }
+        >
+          {mainNav === 'shop' ? (
+            <React.Suspense fallback={<TacticalLoadingFallback />}>
+              <div className="flex-1 overflow-y-auto p-4 lg:p-6 max-w-7xl mx-auto w-full">
+                <ShopCatalog
+                  userGold={userGold}
+                  userGems={userGems}
+                  unlockedSkinIds={unlockedSkinIds}
+                  equippedSkins={equippedCosmetics}
+                  onPurchaseSuccess={handlePurchaseSuccess}
+                  onEquipSkin={handleEquipSkin}
+                />
               </div>
-              <p className="text-[11px] text-[#F2E8D5]/70 leading-relaxed font-sans">
-                Prueba en tiempo real las soluciones balísticas, rutas tácticas A* y el mérito operativo en el Frente.
-              </p>
-              <button
-                onClick={() => handleStartMatchFromLobby('blitz_skirmish')}
-                className="mt-1 py-1.5 px-3 rounded-[6px_2px_6px_2px] bg-[#46521F] hover:bg-[#586827] text-[#F2E8D5] font-black text-xs uppercase tracking-wider border-2 border-[#181914] shadow-[2px_2px_0px_#181914] flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-              >
-                <Sword className="w-3 h-3 text-yellow-300" />
-                <span>Desplegar al Frente</span>
-              </button>
-            </div>
-          </div>
-        </aside>
-
-        {/* Panel Central: Contenido del Documento y Pestañas Interactivas */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
-          {/* Tarjeta del Documento Actual */}
-          <section className="bg-slate-900 border border-slate-800 rounded-lg p-5 shadow-lg">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4 mb-5">
-              <div>
-                <div className="flex items-center gap-2 text-xs font-mono text-emerald-400 mb-1">
-                  <span className="px-2 py-0.5 rounded bg-emerald-950 border border-emerald-800/50 font-bold">
-                    {currentDoc.badge}
-                  </span>
-                  <span className="text-slate-500 font-mono">ruta: /{currentDoc.filename}</span>
+            </React.Suspense>
+          ) : mainNav === 'armory' ? (
+            <React.Suspense fallback={<TacticalLoadingFallback />}>
+              <div className="flex-1 overflow-y-auto p-4 lg:p-6 max-w-7xl mx-auto w-full">
+                <LoadoutCustomizer
+                  equippedCosmetics={equippedCosmetics}
+                  unlockedSkinIds={unlockedSkinIds}
+                  activeLoadoutUnits={activeLoadoutUnits}
+                  onEquipSkin={handleEquipSkin}
+                  onUpdateLoadout={setActiveLoadoutUnits}
+                  onNavigateToShop={() => setMainNav('shop')}
+                />
+              </div>
+            </React.Suspense>
+          ) : mainNav === 'industry' ? (
+            <React.Suspense fallback={<TacticalLoadingFallback />}>
+              <div className="flex-1 overflow-y-auto w-full flex flex-col">
+                <IndustrialComplexView
+                  inventory={industrialInventory}
+                  onUpdateInventory={setIndustrialInventory}
+                  activeJobs={activeRefiningJobs}
+                  onUpdateJobs={setActiveRefiningJobs}
+                  onNavigateToMarket={() => setMainNav('marketplace')}
+                  userCredits={userGold}
+                  onUpdateUserCredits={setUserGold}
+                  accountLevel={simLevel}
+                />
+              </div>
+            </React.Suspense>
+          ) : mainNav === 'marketplace' ? (
+            <React.Suspense fallback={<TacticalLoadingFallback />}>
+              <div className="flex-1 overflow-y-auto w-full flex flex-col">
+                <P2PMarketplaceView
+                  currentUserId="user_commander_01"
+                  currentUserName="Comandante en Jefe"
+                  userGold={userGold}
+                  onUpdateUserGold={setUserGold}
+                  inventory={industrialInventory}
+                  onUpdateInventory={setIndustrialInventory}
+                  onNavigateToIndustry={() => setMainNav('industry')}
+                />
+              </div>
+            </React.Suspense>
+          ) : mainNav === 'clans' ? (
+            <React.Suspense fallback={<TacticalLoadingFallback />}>
+              <div className="flex-1 overflow-y-auto w-full flex flex-col">
+                <ClanHeadquartersView
+                  clan={clan}
+                  onUpdateClan={setClan}
+                  members={clanMembers}
+                  onUpdateMembers={setClanMembers}
+                  currentUserId="user_commander_01"
+                  userGold={userGold}
+                  onUpdateUserGold={setUserGold}
+                  userSteel={industrialInventory.refinedSteel}
+                  onUpdateUserSteel={(newSteel) =>
+                    setIndustrialInventory((prev) => ({ ...prev, refinedSteel: newSteel }))
+                  }
+                  userChips={industrialInventory.refinedMicrochip}
+                  onUpdateUserChips={(newChips) =>
+                    setIndustrialInventory((prev) => ({ ...prev, refinedMicrochip: newChips }))
+                  }
+                  safeguardInventory={safeguardInventory}
+                  onUpdateSafeguardInventory={setSafeguardInventory}
+                />
+              </div>
+            </React.Suspense>
+          ) : mainNav === 'qa' ? (
+            <React.Suspense fallback={<TacticalLoadingFallback />}>
+              <QADevOpsRunner />
+            </React.Suspense>
+          ) : mainNav === 'docs' ? (
+            /* Contenedor de Archivos de Doctrina Militar en Layout Dual C4ISR */
+            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+              <aside className="w-full lg:w-80 border-r-2 border-[#0A0B08] bg-[#1F201A] p-4 flex flex-col gap-3 shrink-0">
+                <div className="relative">
+                  <Search className="w-4 h-4 text-[#A9B87A] absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    placeholder="Buscar en doctrina militar..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-[#161712] border-2 border-[#0A0B08] text-xs rounded-[8px_2px_8px_2px] pl-9 pr-3 py-2 text-[#F2E8D5] placeholder-[#A9B87A] focus:outline-none focus:border-amber-400 transition-colors font-mono"
+                  />
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-white">{currentDoc.title}</h2>
-                <p className="text-xs text-slate-400 mt-1">{currentDoc.summary}</p>
-              </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleCopy(currentDoc.sections.map(s => `## ${s.heading}\n${s.content}\n${s.codeSnippet?.code || ''}`).join('\n\n'), currentDoc.id)}
-                  className="px-3 py-1.5 bg-[#181914] hover:bg-[#46521F] text-xs font-mono font-bold rounded-[6px_2px_6px_2px] border-2 border-[#181914] flex items-center gap-1.5 text-[#F2E8D5] shadow-[2px_2px_0px_#181914] transition-all cursor-pointer"
-                >
-                  {copiedKey === currentDoc.id ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-[#C46A3A]" />}
-                  <span>Transmitir Inteligencia Completa</span>
-                </button>
-              </div>
-            </div>
+                <div className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#A9B87A] px-1 pt-1 flex items-center justify-between">
+                  <span>Archivos /docs</span>
+                  <span>{filteredDocs.length} specs</span>
+                </div>
 
-            {/* Secciones del Documento */}
-            <div className="space-y-6">
-              {currentDoc.sections.map((sec, idx) => (
-                <div key={idx} className="space-y-2.5">
-                  <h3 className="text-sm font-bold font-mono text-emerald-300 flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    {sec.heading}
-                  </h3>
-                  <div className="text-xs sm:text-sm text-slate-300 whitespace-pre-line leading-relaxed bg-slate-950/40 p-3.5 rounded border border-slate-800/60 font-sans">
-                    {sec.content}
-                  </div>
+                <div className="space-y-2 overflow-y-auto max-h-[38vh] lg:max-h-[calc(100vh-320px)] pr-1">
+                  {filteredDocs.map((doc) => {
+                    const isActive = doc.id === activeTab;
+                    return (
+                      <button
+                        key={doc.id}
+                        type="button"
+                        onClick={() => setActiveTab(doc.id)}
+                        className={`w-full text-left p-3 rounded-[10px_3px_10px_3px] border-2 text-xs flex flex-col gap-1.5 cursor-pointer transition-colors ${
+                          isActive
+                            ? 'bg-[#46521F] border-amber-400 text-[#F2E8D5] shadow-[3px_3px_0px_#0A0B08]'
+                            : 'bg-[#2B2C24] border-[#0A0B08] hover:border-[#7B8A4A] text-[#F2E8D5]'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between w-full">
+                          <span className="font-mono text-[10px] text-amber-300 font-bold">
+                            {doc.badge}
+                          </span>
+                          <span className="font-mono text-[10px] text-[#A9B87A]">
+                            {doc.filename.split('/').pop()}
+                          </span>
+                        </div>
+                        <div className="font-display font-bold text-[#F2E8D5] line-clamp-1">
+                          {doc.title}
+                        </div>
+                        <div className="text-[11px] text-[#A9B87A] line-clamp-2 leading-relaxed">
+                          {doc.summary}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </aside>
 
-                  {sec.codeSnippet && (
-                    <div className="mt-3 rounded border border-slate-800 bg-slate-950 overflow-hidden">
-                      <div className="bg-slate-900/80 px-3 py-1.5 border-b border-slate-800 flex items-center justify-between text-[11px] font-mono text-slate-400">
-                        <span>{sec.codeSnippet.language.toUpperCase()} SNIPPET</span>
-                        <button
-                          onClick={() => handleCopy(sec.codeSnippet!.code, `code_${idx}`)}
-                          className="flex items-center gap-1 hover:text-white transition-colors text-slate-300 cursor-pointer"
-                        >
-                          {copiedKey === `code_${idx}` ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-[#C46A3A]" />}
-                          <span>Copiar Cifra Militar</span>
-                        </button>
+              <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6 bg-[#161712]">
+                <section className="tactical-comic-card bg-[#2B2C24] p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-[#0A0B08] pb-4 mb-5">
+                    <div>
+                      <div className="flex items-center gap-2 text-xs font-mono text-amber-400 mb-1">
+                        <span className="px-2 py-0.5 rounded bg-[#161712] border border-[#0A0B08] font-bold">
+                          {currentDoc.badge}
+                        </span>
+                        <span className="text-[#A9B87A] font-mono">
+                          ruta: /{currentDoc.filename}
+                        </span>
                       </div>
-                      <pre className="p-3 text-xs font-mono text-emerald-300/90 overflow-x-auto leading-relaxed">
-                        <code>{sec.codeSnippet.code}</code>
-                      </pre>
+                      <h2 className="text-xl sm:text-2xl font-display font-extrabold text-[#F2E8D5]">
+                        {currentDoc.title}
+                      </h2>
+                      <p className="text-xs text-[#A9B87A] mt-1">{currentDoc.summary}</p>
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
 
-          {/* Llamada Táctica a Despliegue en el Frente */}
-          <section className="bg-[#2B2C24] border-2 border-[#181914] rounded-lg p-5 shadow-[4px_4px_0px_#181914] flex flex-col sm:flex-row items-center justify-between gap-4 font-mono">
-            <div>
-              <div className="flex items-center gap-2 text-xs text-[#7B8A4A] font-black uppercase mb-1">
-                <Sword className="w-4 h-4 text-[#C46A3A]" />
-                <span>Doctrina Operacional & Validación en Combate</span>
-              </div>
-              <h3 className="text-base font-black text-[#F2E8D5]">¿Listo para ejecutar esta doctrina táctica?</h3>
-              <p className="text-xs text-[#F2E8D5]/70 mt-0.5">
-                Despliega inmediatamente al Frente de Combate en pantalla completa con soporte de AWBW, niebla de guerra y duelo con IA.
-              </p>
-            </div>
-            <button
-              onClick={() => handleStartMatchFromLobby('blitz_skirmish')}
-              className="px-4 py-2.5 rounded-[8px_2px_8px_2px] bg-[#C46A3A] hover:bg-[#d67440] text-[#F2E8D5] font-black text-xs uppercase tracking-wider border-2 border-[#181914] shadow-[3px_3px_0px_#181914] flex items-center gap-2 cursor-pointer active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all shrink-0 animate-pulse"
-            >
-              <Crosshair className="w-4 h-4 text-yellow-300" />
-              <span>Desplegar al Frente Táctico</span>
-            </button>
-          </section>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleCopy(
+                          currentDoc.sections
+                            .map((s) => `## ${s.heading}\n${s.content}\n${s.codeSnippet?.code || ''}`)
+                            .join('\n\n'),
+                          currentDoc.id
+                        )
+                      }
+                      className="tactical-juice-btn px-3 py-1.5 bg-[#161712] hover:bg-[#46521F] text-xs font-mono font-bold border-2 border-[#0A0B08] flex items-center gap-1.5 text-[#F2E8D5]"
+                    >
+                      {copiedKey === currentDoc.id ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5 text-[#C46A3A]" />
+                      )}
+                      <span>Transmitir Inteligencia</span>
+                    </button>
+                  </div>
 
-        </main>
-      </div>
+                  <div className="space-y-6">
+                    {currentDoc.sections.map((sec, idx) => (
+                      <div key={idx} className="space-y-2.5">
+                        <h3 className="text-sm font-display font-extrabold text-amber-300 flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-[#C46A3A]"></span>
+                          {sec.heading}
+                        </h3>
+                        <div className="text-xs sm:text-sm text-[#F2E8D5] whitespace-pre-line leading-relaxed bg-[#161712] p-3.5 rounded-[8px_2px_8px_2px] border border-[#0A0B08] font-sans">
+                          {sec.content}
+                        </div>
+
+                        {sec.codeSnippet && (
+                          <div className="mt-3 rounded-[8px_2px_8px_2px] border-2 border-[#0A0B08] bg-[#161712] overflow-hidden">
+                            <div className="bg-[#1F201A] px-3 py-1.5 border-b border-[#0A0B08] flex items-center justify-between text-[11px] font-mono text-[#A9B87A]">
+                              <span>{sec.codeSnippet.language.toUpperCase()} SNIPPET</span>
+                              <button
+                                type="button"
+                                onClick={() => handleCopy(sec.codeSnippet!.code, `code_${idx}`)}
+                                className="flex items-center gap-1 hover:text-[#F2E8D5] transition-colors text-[#A9B87A] cursor-pointer"
+                              >
+                                {copiedKey === `code_${idx}` ? (
+                                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                ) : (
+                                  <Copy className="w-3.5 h-3.5 text-[#C46A3A]" />
+                                )}
+                                <span>Copiar Cifra</span>
+                              </button>
+                            </div>
+                            <pre className="p-3 text-xs font-mono text-amber-300/90 overflow-x-auto leading-relaxed">
+                              <code>{sec.codeSnippet.code}</code>
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              </main>
+            </div>
+          ) : null}
+        </WarLobbyHub>
       )}
 
       {/* Modal Importador de Mapas de la Comunidad (AWBW) */}
       {isImportModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl max-w-2xl w-full p-6 text-slate-200 flex flex-col gap-4 font-mono">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
-                  <UploadCloud className="w-4 h-4" />
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              audioManager.playSFX('button_click');
+              setIsImportModalOpen(false);
+            }
+          }}
+        >
+          <div className="bg-[#2B2C24] border-4 border-[#0A0B08] rounded-[24px_6px_24px_6px] shadow-[12px_12px_0px_#0A0B08] max-w-2xl w-full p-6 text-[#F2E8D5] flex flex-col gap-4 font-mono select-none ben-day-dark">
+            <div className="flex items-center justify-between pb-3 border-b-2 border-[#0A0B08]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-[8px_2px_8px_2px] bg-[#46521F] border-2 border-[#0A0B08] flex items-center justify-center text-amber-300 shadow-[2px_2px_0px_#0A0B08]">
+                  <UploadCloud className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white">Importador de Mapas de la Comunidad (AWBW)</h3>
-                  <p className="text-[11px] text-slate-400">
+                  <h3 className="text-base font-black text-[#F2E8D5] uppercase tracking-wide">Importador de Mapas AWBW</h3>
+                  <p className="text-[11px] text-[#7B8A4A] font-bold">
                     Soporta matrices de losetas CSV canónicas (Advance Wars by Web / WarsWorld IDs 1-194).
                   </p>
                 </div>
               </div>
               <button
-                onClick={() => setIsImportModalOpen(false)}
-                className="text-slate-400 hover:text-white text-lg font-bold px-2 py-1 cursor-pointer"
+                onClick={() => {
+                  audioManager.playSFX('button_click');
+                  setIsImportModalOpen(false);
+                }}
+                onMouseEnter={() => audioManager.playHoverTick()}
+                className="text-[#F2E8D5]/70 hover:text-white p-1 rounded-[6px_2px_6px_2px] bg-[#181914] border border-[#7B8A4A]/40 text-xs font-bold cursor-pointer"
+                title="Cerrar (ESC)"
               >
-                ✕
+                [ESC] ✕
               </button>
             </div>
 
             <div className="flex flex-col gap-3">
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Nombre del Escenario:</label>
+                <label className="text-xs font-black text-[#F2E8D5] uppercase block mb-1">Nombre del Escenario:</label>
                 <input
                   type="text"
                   value={importMapName}
                   onChange={(e) => setImportMapName(e.target.value)}
                   placeholder="Ej: Asalto a la Península (1v1)"
-                  className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono"
+                  className="w-full bg-[#181914] border-2 border-[#0A0B08] rounded-[8px_2px_8px_2px] px-3 py-2 text-xs text-[#F2E8D5] focus:outline-none focus:border-amber-400 font-mono shadow-[2px_2px_0px_#0A0B08]"
                 />
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-bold text-slate-300">
-                    Matriz de Losetas (Valores separados por comas, fila por línea):
+                  <label className="text-xs font-black text-[#F2E8D5] uppercase">
+                    Matriz de Losetas (Valores CSV, fila por línea):
                   </label>
                   <div className="flex items-center gap-1.5 text-[10px]">
                     <button
                       onClick={() => {
+                        audioManager.playHoverTick();
                         setImportMapName('Caustic Finale (Copia)');
                         setImportRawTiles(predefinedMapsMeta[1].rawTileData.trim());
                       }}
-                      className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer"
+                      onMouseEnter={() => audioManager.playHoverTick()}
+                      className="px-2 py-0.5 rounded-[4px_1px_4px_1px] bg-[#181914] hover:bg-[#34352C] border border-[#7B8A4A]/50 text-[#F2E8D5] cursor-pointer"
                     >
-                      Ej: Caustic Finale
+                      Caustic Finale
                     </button>
                     <button
                       onClick={() => {
+                        audioManager.playHoverTick();
                         setImportMapName('1v1 Issus (Copia)');
                         setImportRawTiles(predefinedMapsMeta[2].rawTileData.trim());
                       }}
-                      className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer"
+                      onMouseEnter={() => audioManager.playHoverTick()}
+                      className="px-2 py-0.5 rounded-[4px_1px_4px_1px] bg-[#181914] hover:bg-[#34352C] border border-[#7B8A4A]/50 text-[#F2E8D5] cursor-pointer"
                     >
-                      Ej: Issus
+                      1v1 Issus
                     </button>
                     <button
-                      onClick={() => setImportRawTiles('')}
-                      className="px-2 py-0.5 rounded bg-red-950/60 hover:bg-red-900/60 text-red-300 cursor-pointer"
+                      onClick={() => {
+                        audioManager.playHoverTick();
+                        setImportRawTiles('');
+                      }}
+                      onMouseEnter={() => audioManager.playHoverTick()}
+                      className="px-2 py-0.5 rounded-[4px_1px_4px_1px] bg-[#7F1D1D] hover:bg-[#991B1B] text-[#F2E8D5] border border-[#0A0B08] cursor-pointer"
                     >
                       Limpiar
                     </button>
@@ -2548,45 +2491,49 @@ export default function App() {
                   value={importRawTiles}
                   onChange={(e) => setImportRawTiles(e.target.value)}
                   placeholder="1,34,2,3,16,1,28...&#10;1,1,39,16,5,2...&#10;Pega aquí las filas de números exportadas desde AWBW"
-                  className="w-full bg-slate-950 border border-slate-800 rounded p-2.5 text-[11px] font-mono text-emerald-300 focus:outline-none focus:border-emerald-500 resize-none leading-relaxed"
+                  className="w-full bg-[#181914] border-2 border-[#0A0B08] rounded-[8px_2px_8px_2px] p-2.5 text-[11px] font-mono text-emerald-300 focus:outline-none focus:border-amber-400 resize-none leading-relaxed shadow-[2px_2px_0px_#0A0B08]"
                 />
               </div>
 
               {/* Tarjeta de Validación en Tiempo Real */}
               {importPreview ? (
                 importPreview.valid ? (
-                  <div className="bg-emerald-950/40 border border-emerald-500/40 rounded p-3 text-xs flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between text-emerald-400 font-bold">
-                      <span>✓ Matriz AWBW Válida</span>
-                      <span>{importPreview.width} x {importPreview.height} casillas ({importPreview.width * importPreview.height} tiles)</span>
+                  <div className="bg-[#181914] border-2 border-emerald-500/60 rounded-[10px_2px_10px_2px] p-3 text-xs flex flex-col gap-1.5 shadow-[3px_3px_0px_#0A0B08]">
+                    <div className="flex items-center justify-between text-emerald-400 font-black">
+                      <span>✓ Matriz AWBW Validada</span>
+                      <span className="tabular-nums">{importPreview.width} x {importPreview.height} casillas ({importPreview.width * importPreview.height} tiles)</span>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-slate-300 mt-1">
-                      <div className="bg-slate-900/80 p-2 rounded border border-slate-800">
-                        <span className="text-slate-400">Azul (P1):</span> {importPreview.p1Props} props
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-[#F2E8D5] mt-1 tabular-nums">
+                      <div className="bg-[#2B2C24] p-2 rounded border border-[#7B8A4A]/40">
+                        <span className="text-[#7B8A4A]">Azul (P1):</span> {importPreview.p1Props} props
                       </div>
-                      <div className="bg-slate-900/80 p-2 rounded border border-slate-800">
-                        <span className="text-slate-400">Rojo (P2):</span> {importPreview.p2Props} props
+                      <div className="bg-[#2B2C24] p-2 rounded border border-[#7B8A4A]/40">
+                        <span className="text-[#7B8A4A]">Rojo (P2):</span> {importPreview.p2Props} props
                       </div>
-                      <div className="bg-slate-900/80 p-2 rounded border border-slate-800">
-                        <span className="text-slate-400">Rojo (P2):</span> {importPreview.p2Props} props
+                      <div className="bg-[#2B2C24] p-2 rounded border border-[#7B8A4A]/40">
+                        <span className="text-[#7B8A4A]">Neutrales:</span> {importPreview.neutralProps} props
                       </div>
-                      <div className="bg-slate-900/80 p-2 rounded border border-slate-800">
-                        <span className="text-slate-400">Neutrales:</span> {importPreview.neutralProps} props
+                      <div className="bg-[#2B2C24] p-2 rounded border border-[#7B8A4A]/40">
+                        <span className="text-emerald-400 font-bold">Estado:</span> Listo
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-red-950/40 border border-red-500/40 rounded p-3 text-xs text-red-300 flex items-center justify-between">
+                  <div className="bg-[#7F1D1D]/60 border-2 border-[#EF4444] rounded-[10px_2px_10px_2px] p-3 text-xs text-[#F2E8D5] flex items-center justify-between shadow-[3px_3px_0px_#0A0B08]">
                     <span>⚠️ Error al procesar: {importPreview.error}</span>
                   </div>
                 )
               ) : null}
             </div>
 
-            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t-2 border-[#0A0B08]">
               <button
-                onClick={() => setIsImportModalOpen(false)}
-                className="px-4 py-2 rounded text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
+                onClick={() => {
+                  audioManager.playSFX('button_click');
+                  setIsImportModalOpen(false);
+                }}
+                onMouseEnter={() => audioManager.playHoverTick()}
+                className="px-4 py-2 rounded-[8px_2px_8px_2px] text-xs text-[#7B8A4A] hover:text-[#F2E8D5] border border-[#7B8A4A]/30 transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
@@ -2599,12 +2546,14 @@ export default function App() {
                     setSelectedMapId(newMap.id);
                     setIsImportModalOpen(false);
                     audioManager.playSFX('button_click');
+                    audioManager.playSFX('victory');
                   }
                 }}
-                className={`px-4 py-2 rounded text-xs font-bold transition-all ${
+                onMouseEnter={() => importPreview?.valid && audioManager.playHoverTick()}
+                className={`px-4 py-2 rounded-[8px_2px_8px_2px] text-xs font-black uppercase tracking-wider transition-all border-2 ${
                   importPreview?.valid
-                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.4)] cursor-pointer'
-                    : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                    ? 'bg-emerald-600 hover:bg-emerald-500 text-slate-950 border-[#0A0B08] shadow-[3px_3px_0px_#0A0B08] cursor-pointer active:translate-x-0.5 active:translate-y-0.5'
+                    : 'bg-[#181914] text-[#7B8A4A] border-transparent cursor-not-allowed'
                 }`}
               >
                 Cargar en el Simulador
@@ -2718,22 +2667,6 @@ export default function App() {
           </div>
         </React.Suspense>
       )}
-
-      {/* Pie de Página Militar Diegético con Acceso a Doctrina y Cartografía */}
-      <footer className="border-t-2 border-[#181914] bg-[#2B2C24] px-4 py-2 text-center text-xs text-[#7B8A4A] font-mono flex flex-wrap items-center justify-between gap-2 shadow-[0_-2px_0px_#181914]">
-        <div className="flex items-center gap-3">
-          <span className="text-[#F2E8D5]/70">Red Operacional de Alta Disponibilidad • Cifrado Militar Cuántico</span>
-          <button
-            onClick={() => setIsDevStudioOpen(true)}
-            className="px-2.5 py-1 rounded-[8px_2px_8px_2px] bg-[#181914] hover:bg-[#46521F] text-[#F2E8D5] hover:border-[#7B8A4A] border-2 border-[#181914] text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-[2px_2px_0px_#181914]"
-            title="Terminal de Mando y Edición Táctica de Doctrina, Mapas y Fuerzas"
-          >
-            <Wrench className="w-3 h-3 text-[#C46A3A]" />
-            <span>Terminal de Cartografía y Doctrina</span>
-          </button>
-        </div>
-        <span className="text-[#F2E8D5]/60">Protocolo Canónico de Defensa Territorial • Estado Mayor Conjunto</span>
-      </footer>
     </div>
   );
 }

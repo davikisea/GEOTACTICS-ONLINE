@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Shield,
   Palette,
@@ -14,6 +14,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { COSMETIC_SHOP_CATALOG, CosmeticSkin, UnitSkinTarget } from '../../lib/shopData';
+import { audioManager } from '../../engine/audioManager';
 
 export interface CatalogUnitDef {
   id: string;
@@ -234,6 +235,28 @@ export const LoadoutCustomizer: React.FC<LoadoutCustomizerProps> = ({
   const [selectedUnitCode, setSelectedUnitCode] = useState<string>('tank_light');
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
+  // Atajos de hombro [Q] y [E] para ciclar unidades instantáneamente (Ley de Fitts)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      if (e.key === 'q' || e.key === 'Q') {
+        const currentIdx = CATALOG_UNITS.findIndex(u => u.id === selectedUnitCode);
+        const prevIdx = (currentIdx - 1 + CATALOG_UNITS.length) % CATALOG_UNITS.length;
+        audioManager.playHoverTick();
+        setSelectedUnitCode(CATALOG_UNITS[prevIdx].id);
+      } else if (e.key === 'e' || e.key === 'E') {
+        const currentIdx = CATALOG_UNITS.findIndex(u => u.id === selectedUnitCode);
+        const nextIdx = (currentIdx + 1) % CATALOG_UNITS.length;
+        audioManager.playHoverTick();
+        setSelectedUnitCode(CATALOG_UNITS[nextIdx].id);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedUnitCode]);
+
   const selectedUnit = CATALOG_UNITS.find(u => u.id === selectedUnitCode) || CATALOG_UNITS[0];
 
   // Obtener skins disponibles para la unidad seleccionada
@@ -263,53 +286,59 @@ export const LoadoutCustomizer: React.FC<LoadoutCustomizerProps> = ({
   const currentEquippedSkinObj = availableSkinsForUnit.find(s => s.id === currentEquippedSkinId) || availableSkinsForUnit[0];
 
   const handleSelectSkin = (skinId: string) => {
+    audioManager.playSFX('unit_order');
     onEquipSkin(selectedUnitCode, skinId);
-    setSaveSuccessMsg(`¡Skin "${availableSkinsForUnit.find(s => s.id === skinId)?.name}" equipada con éxito!`);
+    setSaveSuccessMsg(`¡Camuflaje "${availableSkinsForUnit.find(s => s.id === skinId)?.name}" incorporado al blindaje!`);
     setTimeout(() => setSaveSuccessMsg(null), 3000);
   };
 
   const handleResetToDefault = () => {
+    audioManager.playSFX('button_click');
     onEquipSkin(selectedUnitCode, 'skin_default');
     setSaveSuccessMsg('Restablecido a pintura militar estándar.');
     setTimeout(() => setSaveSuccessMsg(null), 3000);
   };
 
   return (
-    <div className="space-y-6 font-mono text-slate-100">
+    <div className="space-y-6 font-mono text-[#F2E8D5] select-none">
       {/* Banner Superior de la Armería */}
-      <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 flex flex-wrap items-center justify-between gap-4 shadow-md">
+      <div className="bg-[#2B2C24] border-2 border-[#0A0B08] rounded-[14px_4px_14px_4px] p-4 flex flex-wrap items-center justify-between gap-4 shadow-[4px_4px_0px_#0A0B08] ben-day-dark">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+          <div className="w-10 h-10 rounded-[8px_2px_8px_2px] bg-[#46521F] border-2 border-[#0A0B08] flex items-center justify-center text-amber-300 shadow-[2px_2px_0px_#0A0B08]">
             <Palette className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
+            <h2 className="text-base font-black text-[#F2E8D5] flex items-center gap-2 uppercase tracking-wide">
               ARMERÍA & PERSONALIZACIÓN DE CAMUFLAJES
-              <span className="text-[10px] bg-blue-950 border border-blue-500/40 text-blue-300 px-2 py-0.5 rounded uppercase">
-                Chasis & Pinturas
+              <span className="text-[10px] bg-[#46521F] border border-[#7B8A4A] text-[#F2E8D5] px-2 py-0.5 rounded-[4px_1px_4px_1px] uppercase font-bold">
+                Chasis & Blindaje
               </span>
             </h2>
-            <p className="text-xs text-slate-400">
-              Configura la librea táctica y skins visuales para tus divisiones en combate.
+            <p className="text-xs text-[#7B8A4A] font-bold">
+              Configura la librea táctica y skins visuales. Pulsa <span className="text-amber-400 font-mono">[Q]</span> y <span className="text-amber-400 font-mono">[E]</span> para alternar unidades.
             </p>
           </div>
         </div>
 
         {onNavigateToShop && (
           <button
-            onClick={onNavigateToShop}
-            className="flex items-center gap-2 px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs shadow-[0_0_12px_rgba(16,185,129,0.25)] transition-all cursor-pointer"
+            onClick={() => {
+              audioManager.playSFX('button_click');
+              onNavigateToShop();
+            }}
+            onMouseEnter={() => audioManager.playHoverTick()}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-[8px_2px_8px_2px] bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs uppercase tracking-wider border-2 border-[#0A0B08] shadow-[3px_3px_0px_#0A0B08] transition-all cursor-pointer active:translate-x-0.5 active:translate-y-0.5"
           >
             <ShoppingBag className="w-4 h-4" />
-            <span>Ir a la Tienda de Skins</span>
+            <span>Tienda de Camuflajes</span>
           </button>
         )}
       </div>
 
       {/* Alerta de guardado */}
       {saveSuccessMsg && (
-        <div className="p-3 rounded-lg border border-emerald-500/50 bg-emerald-950/80 text-emerald-300 text-xs flex items-center gap-2 shadow-[0_0_12px_rgba(16,185,129,0.2)] transition-all">
-          <Check className="w-4 h-4" />
+        <div className="p-3 rounded-[10px_2px_10px_2px] border-2 border-[#7B8A4A] bg-[#46521F] text-[#F2E8D5] text-xs font-black flex items-center gap-2 shadow-[4px_4px_0px_#0A0B08] transition-all">
+          <Check className="w-4 h-4 text-emerald-300" />
           <span>{saveSuccessMsg}</span>
         </div>
       )}
@@ -317,13 +346,13 @@ export const LoadoutCustomizer: React.FC<LoadoutCustomizerProps> = ({
       {/* Layout Principal: Lista de Unidades a la Izquierda y Detalle/Personalizador a la Derecha */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Selector de Unidades del Catálogo (4 cols) */}
-        <div className="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-lg p-4 space-y-3">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-blue-400" />
-              Catálogo de Unidades ({CATALOG_UNITS.length})
+        <div className="lg:col-span-4 bg-[#2B2C24] border-2 border-[#0A0B08] rounded-[14px_4px_14px_4px] p-4 space-y-3 shadow-[4px_4px_0px_#0A0B08]">
+          <div className="flex items-center justify-between pb-2 border-b border-[#7B8A4A]/30">
+            <span className="text-xs font-black text-[#F2E8D5] uppercase tracking-wider flex items-center gap-1.5">
+              <Layers className="w-4 h-4 text-amber-400" />
+              Catálogo de Tropas ({CATALOG_UNITS.length})
             </span>
-            <span className="text-[10px] text-slate-400">Selecciona para editar</span>
+            <span className="text-[10px] text-[#7B8A4A] font-bold font-mono">[Q] / [E]</span>
           </div>
 
           <div className="space-y-1.5 max-h-[550px] overflow-y-auto pr-1">
@@ -335,35 +364,39 @@ export const LoadoutCustomizer: React.FC<LoadoutCustomizerProps> = ({
               return (
                 <button
                   key={unit.id}
-                  onClick={() => setSelectedUnitCode(unit.id)}
-                  className={`w-full text-left p-2.5 rounded border transition-all text-xs flex items-center justify-between cursor-pointer ${
+                  onClick={() => {
+                    audioManager.playHoverTick();
+                    setSelectedUnitCode(unit.id);
+                  }}
+                  onMouseEnter={() => audioManager.playHoverTick()}
+                  className={`w-full text-left p-2.5 rounded-[8px_2px_8px_2px] border-2 transition-all text-xs flex items-center justify-between cursor-pointer ${
                     isSelected
-                      ? 'bg-blue-950/60 border-blue-500/60 text-white shadow-[0_0_10px_rgba(59,130,246,0.2)]'
-                      : 'bg-slate-950/60 border-slate-800 hover:bg-slate-800/60 text-slate-300'
+                      ? 'bg-[#46521F] border-amber-400 text-[#F2E8D5] shadow-[3px_3px_0px_#0A0B08]'
+                      : 'bg-[#181914] border-[#0A0B08] hover:border-[#7B8A4A] text-[#7B8A4A] hover:text-[#F2E8D5]'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
                     <div
-                      className="w-7 h-7 rounded flex items-center justify-center border text-[10px] font-bold"
+                      className="w-7 h-7 rounded-[4px_1px_4px_1px] flex items-center justify-center border text-[10px] font-black"
                       style={{
                         backgroundColor: unit.defaultColor,
-                        borderColor: unit.defaultSecondary,
+                        borderColor: '#0A0B08',
                       }}
                     >
-                      <Shield className="w-4 h-4 text-white" />
+                      <Shield className="w-4 h-4 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" />
                     </div>
                     <div>
-                      <div className="font-bold text-slate-200">{unit.name}</div>
-                      <div className="text-[10px] text-slate-400 capitalize flex items-center gap-1">
+                      <div className="font-black text-[#F2E8D5] uppercase">{unit.name}</div>
+                      <div className="text-[10px] text-[#7B8A4A] uppercase flex items-center gap-1 font-bold">
                         <span>{unit.category}</span>
                         {hasCustomSkin && (
-                          <span className="text-emerald-400 font-semibold">• Skin Especial</span>
+                          <span className="text-amber-400 font-black">• Camuflaje Activo</span>
                         )}
                       </div>
                     </div>
                   </div>
 
-                  <ChevronRight className={`w-4 h-4 ${isSelected ? 'text-blue-400' : 'text-slate-600'}`} />
+                  <ChevronRight className={`w-4 h-4 ${isSelected ? 'text-amber-400' : 'text-[#7B8A4A]'}`} />
                 </button>
               );
             })}
@@ -372,79 +405,77 @@ export const LoadoutCustomizer: React.FC<LoadoutCustomizerProps> = ({
 
         {/* Panel Central/Derecha: Editor de Skin y Vista Previa (8 cols) */}
         <div className="lg:col-span-8 space-y-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-lg p-5 shadow-lg space-y-5">
+          <div className="bg-[#2B2C24] border-2 border-[#0A0B08] rounded-[18px_4px_18px_4px] p-5 shadow-[6px_6px_0px_#0A0B08] space-y-5">
             {/* Header de la Unidad Seleccionada */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#7B8A4A]/30 pb-4">
               <div>
-                <div className="flex items-center gap-2 text-xs text-blue-400 mb-1">
-                  <span className="px-2 py-0.5 rounded bg-blue-950 border border-blue-800/50 uppercase font-bold text-[10px]">
+                <div className="flex items-center gap-2 text-xs mb-1">
+                  <span className="px-2 py-0.5 rounded-[4px_1px_4px_1px] bg-[#46521F] border border-[#7B8A4A] text-[#F2E8D5] uppercase font-black text-[10px]">
                     {selectedUnit.category}
                   </span>
-                  <span className="text-slate-400 font-mono">Código: {selectedUnit.id}</span>
+                  <span className="text-[#7B8A4A] font-mono font-bold">Código: {selectedUnit.id}</span>
                 </div>
-                <h3 className="text-xl font-bold text-white">{selectedUnit.name}</h3>
-                <p className="text-xs text-slate-400 mt-1 max-w-xl">{selectedUnit.description}</p>
+                <h3 className="text-xl font-black text-[#F2E8D5] uppercase">{selectedUnit.name}</h3>
+                <p className="text-xs text-[#7B8A4A] mt-1 max-w-xl font-bold">{selectedUnit.description}</p>
               </div>
 
-              {/* Estadísticas de Combate Resumidas */}
-              <div className="grid grid-cols-3 gap-2 text-center bg-slate-950 border border-slate-800 rounded p-2 text-xs">
+              {/* Estadísticas de Combate Resumidas con tabular-nums */}
+              <div className="grid grid-cols-3 gap-2 text-center bg-[#181914] border-2 border-[#0A0B08] rounded-[10px_2px_10px_2px] p-2.5 text-xs font-mono tabular-nums shadow-[2px_2px_0px_#0A0B08]">
                 <div>
-                  <span className="text-[10px] text-slate-500 block">ATAQUE</span>
-                  <span className="font-bold text-red-400">{selectedUnit.baseAttack}%</span>
+                  <span className="text-[10px] text-[#7B8A4A] uppercase font-bold block">ATAQUE</span>
+                  <span className="font-black text-rose-400">{selectedUnit.baseAttack}%</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-500 block">MOVIMIENTO</span>
-                  <span className="font-bold text-blue-400">{selectedUnit.movementPoints} ({selectedUnit.movementType})</span>
+                  <span className="text-[10px] text-[#7B8A4A] uppercase font-bold block">MOVIMIENTO</span>
+                  <span className="font-black text-blue-400">{selectedUnit.movementPoints} ({selectedUnit.movementType})</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-500 block">COSTE</span>
-                  <span className="font-bold text-amber-400">{selectedUnit.productionCost}G</span>
+                  <span className="text-[10px] text-[#7B8A4A] uppercase font-bold block">COSTE</span>
+                  <span className="font-black text-amber-400">{selectedUnit.productionCost.toLocaleString()}G</span>
                 </div>
               </div>
             </div>
 
             {/* Visualizador Holográfico de la Skin */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-              {/* Caja de Render 3D/Canvas Isométrico estilizado */}
+              {/* Caja de Render Isométrico estilizado */}
               <div
-                className="h-48 rounded-xl border border-slate-800 flex flex-col items-center justify-center relative overflow-hidden shadow-inner p-4"
+                className="h-48 rounded-[14px_4px_14px_4px] border-2 border-[#0A0B08] flex flex-col items-center justify-center relative overflow-hidden shadow-inner p-4"
                 style={{
-                  background: `radial-gradient(circle, ${currentEquippedSkinObj.secondary}30 0%, #030712 90%)`,
+                  background: `radial-gradient(circle, ${currentEquippedSkinObj.secondary}40 0%, #161712 90%)`,
                 }}
               >
                 {/* Cuadrícula táctica de fondo */}
-                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:16px_16px]" />
+                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#F2E8D5_1px,transparent_1px)] [background-size:16px_16px]" />
 
                 {/* Sello de Rarity / Badge */}
-                <div className="absolute top-3 left-3 bg-slate-950/80 border border-slate-700 text-[10px] px-2 py-0.5 rounded text-slate-300 font-bold flex items-center gap-1">
+                <div className="absolute top-3 left-3 bg-[#181914] border border-[#7B8A4A] text-[10px] px-2 py-0.5 rounded-[4px_1px_4px_1px] text-[#F2E8D5] font-black flex items-center gap-1 shadow-[2px_2px_0px_#0A0B08]">
                   <Sparkles className="w-3 h-3 text-amber-400" />
                   <span>{currentEquippedSkinObj.badge}</span>
                 </div>
 
                 {/* Chasis Estilizado */}
                 <div
-                  className="w-24 h-24 rounded-2xl flex items-center justify-center border-2 shadow-2xl relative transform hover:scale-105 transition-all duration-300"
+                  className="w-24 h-24 rounded-[16px_4px_16px_4px] flex items-center justify-center border-4 border-[#0A0B08] shadow-[6px_6px_0px_#0A0B08] relative transform hover:scale-105 transition-all duration-300"
                   style={{
                     backgroundColor: currentEquippedSkinObj.color,
-                    borderColor: currentEquippedSkinObj.secondary,
-                    boxShadow: `0 0 25px ${currentEquippedSkinObj.color}60`,
                   }}
                 >
-                  <Shield className="w-12 h-12 text-white drop-shadow-md" />
+                  <Shield className="w-12 h-12 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" />
 
-                  {/* Detalle visual de cañón o torreta */}
+                  {/* Detalle visual de cañón */}
                   <div
-                    className="absolute -top-2 w-3 h-5 rounded-sm"
+                    className="absolute -top-2 w-3 h-5 rounded-[2px] border border-[#0A0B08]"
                     style={{ backgroundColor: currentEquippedSkinObj.secondary }}
                   />
                 </div>
 
                 <div className="mt-3 text-center z-10">
-                  <div className="text-xs font-bold text-white tracking-wide">
+                  <div className="text-xs font-black text-[#F2E8D5] uppercase tracking-wide">
                     {currentEquippedSkinObj.name}
                   </div>
-                  <div className="text-[10px] text-slate-400">
-                    ID de Textura: <span className="font-mono text-emerald-400">{currentEquippedSkinObj.id}</span>
+                  <div className="text-[10px] text-[#7B8A4A] font-bold">
+                    Textura: <span className="font-mono text-emerald-400">{currentEquippedSkinObj.id}</span>
                   </div>
                 </div>
               </div>
@@ -452,18 +483,20 @@ export const LoadoutCustomizer: React.FC<LoadoutCustomizerProps> = ({
               {/* Selector de Skins para esta Unidad */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <Crosshair className="w-3.5 h-3.5 text-emerald-400" />
-                    Skins en tu Inventario ({availableSkinsForUnit.length})
+                  <h4 className="text-xs font-black text-[#F2E8D5] uppercase tracking-wider flex items-center gap-1.5">
+                    <Crosshair className="w-3.5 h-3.5 text-amber-400" />
+                    Skins en Arsenal ({availableSkinsForUnit.length})
                   </h4>
 
                   {currentEquippedSkinId !== 'skin_default' && (
                     <button
                       onClick={handleResetToDefault}
-                      className="text-[10px] text-slate-400 hover:text-white flex items-center gap-1 transition-colors"
+                      onMouseEnter={() => audioManager.playHoverTick()}
+                      className="px-2.5 py-1 min-h-[28px] rounded-[6px_2px_6px_2px] bg-[#181914] hover:bg-[#34352C] border border-[#7B8A4A]/50 text-xs text-amber-400 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-[2px_2px_0px_#0A0B08]"
+                      title="Volver a la pintura reglamentaria estándar"
                     >
-                      <RotateCcw className="w-3 h-3" />
-                      Restablecer Estándar
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Restablecer</span>
                     </button>
                   )}
                 </div>
@@ -476,42 +509,42 @@ export const LoadoutCustomizer: React.FC<LoadoutCustomizerProps> = ({
                       <div
                         key={skin.id}
                         onClick={() => handleSelectSkin(skin.id)}
-                        className={`p-3 rounded-lg border flex items-center justify-between cursor-pointer transition-all ${
+                        onMouseEnter={() => audioManager.playHoverTick()}
+                        className={`p-3 rounded-[10px_2px_10px_2px] border-2 flex items-center justify-between cursor-pointer transition-all ${
                           isEquipped
-                            ? 'bg-emerald-950/40 border-emerald-500/60 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
-                            : 'bg-slate-950 border-slate-800 hover:border-slate-700'
+                            ? 'bg-[#46521F] border-amber-400 shadow-[3px_3px_0px_#0A0B08]'
+                            : 'bg-[#181914] border-[#0A0B08] hover:border-[#7B8A4A] shadow-[2px_2px_0px_#0A0B08]'
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <div
-                            className="w-7 h-7 rounded border flex items-center justify-center shrink-0"
+                            className="w-7 h-7 rounded-[4px_1px_4px_1px] border-2 border-[#0A0B08] flex items-center justify-center shrink-0"
                             style={{
                               backgroundColor: skin.color,
-                              borderColor: skin.secondary,
                             }}
                           >
                             {isEquipped ? <Check className="w-4 h-4 text-white" /> : <Shield className="w-4 h-4 text-white/80" />}
                           </div>
 
                           <div>
-                            <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                            <div className="text-xs font-black text-[#F2E8D5] flex items-center gap-1.5 uppercase">
                               {skin.name}
                               {isEquipped && (
-                                <span className="text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-1.5 py-0.2 rounded font-mono">
+                                <span className="text-[9px] bg-amber-400 text-slate-950 px-1.5 py-0.2 rounded-[3px_1px_3px_1px] font-black border border-[#0A0B08]">
                                   ACTIVA
                                 </span>
                               )}
                             </div>
-                            <div className="text-[10px] text-slate-400">{skin.badge}</div>
+                            <div className="text-[10px] text-[#7B8A4A] font-bold">{skin.badge}</div>
                           </div>
                         </div>
 
                         <button
                           disabled={isEquipped}
-                          className={`text-xs px-2.5 py-1 rounded font-bold transition-all ${
+                          className={`text-xs px-2.5 py-1 rounded-[6px_2px_6px_2px] font-black uppercase tracking-wider transition-all border ${
                             isEquipped
-                              ? 'text-emerald-400 cursor-default'
-                              : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                              ? 'text-amber-300 border-transparent cursor-default'
+                              : 'bg-[#2B2C24] hover:bg-[#383a2e] text-[#F2E8D5] border-[#0A0B08] shadow-[2px_2px_0px_#0A0B08] cursor-pointer'
                           }`}
                         >
                           {isEquipped ? 'Equipada' : 'Equipar'}
@@ -523,14 +556,18 @@ export const LoadoutCustomizer: React.FC<LoadoutCustomizerProps> = ({
 
                 {/* Alerta de skins bloqueadas en la tienda */}
                 {availableSkinsForUnit.length === 1 && (
-                  <div className="p-3 rounded bg-slate-950 border border-slate-800 text-[11px] text-slate-400 space-y-2">
-                    <p>No tienes skins adicionales desbloqueadas para este tipo de unidad.</p>
+                  <div className="p-3 rounded-[8px_2px_8px_2px] bg-[#181914] border border-[#7B8A4A]/40 text-[11px] text-[#7B8A4A] space-y-2 font-bold">
+                    <p>No tienes camuflajes adicionales desbloqueados para esta división militar.</p>
                     {onNavigateToShop && (
                       <button
-                        onClick={onNavigateToShop}
-                        className="text-emerald-400 hover:underline flex items-center gap-1 font-bold"
+                        onClick={() => {
+                          audioManager.playSFX('button_click');
+                          onNavigateToShop();
+                        }}
+                        onMouseEnter={() => audioManager.playHoverTick()}
+                        className="text-amber-400 hover:text-amber-300 flex items-center gap-1 font-black uppercase cursor-pointer"
                       >
-                        Visitar Tienda Táctica para desbloquear skins <ArrowRight className="w-3.5 h-3.5" />
+                        Desbloquear en Tienda Táctica <ArrowRight className="w-3.5 h-3.5" />
                       </button>
                     )}
                   </div>
@@ -539,12 +576,12 @@ export const LoadoutCustomizer: React.FC<LoadoutCustomizerProps> = ({
             </div>
 
             {/* Aviso de Fair-Play y No Pay-to-Win */}
-            <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
-              <span className="flex items-center gap-1 text-slate-400">
-                <Shield className="w-3.5 h-3.5 text-blue-400" />
-                Regla Canónica: Los aspectos no modifican rango, daño, combustible ni defensa.
+            <div className="pt-3 border-t border-[#7B8A4A]/30 flex items-center justify-between text-[11px] text-[#7B8A4A] font-bold">
+              <span className="flex items-center gap-1">
+                <Shield className="w-3.5 h-3.5 text-amber-400" />
+                Doctrina Canónica: Las skins son 100% cosméticas. No alteran daño, alcance ni combustible.
               </span>
-              <span className="font-mono text-emerald-400">Estado: Sincronizado</span>
+              <span className="font-mono text-emerald-400">● SINCRONIZADO</span>
             </div>
           </div>
         </div>

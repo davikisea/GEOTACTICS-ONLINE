@@ -120,8 +120,16 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   const [isMuted, setIsMuted] = useState<boolean>(() => audioManager.getSettings().muted);
   const [isMusicPlaying, setIsMusicPlaying] = useState<boolean>(() => audioManager.isMusicActive());
 
-  // Efecto de combate temporal (explosión animada)
+  // Efecto de combate temporal (explosión animada) y Trauma de Cámara
   const [activeFx, setActiveFx] = useState<{ x: number; y: number; startTime: number } | null>(null);
+  const traumaRef = useRef<number>(0);
+
+  // Impulso de Trauma cuando ocurre una alerta de emboscada o explosión
+  useEffect(() => {
+    if (ambushAlert || activeFx) {
+      traumaRef.current = Math.min(1.0, traumaRef.current + 0.55);
+    }
+  }, [ambushAlert, activeFx]);
 
   const gridHeight = tiles.length;
   const gridWidth = tiles[0]?.length || 0;
@@ -180,11 +188,23 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const render = (timestamp: number) => {
       ctx.save();
       // Limpiar fondo
-      ctx.fillStyle = '#090d16'; // Slate 950 profundo
+      ctx.fillStyle = '#181914'; // Carbón de búnker táctico
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Aplicar Matriz de Transformación de Cámara
-      ctx.translate(camera.x, camera.y);
+      // Aplicar Screen Shake cuadrático basado en Trauma (Shake = Trauma^2)
+      let shakeX = 0;
+      let shakeY = 0;
+      if (traumaRef.current > 0.01) {
+        const shake = traumaRef.current * traumaRef.current;
+        shakeX = (Math.random() * 2 - 1) * 10 * shake;
+        shakeY = (Math.random() * 2 - 1) * 10 * shake;
+        traumaRef.current = Math.max(0, traumaRef.current - 0.035);
+      } else {
+        traumaRef.current = 0;
+      }
+
+      // Aplicar Matriz de Transformación de Cámara + Screen Shake
+      ctx.translate(camera.x + shakeX, camera.y + shakeY);
       ctx.scale(camera.zoom, camera.zoom);
 
       // 1. DIBUJAR TERRENO MEDIANTE EL ATLAS REAL O PROCEDURAL
@@ -222,9 +242,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             // Detalles decorativos del terreno
             drawTerrainDetails(ctx, tile.type, px, py, palette.detail);
 
-            // Indicador de propiedad de ciudad/HQ
+            // Indicador de propiedad de ciudad/HQ (P1 = Blue Moon #1E64D0, P2 = Orange Star #E84A27)
             if (tile.ownerId) {
-              ctx.fillStyle = tile.ownerId === 'p1' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(59, 130, 246, 0.4)';
+              ctx.fillStyle = tile.ownerId === 'p1' ? 'rgba(30, 100, 208, 0.42)' : 'rgba(232, 74, 39, 0.42)';
               ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
             }
           }
@@ -647,7 +667,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   };
 
   return (
-    <div className="relative rounded-lg overflow-hidden border border-slate-800 bg-slate-950 select-none shadow-2xl">
+    <div className="relative rounded-[14px_4px_14px_4px] overflow-hidden border-2 border-[#0A0B08] bg-[#181914] select-none shadow-[4px_4px_0px_#0A0B08]">
       <canvas
         ref={canvasRef}
         width={width}
@@ -676,28 +696,28 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             top: `${camera.y + inSituTargetBadge.coord.y * TILE_SIZE * camera.zoom - 10}px`,
             transform: 'translate(-50%, -100%)',
           }}
-          className="z-30 pointer-events-none bg-[#2B2C24]/95 backdrop-blur border-2 border-[#181914] px-2.5 py-1 rounded-[6px_2px_6px_2px] shadow-[3px_3px_0px_#181914] text-xs font-mono select-none flex items-center gap-2 whitespace-nowrap animate-in fade-in zoom-in-95 duration-100"
+          className="z-30 pointer-events-none bg-[#2B2C24]/95 backdrop-blur border-2 border-[#0A0B08] px-2.5 py-1 rounded-[10px_2px_10px_2px] shadow-[3px_3px_0px_#0A0B08] text-xs font-mono select-none flex items-center gap-2 whitespace-nowrap animate-in fade-in zoom-in-95 duration-100"
         >
           <div className="flex items-center gap-1">
-            <span className="text-red-400 font-black">💥 -{inSituTargetBadge.estimatedDamage} HP</span>
-            <span className="text-slate-400">
+            <span className="text-[#E84A27] font-black">💥 -{inSituTargetBadge.estimatedDamage} HP</span>
+            <span className="text-[#D8D1C5]">
               ({Math.max(0, inSituTargetBadge.defenderHp - inSituTargetBadge.estimatedDamage)}/10)
             </span>
           </div>
-          <span className="text-slate-600">|</span>
+          <span className="text-[#46521F]">|</span>
           <div className="flex items-center gap-1">
             {inSituTargetBadge.canCounter ? (
-              <span className="text-amber-400 font-bold">
+              <span className="text-[#F2B705] font-bold">
                 🛡️ Contra: -{inSituTargetBadge.counterDamage} HP
               </span>
             ) : (
-              <span className="text-emerald-400 font-bold">🚫 Sin Contra</span>
+              <span className="text-[#3A9D4E] font-bold">🚫 Sin Contra</span>
             )}
           </div>
           {inSituTargetBadge.terrainStars !== undefined && (
             <>
-              <span className="text-slate-600">|</span>
-              <span className="text-amber-300">★{inSituTargetBadge.terrainStars}</span>
+              <span className="text-[#46521F]">|</span>
+              <span className="text-[#F2B705]">★{inSituTargetBadge.terrainStars}</span>
             </>
           )}
         </div>
@@ -718,61 +738,54 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       )}
 
       {/* Barra de Herramientas de Audio Militar */}
-      <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 bg-slate-900/90 border border-slate-700/80 rounded px-2.5 py-1 text-xs font-mono shadow-md backdrop-blur">
+      <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 bg-[#2B2C24]/95 border-2 border-[#0A0B08] rounded-[10px_2px_10px_2px] px-2.5 py-1 text-xs font-mono shadow-[3px_3px_0px_#0A0B08]">
         <button
           onClick={handleToggleMute}
-          className={`flex items-center gap-1 px-1.5 py-0.5 rounded transition-colors ${
-            isMuted ? 'text-red-400 bg-red-950/50' : 'text-emerald-400 hover:text-emerald-300'
+          className={`flex items-center gap-1 px-1.5 py-0.5 rounded-[4px_1px_4px_1px] transition-colors cursor-pointer tactical-juice-btn ${
+            isMuted ? 'text-[#E84A27] bg-[#181914]' : 'text-[#00FF66] hover:text-[#F2E8D5]'
           }`}
           title={isMuted ? 'Desmutear audio' : 'Silenciar audio'}
         >
           {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-          <span className="text-[10px]">{isMuted ? 'MUTED' : 'SFX ON'}</span>
+          <span className="text-[10px] font-bold">{isMuted ? 'MUTED' : 'SFX ON'}</span>
         </button>
 
-        <span className="text-slate-600">|</span>
+        <span className="text-[#46521F]">|</span>
 
         <button
           onClick={handleToggleMusic}
-          className={`flex items-center gap-1 px-1.5 py-0.5 rounded transition-colors ${
-            isMusicPlaying ? 'text-amber-400 bg-amber-950/40' : 'text-slate-400 hover:text-slate-300'
+          className={`flex items-center gap-1 px-1.5 py-0.5 rounded-[4px_1px_4px_1px] transition-colors cursor-pointer tactical-juice-btn ${
+            isMusicPlaying ? 'text-[#F2B705] bg-[#181914]' : 'text-[#D8D1C5]/70 hover:text-[#F2E8D5]'
           }`}
           title={isMusicPlaying ? 'Pausar música de marcha' : 'Reproducir marcha táctica'}
         >
           <Music className={`w-3.5 h-3.5 ${isMusicPlaying ? 'animate-pulse' : ''}`} />
-          <span className="text-[10px]">{isMusicPlaying ? 'BGM 125BPM' : 'BGM OFF'}</span>
-        </button>
-
-        <span className="text-slate-600">|</span>
-
-        <button
-          onClick={() => triggerTestSound('cannon')}
-          className="hover:text-emerald-400 text-[10px] text-slate-300 px-1 py-0.5 rounded hover:bg-slate-800"
-          title="Probar cañonazo y explosión"
-        >
-          💥 Cañón
+          <span className="text-[10px] font-bold">{isMusicPlaying ? 'BGM 125BPM' : 'BGM OFF'}</span>
         </button>
       </div>
 
       {/* Controles Flotantes de Cámara */}
-      <div className="absolute bottom-3 right-3 flex items-center gap-1.5 bg-slate-900/90 border border-slate-700/80 rounded px-2.5 py-1 text-xs font-mono shadow-md backdrop-blur">
+      <div className="absolute bottom-3 right-3 flex items-center gap-1.5 bg-[#2B2C24]/95 border-2 border-[#0A0B08] rounded-[10px_2px_10px_2px] px-2.5 py-1 text-xs font-mono shadow-[3px_3px_0px_#0A0B08]">
         <button
           onClick={() => setCamera(prev => ({ ...prev, zoom: Math.min(2.5, prev.zoom * 1.2) }))}
-          className="hover:text-emerald-400 font-bold px-1.5"
+          className="hover:text-[#F2B705] text-[#F2E8D5] font-black px-1.5 cursor-pointer tactical-juice-btn"
           title="Zoom In"
         >
           +
         </button>
-        <span className="text-slate-400 text-[11px]">{Math.round(camera.zoom * 100)}%</span>
+        <span className="text-[#D8D1C5] text-[11px] font-bold tabular-nums">{Math.round(camera.zoom * 100)}%</span>
         <button
           onClick={() => setCamera(prev => ({ ...prev, zoom: Math.max(0.5, prev.zoom / 1.2) }))}
-          className="hover:text-emerald-400 font-bold px-1.5"
+          className="hover:text-[#F2B705] text-[#F2E8D5] font-black px-1.5 cursor-pointer tactical-juice-btn"
           title="Zoom Out"
         >
           -
         </button>
-        <span className="text-slate-600">|</span>
-        <button onClick={handleResetCamera} className="hover:text-white text-[11px] text-slate-300">
+        <span className="text-[#46521F]">|</span>
+        <button
+          onClick={handleResetCamera}
+          className="hover:text-[#F2B705] text-[11px] text-[#F2E8D5] font-bold cursor-pointer tactical-juice-btn"
+        >
           Reset
         </button>
       </div>
@@ -837,10 +850,10 @@ function drawTacticalUnitSprite(
     alpha: unit.hasActed ? 0.6 : 1.0, // Oscurecer unidad si ya actuó este turno
   });
 
-  // 2. Placa de HP militar táctica (1 a 10)
-  ctx.fillStyle = '#0f172a';
+  // 2. Placa de HP militar táctica (1 a 10) - P1 = Blue Moon #1E64D0, P2 = Orange Star #E84A27
+  ctx.fillStyle = '#0A0B08';
   ctx.fillRect(ux + 28, uy + 28, 16, 16);
-  ctx.strokeStyle = team === 'p1' ? '#ef4444' : '#3b82f6';
+  ctx.strokeStyle = team === 'p1' ? '#1E64D0' : '#E84A27';
   ctx.lineWidth = 1.5;
   ctx.strokeRect(ux + 28, uy + 28, 16, 16);
 
@@ -882,14 +895,18 @@ function drawCameraHUD(
   fow?: FogOfWarVisualConfig | null
 ) {
   const fowText = fow && fow.enabled ? ` | FoW: ${fow.viewerPlayerId.toUpperCase()}` : ' | FoW: OFF';
-  ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-  ctx.fillRect(8, 8, 220, 26);
-  ctx.strokeStyle = '#334155';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(8, 8, 220, 26);
+  // Sombra dura de tinta offset
+  ctx.fillStyle = '#0A0B08';
+  ctx.fillRect(10, 10, 224, 26);
+  // Cuerpo blindado C4ISR
+  ctx.fillStyle = 'rgba(43, 44, 36, 0.94)';
+  ctx.fillRect(8, 8, 224, 26);
+  ctx.strokeStyle = '#0A0B08';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(8, 8, 224, 26);
 
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = '10px monospace';
+  ctx.fillStyle = '#D8D1C5';
+  ctx.font = 'bold 10px monospace';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
 

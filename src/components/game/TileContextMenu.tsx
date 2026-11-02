@@ -13,6 +13,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { AvailableSubAction, ActionType } from '../../engine/subActions';
+import { audioManager } from '../../engine/audioManager';
 
 export interface TileContextMenuProps {
   screenX: number;
@@ -117,11 +118,11 @@ export const TileContextMenu: React.FC<TileContextMenuProps> = ({
           width: `${menuWidth}px`,
         }}
         onClick={(e) => e.stopPropagation()}
-        className="z-40 bg-[#2B2C24]/95 backdrop-blur-md border-2 border-[#181914] rounded-[8px_2px_8px_2px] shadow-[6px_6px_0px_#181914] p-1.5 flex flex-col gap-1 select-none font-mono animate-in fade-in zoom-in-95 duration-100"
+        className="z-40 bg-[#2B2C24]/95 backdrop-blur-md border-2 border-[#0A0B08] rounded-[8px_2px_8px_2px] shadow-[6px_6px_0px_#0A0B08] p-1.5 flex flex-col gap-1 select-none font-mono animate-in fade-in zoom-in-95 duration-100"
       >
         <div className="px-2 py-0.5 border-b border-[#7B8A4A]/30 flex items-center justify-between text-[10px] text-[#7B8A4A] font-black uppercase">
           <span>Órdenes Tácticas</span>
-          <span className="text-[9px] text-[#F2E8D5]/60">ESC</span>
+          <span className="text-[9px] text-[#F2E8D5]/60 font-mono">ESC</span>
         </div>
 
         <div className="flex flex-col gap-1 mt-0.5">
@@ -133,6 +134,7 @@ export const TileContextMenu: React.FC<TileContextMenuProps> = ({
               <button
                 key={act.type}
                 onClick={() => onSelectAction(act)}
+                onMouseEnter={() => audioManager.playHoverTick()}
                 className="w-full text-left px-2.5 py-1.5 rounded-[4px_1px_4px_1px] bg-[#181914] hover:bg-[#46521F] text-[#F2E8D5] hover:text-white border border-[#7B8A4A]/40 hover:border-[#F2E8D5] flex items-center justify-between text-xs font-black transition-all cursor-pointer group active:translate-x-0.5 active:translate-y-0.5"
                 title={act.description}
               >

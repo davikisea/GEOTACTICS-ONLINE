@@ -82,6 +82,10 @@ class TacticalAudioManager {
   private bgmStep: number = 0;
   private currentBgmTheme: 'march' | 'tension' = 'march';
 
+  // Estado de Combo / Racha para escalado semitonal (Octalysis Micro-Loop)
+  private comboCount: number = 0;
+  private lastComboTimestamp: number = 0;
+
   private constructor() {
     this.loadPersistedSettings();
   }
@@ -214,13 +218,13 @@ class TacticalAudioManager {
 
     switch (type) {
       case 'cannon':
-        this.synthCannon(ctx, now);
+        this.synthCannon(ctx, now, pitchShift);
         break;
       case 'machinegun':
-        this.synthMachineGun(ctx, now);
+        this.synthMachineGun(ctx, now, pitchShift);
         break;
       case 'rocket':
-        this.synthRocket(ctx, now);
+        this.synthRocket(ctx, now, pitchShift);
         break;
       case 'explosion':
         this.synthExplosion(ctx, now);
@@ -232,10 +236,10 @@ class TacticalAudioManager {
         this.synthFootstep(ctx, now);
         break;
       case 'unit_select':
-        this.synthSelectChirp(ctx, now);
+        this.synthSelectChirp(ctx, now, pitchShift);
         break;
       case 'unit_order':
-        this.synthOrderChime(ctx, now);
+        this.synthOrderChime(ctx, now, pitchShift);
         break;
       case 'capture':
         this.synthCapture(ctx, now);
@@ -253,10 +257,142 @@ class TacticalAudioManager {
         this.synthSuperCOPower(ctx, now);
         break;
       case 'button_click':
-        this.synthButtonClick(ctx, now);
+        this.synthButtonClick(ctx, now, pitchShift);
         break;
       case 'combat_hit':
-        this.synthCombatHit(ctx, now);
+        this.synthCombatHit(ctx, now, pitchShift);
+        break;
+    }
+  }
+
+  /**
+   * Pulso corto de hover (<20ms) con variación aleatoria de pitch (±8%) para erradicar fatiga auditiva
+   */
+  public playHoverTick() {
+    if (this.settings.muted || this.settings.masterVolume === 0 || this.settings.sfxVolume === 0) {
+      return;
+    }
+    const ctx = this.initContext();
+    if (!ctx || !this.sfxGain) return;
+
+    const t = ctx.currentTime;
+    const pitchJitter = 0.92 + Math.random() * 0.16;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(680 * pitchJitter, t);
+    osc.frequency.exponentialRampToValueAtTime(920 * pitchJitter, t + 0.018);
+
+    gain.gain.setValueAtTime(0.075, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.022);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(t);
+    osc.stop(t + 0.024);
+  }
+
+  /**
+   * Escalado semitonal ascendente (Octalysis Micro-Bucle) para rachas, cosecha de silos y recompensas
+   */
+  public playComboAction(comboIndex?: number) {
+    if (this.settings.muted || this.settings.masterVolume === 0 || this.settings.sfxVolume === 0) {
+      return;
+    }
+    const ctx = this.initContext();
+    if (!ctx || !this.sfxGain) return;
+
+    const nowMs = performance.now();
+    if (comboIndex !== undefined) {
+      this.comboCount = comboIndex;
+    } else {
+      this.comboCount = nowMs - this.lastComboTimestamp < 2500 ? Math.min(14, this.comboCount + 1) : 0;
+    }
+    this.lastComboTimestamp = nowMs;
+
+    const t = ctx.currentTime;
+    const semitoneScale = Math.pow(1.059463, Math.min(this.comboCount, 14));
+    const jitter = 0.96 + Math.random() * 0.08;
+    const shift = semitoneScale * jitter;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(320 * shift, t);
+    osc.frequency.exponentialRampToValueAtTime(660 * shift, t + 0.085);
+
+    gain.gain.setValueAtTime(0.24, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.095);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(t);
+    osc.stop(t + 0.1);
+  }
+
+  /**
+   * Odómetro de fondos ($G) con tono ascendente
+   */
+  public playGoldTick(index: number = 0) {
+    if (this.settings.muted || this.settings.masterVolume === 0 || this.settings.sfxVolume === 0) {
+      return;
+    }
+    const ctx = this.initContext();
+    if (!ctx || !this.sfxGain) return;
+
+    const t = ctx.currentTime;
+    const pitch = 440 * Math.pow(1.059463, Math.min(index, 12)) * (0.97 + Math.random() * 0.06);
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(pitch, t);
+    gain.gain.setValueAtTime(0.14, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.035);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(t);
+    osc.stop(t + 0.04);
+  }
+
+  /**
+   * Método polimórfico de compatibilidad y conveniencia para señales sonoras y metajuego
+   */
+  public play(cueKey: string) {
+    if (this.settings.muted || this.settings.masterVolume === 0 || this.settings.sfxVolume === 0) {
+      return;
+    }
+    switch (cueKey) {
+      case 'menu_select':
+      case 'button_click':
+        this.playSFX('button_click');
+        break;
+      case 'menu_cancel':
+        this.playSFX('combat_hit');
+        break;
+      case 'victory_fanfare':
+      case 'victory':
+        this.playSFX('victory');
+        break;
+      case 'defeat':
+        this.playSFX('defeat');
+        break;
+      case 'turn_start':
+      case 'capture':
+        this.playSFX('capture');
+        break;
+      case 'coin':
+      case 'gold':
+        this.playGoldTick(1);
+        break;
+      default:
+        if (AUDIO_SYNTHESIS_CATALOG[cueKey]) {
+          this.playCue(cueKey);
+        } else {
+          this.playSFX('button_click');
+        }
         break;
     }
   }
@@ -276,14 +412,15 @@ class TacticalAudioManager {
     const t = ctx.currentTime;
     const durSec = cue.durationMs / 1000;
     const attackSec = cue.attackMs / 1000;
+    const pitchShift = 0.96 + Math.random() * 0.08;
 
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = cue.waveType;
-    osc.frequency.setValueAtTime(cue.baseFrequency, t);
+    osc.frequency.setValueAtTime(cue.baseFrequency * pitchShift, t);
 
     if (cue.sweepTargetFrequency) {
-      osc.frequency.exponentialRampToValueAtTime(Math.max(1, cue.sweepTargetFrequency), t + durSec);
+      osc.frequency.exponentialRampToValueAtTime(Math.max(1, cue.sweepTargetFrequency * pitchShift), t + durSec);
     }
 
     gain.gain.setValueAtTime(0.001, t);
@@ -301,12 +438,12 @@ class TacticalAudioManager {
     }
   }
 
-  private synthCombatHit(ctx: AudioContext, t: number) {
+  private synthCombatHit(ctx: AudioContext, t: number, pitchShift: number = 1) {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(220, t);
-    osc.frequency.exponentialRampToValueAtTime(40, t + 0.2);
+    osc.frequency.setValueAtTime(220 * pitchShift, t);
+    osc.frequency.exponentialRampToValueAtTime(40 * pitchShift, t + 0.2);
 
     gain.gain.setValueAtTime(0.7, t);
     gain.gain.exponentialRampToValueAtTime(0.01, t + 0.22);
@@ -321,13 +458,13 @@ class TacticalAudioManager {
   /**
    * Cañón pesado: Explosión con caída rápida de tono y ruido blanco filtrado
    */
-  private synthCannon(ctx: AudioContext, t: number) {
+  private synthCannon(ctx: AudioContext, t: number, pitchShift: number = 1) {
     // Oscilador de tono sub-grave que desciende drásticamente
     const osc = ctx.createOscillator();
     const oscGain = ctx.createGain();
     osc.type = 'triangle';
-    osc.frequency.setValueAtTime(160, t);
-    osc.frequency.exponentialRampToValueAtTime(25, t + 0.35);
+    osc.frequency.setValueAtTime(160 * pitchShift, t);
+    osc.frequency.exponentialRampToValueAtTime(25 * pitchShift, t + 0.35);
 
     oscGain.gain.setValueAtTime(0.9, t);
     oscGain.gain.exponentialRampToValueAtTime(0.01, t + 0.4);
@@ -344,15 +481,15 @@ class TacticalAudioManager {
   /**
    * Ametralladora táctica: Ráfaga de 3 pulsos ultra-rápidos
    */
-  private synthMachineGun(ctx: AudioContext, t: number) {
+  private synthMachineGun(ctx: AudioContext, t: number, pitchShift: number = 1) {
     for (let i = 0; i < 3; i++) {
       const pulseTime = t + i * 0.08;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
       osc.type = 'square';
-      osc.frequency.setValueAtTime(450, pulseTime);
-      osc.frequency.exponentialRampToValueAtTime(180, pulseTime + 0.05);
+      osc.frequency.setValueAtTime(450 * pitchShift, pulseTime);
+      osc.frequency.exponentialRampToValueAtTime(180 * pitchShift, pulseTime + 0.05);
 
       gain.gain.setValueAtTime(0.4, pulseTime);
       gain.gain.exponentialRampToValueAtTime(0.01, pulseTime + 0.06);
@@ -369,13 +506,13 @@ class TacticalAudioManager {
   /**
    * Lanzamiento de misil o cohete: Silbido ascendente y humo
    */
-  private synthRocket(ctx: AudioContext, t: number) {
+  private synthRocket(ctx: AudioContext, t: number, pitchShift: number = 1) {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
     osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(140, t);
-    osc.frequency.exponentialRampToValueAtTime(800, t + 0.25);
+    osc.frequency.setValueAtTime(140 * pitchShift, t);
+    osc.frequency.exponentialRampToValueAtTime(800 * pitchShift, t + 0.25);
 
     gain.gain.setValueAtTime(0.3, t);
     gain.gain.linearRampToValueAtTime(0.6, t + 0.15);
@@ -443,13 +580,13 @@ class TacticalAudioManager {
   /**
    * Selección de unidad: Chirp digital agudo estilo radar
    */
-  private synthSelectChirp(ctx: AudioContext, t: number) {
+  private synthSelectChirp(ctx: AudioContext, t: number, pitchShift: number = 1) {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, t); // A5
-    osc.frequency.exponentialRampToValueAtTime(1760, t + 0.08); // A6
+    osc.frequency.setValueAtTime(880 * pitchShift, t); // A5
+    osc.frequency.exponentialRampToValueAtTime(1760 * pitchShift, t + 0.08); // A6
 
     gain.gain.setValueAtTime(0.25, t);
     gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
@@ -463,14 +600,14 @@ class TacticalAudioManager {
   /**
    * Confirmación de orden / movimiento: Beep dual
    */
-  private synthOrderChime(ctx: AudioContext, t: number) {
+  private synthOrderChime(ctx: AudioContext, t: number, pitchShift: number = 1) {
     [1046.5, 1318.5].forEach((freq, idx) => {
       const noteTime = t + idx * 0.07;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, noteTime);
+      osc.frequency.setValueAtTime(freq * pitchShift, noteTime);
 
       gain.gain.setValueAtTime(0.3, noteTime);
       gain.gain.exponentialRampToValueAtTime(0.01, noteTime + 0.09);
@@ -624,19 +761,20 @@ class TacticalAudioManager {
     });
   }
 
-  private synthButtonClick(ctx: AudioContext, t: number) {
+  private synthButtonClick(ctx: AudioContext, t: number, pitchShift: number = 1) {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(1200, t);
-    gain.gain.setValueAtTime(0.15, t);
-    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.03);
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(940 * pitchShift, t);
+    osc.frequency.exponentialRampToValueAtTime(280 * pitchShift, t + 0.038);
+    gain.gain.setValueAtTime(0.22, t);
+    gain.gain.exponentialRampToValueAtTime(0.005, t + 0.042);
 
     osc.connect(gain);
     gain.connect(this.sfxGain!);
     osc.start(t);
-    osc.stop(t + 0.04);
+    osc.stop(t + 0.045);
   }
 
   /**

@@ -65,7 +65,20 @@ export const TiltEmergencyOfferModal: React.FC<TiltEmergencyOfferModalProps> = (
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isOpen, offer.expiresAt]);
+  }, [isOpen, offer.expiresAt, onClose]);
+
+  // Manejo de atajo ESC para cierre rápido
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isProcessing) {
+        audioManager.playSFX('button_click');
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isProcessing, onClose]);
 
   if (!isOpen) return null;
 
@@ -84,7 +97,7 @@ export const TiltEmergencyOfferModal: React.FC<TiltEmergencyOfferModalProps> = (
     setTimeout(() => {
       setIsProcessing(false);
       setIsCompleted(true);
-      audioManager.playSFX('victory_fanfare');
+      audioManager.playSFX('victory');
 
       setTimeout(() => {
         onPurchaseSuccess(offer.rewardBlueprints, offer.rewardSteel);
@@ -94,26 +107,40 @@ export const TiltEmergencyOfferModal: React.FC<TiltEmergencyOfferModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md animate-fadeIn font-mono">
-      <div className="bg-[#2B2C24] border-4 border-amber-500/70 rounded-[28px_8px_28px_8px] p-6 max-w-lg w-full shadow-[12px_12px_0px_#181914] text-[#F2E8D5] relative overflow-hidden">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md animate-fadeIn font-mono"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isProcessing) {
+          audioManager.playSFX('button_click');
+          onClose();
+        }
+      }}
+    >
+      <div className="bg-[#2B2C24] border-4 border-amber-500/70 rounded-[28px_8px_28px_8px] p-6 max-w-lg w-full shadow-[12px_12px_0px_#0A0B08] text-[#F2E8D5] relative overflow-hidden">
         {/* Sello de Descuento Pop-Art */}
         <div className="absolute top-4 right-12 transform rotate-12 z-20 pointer-events-none">
-          <div className="px-3 py-1 bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-widest border-2 border-[#181914] shadow-[3px_3px_0px_#181914]">
+          <div className="px-3 py-1 bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-widest border-2 border-[#0A0B08] shadow-[3px_3px_0px_#0A0B08]">
             ¡CONVOY PRIORITARIO!
           </div>
         </div>
 
         {/* Botón de Cierre */}
         <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800 transition-colors cursor-pointer"
+          onClick={() => {
+            audioManager.playSFX('button_click');
+            onClose();
+          }}
+          onMouseEnter={() => audioManager.playHoverTick()}
+          className="absolute top-4 right-4 text-[#F2E8D5]/70 hover:text-white p-1.5 rounded-[6px_2px_6px_2px] bg-[#181914] border border-[#7B8A4A]/40 hover:bg-[#34352C] transition-colors cursor-pointer flex items-center gap-1 text-[10px] font-bold"
+          title="Cerrar (ESC)"
         >
-          <X className="w-5 h-5" />
+          <span className="text-[9px] text-amber-400/80 hidden sm:inline">[ESC]</span>
+          <X className="w-4 h-4" />
         </button>
 
         {/* Cabecera del Alto Mando */}
         <div className="flex items-center gap-3 mb-4 border-b border-[#7B8A4A]/40 pb-3">
-          <div className="w-12 h-12 rounded-[12px_2px_12px_2px] bg-amber-500 border-2 border-[#F2E8D5] flex items-center justify-center text-2xl font-black shadow-[3px_3px_0px_#181914]">
+          <div className="w-12 h-12 rounded-[12px_2px_12px_2px] bg-amber-500 border-2 border-[#F2E8D5] flex items-center justify-center text-2xl font-black shadow-[3px_3px_0px_#0A0B08]">
             📦
           </div>
           <div>
@@ -127,12 +154,12 @@ export const TiltEmergencyOfferModal: React.FC<TiltEmergencyOfferModalProps> = (
         </div>
 
         {/* Ventana de Reserva Estratégica (12h) */}
-        <div className="p-3.5 rounded-[16px_4px_16px_4px] border-2 mb-4 text-center bg-[#181914] border-[#7B8A4A] text-amber-300">
+        <div className="p-3.5 rounded-[16px_4px_16px_4px] border-2 mb-4 text-center bg-[#181914] border-[#7B8A4A] text-amber-300 shadow-[4px_4px_0px_#0A0B08]">
           <div className="flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest">
             <Clock className="w-4 h-4" />
             <span>Reserva Asegurada en Almacén Logístico Durante:</span>
           </div>
-          <div className="text-2xl md:text-3xl font-black tracking-wider mt-1 text-white">
+          <div className="text-2xl md:text-3xl font-black tracking-wider mt-1 text-white font-mono tabular-nums">
             {formattedTime}
           </div>
         </div>
