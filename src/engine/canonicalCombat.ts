@@ -13,6 +13,7 @@
 
 import { TacticalUnit, TerrainTile } from '../types';
 import { getCanonicalBaseDamage } from './canonicalDamageChart';
+import { CombatAuraModifierResult } from './buildingAuras';
 
 export interface LuckRoll {
   goodLuck: number; // 0.0 a 1.0 (1.0 = suerte máxima)
@@ -61,6 +62,7 @@ export interface CanonicalCombatOptions {
   isTournamentMode?: boolean; // Forzar Tournament Cap Nivel 11
   luckRoll?: LuckRoll;
   deterministic?: boolean;    // true para partidas de torneo / pruebas sin RNG
+  buildingAuraModifiers?: CombatAuraModifierResult; // Modificadores dinámicos de auras de edificios
 }
 
 export interface CanonicalCombatResult {
@@ -110,7 +112,8 @@ export class CanonicalCombatEngine {
     } = options;
 
     const distance = Math.abs(attacker.x - defender.x) + Math.abs(attacker.y - defender.y);
-    const inRange = distance >= attacker.minRange && distance <= attacker.maxRange;
+    const effectiveMaxRange = attacker.maxRange + (options.buildingAuraModifiers?.attackerMaxRangeBonus || 0);
+    const inRange = distance >= attacker.minRange && distance <= effectiveMaxRange;
 
     // Si está fuera de rango, no se puede iniciar ataque
     if (!inRange) {
@@ -168,8 +171,11 @@ export class CanonicalCombatEngine {
 
     // 2. Cálculo de modificadores de ataque (+10% por torre de comunicación y bono por nivel)
     const attackerLevelBonus = getLevelAttackBonus(attackerLevel, isTournamentMode);
-    const attackModifier = coAttackModifier + commtowersCount * 10 + attackerLevelBonus;
-    const defenseModifier = coDefenseModifier;
+    const auraAttackBonus = options.buildingAuraModifiers?.attackerEffectiveAttackBonus || 0;
+    const attackModifier = coAttackModifier + commtowersCount * 10 + attackerLevelBonus + auraAttackBonus;
+
+    const auraDefenseBonus = options.buildingAuraModifiers?.defenderEffectiveDefenseBonus || 0;
+    const defenseModifier = coDefenseModifier + auraDefenseBonus;
 
     // 3. Suerte táctica (0 a 9% por defecto en AW)
     let luckModifier = 0;
@@ -188,7 +194,11 @@ export class CanonicalCombatEngine {
     const attackHPFactor = Math.floor(attackFactor * (attacker.hp / 10));
 
     // defenseFactor = floor(200 - (defenseModifier + defenderTerrainStars * defenderHP)) / 100
-    const defenderTerrainStars = defenderTile.defenseStars;
+    let defenderTerrainStars = defenderTile.defenseStars + (options.buildingAuraModifiers?.defenderExtraStars || 0);
+    if (options.buildingAuraModifiers?.attackerArmorPenetration) {
+      const pen = options.buildingAuraModifiers.attackerArmorPenetration / 100;
+      defenderTerrainStars = Math.max(0, defenderTerrainStars * (1 - pen));
+    }
     const defenseFactor =
       Math.floor(200 - (defenseModifier + defenderTerrainStars * defender.hp)) / 100;
 

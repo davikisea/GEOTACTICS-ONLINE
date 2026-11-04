@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { Volume2, VolumeX, Music, Sparkles } from 'lucide-react';
 import { GridPosition, TacticalUnit, TerrainTile, TerrainType } from '../../types';
 import { assetLoader } from '../../engine/assetLoader';
@@ -97,6 +97,31 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   inSituTargetBadge = null,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Dimensiones dinámicas con ResizeObserver para pantalla completa sin bordes negros
+  const [dimensions, setDimensions] = useState<{ width: number; height: number }>({
+    width: width || 800,
+    height: height || 600,
+  });
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const { width: w, height: h } = entry.contentRect;
+        if (w > 20 && h > 20) {
+          setDimensions({ width: Math.floor(w), height: Math.floor(h) });
+        }
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const viewportW = dimensions.width;
+  const viewportH = dimensions.height;
 
   // Referencias para discriminación de gestos táctiles (RFC Sección 3 / Anexo B)
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
@@ -134,22 +159,60 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   const gridHeight = tiles.length;
   const gridWidth = tiles[0]?.length || 0;
 
-  // Auto-ajuste de cámara dinámico al cargar un mapa nuevo o cambiar dimensiones
+  // Zoom mínimo estricto que llena 100% de la pantalla sin bordes negros (Cover Mode)
+  const coverZoom = useMemo(() => {
+    if (gridWidth <= 0 || gridHeight <= 0 || viewportW <= 0 || viewportH <= 0) return 1.0;
+    const horizontalCover = viewportW / (gridWidth * TILE_SIZE);
+    const verticalCover = viewportH / (gridHeight * TILE_SIZE);
+    return Math.max(0.35, Math.max(horizontalCover, verticalCover));
+  }, [viewportW, viewportH, gridWidth, gridHeight]);
+
+  // Clamp de cámara espacial: impide que el mapa se despegue de los bordes del canvas
+  const clampCamera = useCallback(
+    (x: number, y: number, currentZoom: number) => {
+      const mapPixelW = gridWidth * TILE_SIZE * currentZoom;
+      const mapPixelH = gridHeight * TILE_SIZE * currentZoom;
+
+      let clampedX = x;
+      let clampedY = y;
+
+      if (mapPixelW <= viewportW) {
+        clampedX = Math.floor((viewportW - mapPixelW) / 2);
+      } else {
+        const minX = viewportW - mapPixelW;
+        const maxX = 0;
+        clampedX = Math.min(maxX, Math.max(minX, x));
+      }
+
+      if (mapPixelH <= viewportH) {
+        clampedY = Math.floor((viewportH - mapPixelH) / 2);
+      } else {
+        const minY = viewportH - mapPixelH;
+        const maxY = 0;
+        clampedY = Math.min(maxY, Math.max(minY, y));
+      }
+
+      return { x: clampedX, y: clampedY };
+    },
+    [viewportW, viewportH, gridWidth, gridHeight]
+  );
+
+  // Auto-ajuste de cámara dinámico al cargar un mapa nuevo o redimensionar ventana
   useEffect(() => {
-    if (gridWidth > 0 && gridHeight > 0) {
-      const horizontalFit = (width - 40) / (gridWidth * TILE_SIZE);
-      const verticalFit = (height - 40) / (gridHeight * TILE_SIZE);
-      const bestZoom = Math.min(1.0, Math.max(0.4, Math.min(horizontalFit, verticalFit)));
-      const roundedZoom = Number(bestZoom.toFixed(2));
-      const targetX = Math.max(16, Math.floor((width - gridWidth * TILE_SIZE * roundedZoom) / 2));
-      const targetY = Math.max(16, Math.floor((height - gridHeight * TILE_SIZE * roundedZoom) / 2));
+    if (gridWidth > 0 && gridHeight > 0 && viewportW > 0 && viewportH > 0) {
+      const targetZoom = Number(coverZoom.toFixed(2));
+      const mapPixelW = gridWidth * TILE_SIZE * targetZoom;
+      const mapPixelH = gridHeight * TILE_SIZE * targetZoom;
+      const targetX = Math.floor((viewportW - mapPixelW) / 2);
+      const targetY = Math.floor((viewportH - mapPixelH) / 2);
+      const clamped = clampCamera(targetX, targetY, targetZoom);
       setCamera({
-        x: targetX,
-        y: targetY,
-        zoom: roundedZoom,
+        x: clamped.x,
+        y: clamped.y,
+        zoom: targetZoom,
       });
     }
-  }, [gridWidth, gridHeight, width, height]);
+  }, [gridWidth, gridHeight, coverZoom, viewportW, viewportH, clampCamera]);
 
   // Convertir coordenadas de pantalla a celda de la cuadrícula
   const screenToGrid = useCallback(
@@ -433,11 +496,16 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (isDragging) {
-      setCamera(prev => ({
-        ...prev,
-        x: e.clientX - dragStart.x,
-        y: e.clientY - dragStart.y,
-      }));
+      setCamera(prev => {
+        const rawX = e.clientX - dragStart.x;
+        const rawY = e.clientY - dragStart.y;
+        const clamped = clampCamera(rawX, rawY, prev.zoom);
+        return {
+          ...prev,
+          x: clamped.x,
+          y: clamped.y,
+        };
+      });
     } else {
       const coord = screenToGrid(e.clientX, e.clientY);
       setHoveredCoord(coord);
@@ -477,15 +545,22 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const mouseY = e.clientY - rect.top;
 
     setCamera(prev => {
-      const nextZoom = Math.max(0.5, Math.min(2.5, prev.zoom * zoomFactor));
+      const nextZoom = Math.max(coverZoom, Math.min(3.0, prev.zoom * zoomFactor));
       const nextX = mouseX - (mouseX - prev.x) * (nextZoom / prev.zoom);
       const nextY = mouseY - (mouseY - prev.y) * (nextZoom / prev.zoom);
-      return { x: nextX, y: nextY, zoom: nextZoom };
+      const clamped = clampCamera(nextX, nextY, nextZoom);
+      return { x: clamped.x, y: clamped.y, zoom: nextZoom };
     });
   };
 
   const handleResetCamera = () => {
-    setCamera({ x: 40, y: 40, zoom: 1.0 });
+    const targetZoom = Number(coverZoom.toFixed(2));
+    const mapPixelW = gridWidth * TILE_SIZE * targetZoom;
+    const mapPixelH = gridHeight * TILE_SIZE * targetZoom;
+    const targetX = Math.floor((viewportW - mapPixelW) / 2);
+    const targetY = Math.floor((viewportH - mapPixelH) / 2);
+    const clamped = clampCamera(targetX, targetY, targetZoom);
+    setCamera({ x: clamped.x, y: clamped.y, zoom: targetZoom });
   };
 
   // Manejadores de Gestos Táctiles Móviles Multitáctil y Háptico (Fase 2 / RFC Sección 3)
@@ -549,16 +624,17 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
         setCamera(prev => {
           const rawZoom = prev.zoom * scaleFactor;
-          const nextZoom = Math.max(0.65, Math.min(1.80, rawZoom));
+          const nextZoom = Math.max(coverZoom, Math.min(3.0, rawZoom));
           const zoomRatio = nextZoom / prev.zoom;
 
           // Corrección espacial del centroide invariante
           const nextX = currentCenter.x - (currentCenter.x - prev.x) * zoomRatio;
           const nextY = currentCenter.y - (currentCenter.y - prev.y) * zoomRatio;
+          const clamped = clampCamera(nextX, nextY, nextZoom);
 
           return {
-            x: Math.round(nextX),
-            y: Math.round(nextY),
+            x: Math.round(clamped.x),
+            y: Math.round(clamped.y),
             zoom: Number(nextZoom.toFixed(3)),
           };
         });
@@ -576,11 +652,16 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           longPressTimerRef.current = null;
         }
         setIsDragging(true);
-        setCamera(prev => ({
-          ...prev,
-          x: touch.clientX - dragStart.x,
-          y: touch.clientY - dragStart.y,
-        }));
+        setCamera(prev => {
+          const rawX = touch.clientX - dragStart.x;
+          const rawY = touch.clientY - dragStart.y;
+          const clamped = clampCamera(rawX, rawY, prev.zoom);
+          return {
+            ...prev,
+            x: clamped.x,
+            y: clamped.y,
+          };
+        });
       }
     }
   };
@@ -667,11 +748,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   };
 
   return (
-    <div className="relative rounded-[14px_4px_14px_4px] overflow-hidden border-2 border-[#0A0B08] bg-[#181914] select-none shadow-[4px_4px_0px_#0A0B08]">
+    <div
+      ref={containerRef}
+      className="relative w-full h-full flex-1 overflow-hidden rounded-[14px_4px_14px_4px] border-2 border-[#0A0B08] bg-[#181914] select-none shadow-[4px_4px_0px_#0A0B08]"
+    >
       <canvas
         ref={canvasRef}
-        width={width}
-        height={height}
+        width={viewportW}
+        height={viewportH}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -684,7 +768,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="block cursor-crosshair touch-none"
+        className="block cursor-crosshair touch-none w-full h-full"
       />
 
       {/* Badge Flotante de Pronóstico Balístico In-Situ (RFC Sección 1 / Dilema 2) */}

@@ -43,7 +43,7 @@ import {
 } from 'lucide-react';
 import { GAME_DOCUMENTS, DocItem } from './docsData';
 import { GameCanvas, AmbushAlert } from './components/game/GameCanvas';
-import { TacticalUnit, TerrainTile } from './types';
+import { TacticalUnit, TerrainTile, GridPosition } from './types';
 import { CosmeticSkin } from './lib/shopData';
 import { assetLoader } from './engine/assetLoader';
 import { audioManager } from './engine/audioManager';
@@ -70,6 +70,20 @@ import { Clan, ClanMember, SafeguardInventory, ClanEngine, UserProfileIdentity }
 import { AsymmetricLadderEngine, NearMissReport, TiltEmergencyOffer } from './engine/asymmetricLadderEngine';
 import { WarLobbyHub } from './components/lobby/WarLobbyHub';
 import { CombatTheaterView } from './components/game/CombatTheaterView';
+import { PreBattleDeploymentModal, DeploymentConfig } from './components/game/PreBattleDeploymentModal';
+import { ReinforcementRequestModal } from './components/game/ReinforcementRequestModal';
+import { generateProceduralMap } from './engine/proceduralMapGenerator';
+import {
+  initializeReinforcementsEngine,
+  requestReinforcements,
+  processTurnArrival,
+  consumeVanguardDeployment,
+  ReinforcementsEngineState,
+  CANONICAL_RESERVE_CATALOG,
+} from './engine/reinforcementsEngine';
+import { calculateBuildingAuras } from './engine/buildingAuras';
+import { playerDb, PersistentPlayerData } from './services/playerDatabaseService';
+import { matchDb } from './services/matchDatabaseService';
 
 // Lazy loading de módulos pesados para optimización de bundle inicial en Vercel
 const ShopCatalog = React.lazy(() => import('./components/shop/ShopCatalog').then(m => ({ default: m.ShopCatalog })));
@@ -416,17 +430,184 @@ export default function App() {
   const [mainNav, setMainNav] = useState<'lobby' | 'combat' | 'docs' | 'shop' | 'armory' | 'industry' | 'marketplace' | 'clans' | 'qa'>('lobby');
   const [isTacticalDrawerOpen, setIsTacticalDrawerOpen] = useState<boolean>(false);
 
-  // Despliegue de Combate Inmersivo desde el Lobby Bélico (1 Clic)
+  // Estados de Gran Estrategia & Despliegue Pre-Batalla (Total War + Stellaris)
+  const [isPreBattleModalOpen, setIsPreBattleModalOpen] = useState<boolean>(false);
+  const [isReinforcementModalOpen, setIsReinforcementModalOpen] = useState<boolean>(false);
+  const [reinforcementsEngine, setReinforcementsEngine] = useState<ReinforcementsEngineState>(() => initializeReinforcementsEngine());
+  const [pendingLaunchFormat, setPendingLaunchFormat] = useState<MatchFormat>('grand_campaign');
+
+  // Despliegue de Combate Inmersivo desde el Lobby Bélico (Abre Modal de Despliegue de Vanguardia)
   const handleStartMatchFromLobby = (format: MatchFormat | 'campaign') => {
     const canonicalFormat: MatchFormat = format === 'campaign' ? 'grand_campaign' : format;
+    setPendingLaunchFormat(canonicalFormat);
+    setIsPreBattleModalOpen(true);
+    audioManager.playSFX('button_click');
+  };
+
+  const handleConfirmDeployment = (config: DeploymentConfig) => {
+    setIsPreBattleModalOpen(false);
+    const canonicalFormat = pendingLaunchFormat;
     setMatchFormat(canonicalFormat);
-    if (canonicalFormat === 'mirror_duel') {
-      setSelectedMapId('mirror_arena_10x10');
-    }
     setTurnTimeRemaining(MATCH_FORMAT_CONFIGS[canonicalFormat].turnTimeLimitSec);
-    resetMatchState(canonicalFormat);
+
+    // 1. Generar mapa procedural continental continuo con ID y semilla únicos
+    const proceduralMap = generateProceduralMap({
+      id: `proc_map_${config.seed}_${Date.now()}`,
+      name: `Teatro ${config.territoryPreset.toUpperCase()} #${config.seed % 10000}`,
+      width: config.combatZone.width,
+      height: config.combatZone.height,
+      combatZone: config.combatZone,
+      continentalSector: config.continentalSector,
+      seed: config.seed,
+      startingFactoriesPerPlayer: 2,
+    });
+
+    // 2. Registrar mapa activo
+    setCustomMaps(prev => [proceduralMap, ...prev.filter(m => m.id !== proceduralMap.id)]);
+    setSelectedMapId(proceduralMap.id);
+
+    // 3. Localizar bases para desplegar tropas de vanguardia
+    const p1SpawnPositions: { x: number; y: number }[] = [];
+    const p2SpawnPositions: { x: number; y: number }[] = [];
+
+    for (let y = 0; y < proceduralMap.height; y++) {
+      for (let x = 0; x < proceduralMap.width; x++) {
+        const t = proceduralMap.tiles[y][x];
+        if (t.ownerId === 'p1' && (t.type === 'hq' || t.type === 'factory')) {
+          p1SpawnPositions.push({ x, y });
+        }
+        if (t.ownerId === 'p2' && (t.type === 'hq' || t.type === 'factory')) {
+          p2SpawnPositions.push({ x, y });
+        }
+      }
+    }
+
+    const newUnits: SimUnit[] = [];
+    config.selectedUnits.forEach((code, idx) => {
+      const meta = CANONICAL_RESERVE_CATALOG[code] || CANONICAL_RESERVE_CATALOG.infantry;
+      const p1Pos = p1SpawnPositions[idx % p1SpawnPositions.length] || { x: 2, y: 2 };
+      const p2Pos = p2SpawnPositions[idx % p2SpawnPositions.length] || { x: proceduralMap.width - 3, y: proceduralMap.height - 3 };
+
+      newUnits.push({
+        id: `vanguard_p1_${code}_${idx}_${Date.now() % 1000}`,
+        name: meta.displayName,
+        code: meta.code,
+        owner: 'p1',
+        x: p1Pos.x,
+        y: p1Pos.y,
+        hp: 10,
+        movePoints: meta.movementPoints,
+        moveType: meta.movementType as any,
+        minRange: meta.minRange,
+        maxRange: meta.maxRange,
+        baseAtk: meta.baseAttack,
+        hasMoved: false,
+        hasActed: false,
+      });
+
+      // Tropas simétricas hostiles para P2
+      newUnits.push({
+        id: `vanguard_p2_${code}_${idx}_${Date.now() % 1000}`,
+        name: meta.displayName,
+        code: meta.code,
+        owner: 'p2',
+        x: p2Pos.x,
+        y: p2Pos.y,
+        hp: 10,
+        movePoints: meta.movementPoints,
+        moveType: meta.movementType as any,
+        minRange: meta.minRange,
+        maxRange: meta.maxRange,
+        baseAtk: meta.baseAttack,
+        hasMoved: false,
+        hasActed: false,
+      });
+    });
+
+    // 4. Inyectar unidades en el objeto de mapa procedural para evitar reseteo
+    proceduralMap.startingUnits = newUnits.map(u => ({
+      id: u.id,
+      unitCode: u.code,
+      displayName: u.name,
+      ownerId: u.owner,
+      x: u.x,
+      y: u.y,
+      hp: u.hp,
+      maxHp: 10,
+      ammo: 10,
+      fuel: 99,
+      movementPoints: u.movePoints,
+      movementType: u.moveType,
+      minRange: u.minRange,
+      maxRange: u.maxRange,
+      visionRange: 2,
+      baseAttack: u.baseAtk,
+      productionCost: 1000,
+      hasMoved: false,
+      hasActed: false,
+      skinId: u.owner === 'p1' ? 'red_star_standard' : 'blue_moon_standard',
+    }));
+
+    setUnits(newUnits);
+    setMatchTiles(proceduralMap.tiles.map(row => row.map(t => ({ ...t }))));
+
+    const p1 = newUnits.find(u => u.owner === 'p1');
+    const p2 = newUnits.find(u => u.owner === 'p2');
+    if (p1) setSelectedUnitId(p1.id);
+    if (p2) setTargetEnemyId(p2.id);
+
+    // 5. Descontar del stock inicial de refuerzos y persistir en base de datos
+    const initialEngine = initializeReinforcementsEngine();
+    const vanguardConsumption = consumeVanguardDeployment(initialEngine.stocks.p1, config.selectedUnits);
+    if (vanguardConsumption.success) {
+      initialEngine.stocks.p1 = vanguardConsumption.updatedStock;
+      playerDb.updateReserveStock(vanguardConsumption.updatedStock).catch(() => {});
+    }
+    setReinforcementsEngine(initialEngine);
+
+    setTurn('p1');
+    setTurnNumber(1);
     setMainNav('combat');
     audioManager.playSFX('co_power');
+
+    // 6. Registrar inicio de la batalla en la secuencia de eventos de la base de datos (Event Sourcing AAA)
+    matchDb.startMatch({
+      matchFormat: canonicalFormat,
+      networkMode: gameMode,
+      mapId: proceduralMap.id,
+      mapSeed: config.seed,
+      p1UserId: playerDb.getUserId(),
+      p1CommanderId: playerCOs.p1.coId,
+      p2UserId: gameMode === 'vs_bot' ? 'bot_blue_moon' : 'user_rival_p2',
+      p2CommanderId: playerCOs.p2.coId,
+      initialSnapshot: {
+        matchId: proceduralMap.id,
+        turnNumber: 1,
+        activePlayer: 'p1',
+        timestamp: new Date().toISOString(),
+        tiles: proceduralMap.tiles.flat().map(t => ({ x: t.x, y: t.y, ownerId: t.ownerId, captureHp: t.captureHp || 20, type: t.type })),
+        units: proceduralMap.startingUnits,
+        funds: { p1: playerFunds.p1, p2: playerFunds.p2 },
+        coStates: playerCOs,
+        airDrops: [],
+      },
+    }).catch(err => console.warn('[MatchDB] Error al iniciar registro de batalla:', err));
+  };
+
+  const handleRequestReinforcements = (selectedCodes: string[]) => {
+    const auras = calculateBuildingAuras(matchTiles, turn);
+    const hasFactory = auras.factoryCount > 0;
+    const res = requestReinforcements(reinforcementsEngine, {
+      playerId: turn,
+      unitCodes: selectedCodes,
+      currentTurnNumber: turnNumber,
+      hasFactoryBuff: hasFactory,
+    });
+
+    if (res.success) {
+      setReinforcementsEngine(res.nextState);
+      audioManager.playSFX('co_power');
+    }
   };
 
   // Estados del Complejo Industrial Militar (Fase 5)
@@ -604,6 +785,11 @@ export default function App() {
   const handleConcludeMatch = (won: boolean) => {
     setIsVictory(won);
     setLastMatchResult(won ? 'victory' : 'defeat');
+    matchDb.concludeMatch({
+      winningTeam: won ? 'p1' : 'p2',
+      endReason: 'army_wiped',
+      totalTurns: turnNumber,
+    }).catch(() => {});
     const outcome = ClanEngine.processMatchOutcome(safeguardInventory, won);
     setSafeguardInventory(outcome.updatedInventory);
     setIsSummaryModalOpen(true);
@@ -671,6 +857,35 @@ export default function App() {
   React.useEffect(() => {
     assetLoader.preloadCriticalAssets().catch(err => {
       console.warn('Precarga de sprites en segundo plano:', err);
+    });
+
+    // Carga de Datos Persistentes y Conexión Real a Base de Datos (Supabase DB)
+    playerDb.loadPlayerData().then(dbData => {
+      setUserGold(dbData.gold);
+      setUserGems(dbData.gems);
+      setUserTrophies(dbData.trophies);
+      setSimLevel(dbData.level);
+      setIndustrialInventory(dbData.industrialInventory);
+      setClan(dbData.clan);
+      if (dbData.clanMembers && dbData.clanMembers.length > 0) {
+        setClanMembers(dbData.clanMembers);
+      }
+      setUserProfileIdentity(prev => ({
+        ...prev,
+        displayName: dbData.username,
+        eloRating: dbData.eloRating,
+        favoriteCommanderId: dbData.activeCommanderId as any,
+        commanderBondLevel: dbData.commanderBondLevel,
+      }));
+      setReinforcementsEngine(prev => ({
+        ...prev,
+        stocks: {
+          ...prev.stocks,
+          p1: dbData.reserveStock || prev.stocks.p1,
+        },
+      }));
+    }).catch(err => {
+      console.warn('Carga de base de datos:', err);
     });
   }, []);
 
@@ -1070,8 +1285,38 @@ export default function App() {
       hasActed: false,
     }));
 
-    // 3. Actualizar estados
-    setUnits(updatedUnitsSim);
+    // 3. Procesar llegada de refuerzos tácticos para el jugador que concluye turno
+    const arrivalResult = processTurnArrival(
+      reinforcementsEngine,
+      matchTiles,
+      repairResult.updatedUnits,
+      turn
+    );
+
+    setReinforcementsEngine(arrivalResult.nextState);
+    let finalUnitsSim = updatedUnitsSim;
+    if (arrivalResult.newUnitsDeployed.length > 0) {
+      const arrivedSimUnits: SimUnit[] = arrivalResult.newUnitsDeployed.map(u => ({
+        id: u.id,
+        name: u.displayName,
+        code: u.unitCode,
+        owner: u.ownerId as 'p1' | 'p2',
+        x: u.x,
+        y: u.y,
+        hp: u.hp,
+        movePoints: u.movementPoints,
+        moveType: u.movementType as any,
+        minRange: u.minRange,
+        maxRange: u.maxRange,
+        baseAtk: u.baseAttack,
+        hasMoved: false,
+        hasActed: false,
+      }));
+      finalUnitsSim = [...updatedUnitsSim, ...arrivedSimUnits];
+      audioManager.playSFX('unit_order');
+    }
+
+    setUnits(finalUnitsSim);
 
     setPlayerFunds(prev => ({
       ...prev,
@@ -1123,6 +1368,19 @@ export default function App() {
 
     // Reiniciar temporizador de turno
     setTurnTimeRemaining(MATCH_FORMAT_CONFIGS[matchFormat].turnTimeLimitSec);
+
+    // Registro de transición de turno en la base de datos (Event Sourcing)
+    matchDb.recordTurnTransition(nextPlayer, nextTurnNum, {
+      matchId: activeMap.id,
+      turnNumber: nextTurnNum,
+      activePlayer: nextPlayer,
+      timestamp: new Date().toISOString(),
+      tiles: matchTiles.flat().map(t => ({ x: t.x, y: t.y, ownerId: t.ownerId, captureHp: t.captureHp || 20, type: t.type })),
+      units: convertedUnits,
+      funds: { p1: playerFunds.p1, p2: playerFunds.p2 },
+      coStates: playerCOs,
+      airDrops: currentDrops.map(d => ({ id: d.id, x: d.x, y: d.y, turnsRemaining: d.turnsRemaining })),
+    }).catch(() => {});
 
     // 6. Comprobar límite de turnos según formato
     if (nextTurnNum > MATCH_FORMAT_CONFIGS[matchFormat].maxTurnsLimit) {
@@ -1288,6 +1546,12 @@ export default function App() {
     }
 
     triggerHaptic('movement');
+    matchDb.recordAction({
+      type: 'MOVE',
+      unitId: selectedUnit.id,
+      from: { x: selectedUnit.x, y: selectedUnit.y },
+      to: targetCoord,
+    }).catch(() => {});
     setUnits(prev =>
       prev.map(u => (u.id === selectedUnit.id ? { ...u, x: targetCoord.x, y: targetCoord.y } : u))
     );
@@ -1325,8 +1589,9 @@ export default function App() {
   };
 
   // Temporizador de Turno en Tiempo Real (Anti-AFK & Arbitraje Blitz / Espejo)
+  // Guardia estricta: NUNCA correr el temporizador ni disparar combates cuando se está en el Lobby o Menú
   React.useEffect(() => {
-    if (isSummaryModalOpen || isBotThinking || viewMode !== 'canvas') {
+    if (mainNav !== 'combat' || isSummaryModalOpen || isBotThinking || viewMode !== 'canvas') {
       return;
     }
 
@@ -1349,7 +1614,7 @@ export default function App() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [turn, turnNumber, matchFormat, isSummaryModalOpen, isBotThinking, viewMode]);
+  }, [mainNav, turn, turnNumber, matchFormat, isSummaryModalOpen, isBotThinking, viewMode]);
 
   // Copiar al portapapeles
   const handleCopy = (text: string, key: string) => {
@@ -1583,6 +1848,15 @@ export default function App() {
 
   const handleExecuteCombat = () => {
     if (!combatResult || !combatResult.inRange || !selectedUnit || !targetEnemy) return;
+
+    matchDb.recordAction({
+      type: 'ATTACK',
+      unitId: selectedUnit.id,
+      targetId: targetEnemy.id,
+      combatResult,
+      from: { x: selectedUnit.x, y: selectedUnit.y },
+      to: { x: targetEnemy.x, y: targetEnemy.y },
+    }).catch(() => {});
 
     if (selectedUnit.code === 'infantry' || selectedUnit.code === 'recon') {
       audioManager.playSFX('machinegun');
@@ -2110,6 +2384,9 @@ export default function App() {
           setIsProductionModalOpen={setIsProductionModalOpen}
           isTacticalDrawerOpen={isTacticalDrawerOpen}
           setIsTacticalDrawerOpen={setIsTacticalDrawerOpen}
+          reinforcementsState={reinforcementsEngine}
+          onOpenReinforcementModal={() => setIsReinforcementModalOpen(true)}
+          onOpenProceduralModal={() => setIsPreBattleModalOpen(true)}
           onRetreatToLobby={() => {
             setMainNav('lobby');
             audioManager.playSFX('button_click');
@@ -2160,6 +2437,7 @@ export default function App() {
           lastMatchResult={lastMatchResult}
           activeDeckCount={activeLoadoutUnits.length}
           onStartMatch={handleStartMatchFromLobby}
+          onDeployCombat={handleStartMatchFromLobby}
           onOpenShop={() => setMainNav('shop')}
           onOpenArmory={() => setMainNav('armory')}
           onOpenIndustry={() => setMainNav('industry')}
@@ -2170,13 +2448,20 @@ export default function App() {
           onOpenProfile={() => setIsProfileModalOpen(true)}
           activeStation={mainNav === 'lobby' ? null : mainNav}
           onCloseStation={() => setMainNav('lobby')}
-          onGainGold={(delta) => setUserGold((g) => g + delta)}
-          onGainSteel={(delta) =>
-            setIndustrialInventory((prev) => ({
-              ...prev,
-              refinedSteel: prev.refinedSteel + delta,
-            }))
-          }
+          onGainGold={(delta) => {
+            setUserGold((g) => {
+              const next = g + delta;
+              playerDb.updateProfile({ gold: next }).catch(() => {});
+              return next;
+            });
+          }}
+          onGainSteel={(delta) => {
+            setIndustrialInventory((prev) => {
+              const next = { ...prev, refinedSteel: prev.refinedSteel + delta };
+              playerDb.updateProfile({ industrialInventory: next }).catch(() => {});
+              return next;
+            });
+          }}
         >
           {mainNav === 'shop' ? (
             <React.Suspense fallback={<TacticalLoadingFallback />}>
@@ -2658,6 +2943,24 @@ export default function App() {
 
       {/* Overlay Flotante del Bark Engine de Novela Gráfica */}
       <ComicVignetteOverlay />
+
+      {/* Modal de Despliegue Pre-Batalla (Vanguardia & Escala Continental Total War) */}
+      <PreBattleDeploymentModal
+        isOpen={isPreBattleModalOpen}
+        onClose={() => setIsPreBattleModalOpen(false)}
+        onConfirmDeployment={handleConfirmDeployment}
+        reserveStock={reinforcementsEngine.stocks.p1}
+      />
+
+      {/* Modal de Refuerzos en Combate (Delay 4T / 3T con fábrica) */}
+      <ReinforcementRequestModal
+        isOpen={isReinforcementModalOpen}
+        onClose={() => setIsReinforcementModalOpen(false)}
+        onConfirmRequest={handleRequestReinforcements}
+        stock={reinforcementsEngine.stocks[turn]}
+        hasFactoryBuff={calculateBuildingAuras(matchTiles, turn).factoryCount > 0}
+        currentPendingCount={reinforcementsEngine.pendingRequests.filter(r => r.playerId === turn).length}
+      />
 
       {/* Herramienta Interna de Desarrollo: Tactical Studio Editor (Desacoplado) */}
       {isDevStudioOpen && (

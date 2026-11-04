@@ -18,6 +18,7 @@ import {
   Terminal,
   LogOut,
   ShieldAlert,
+  Radio,
 } from 'lucide-react';
 import { GameCanvas, AmbushAlert, InSituTargetBadgeData, TileContextMenuData } from './GameCanvas';
 import { TacticalUnit, TerrainTile } from '../../types';
@@ -33,6 +34,9 @@ import { CanonicalCombatEngine } from '../../engine/canonicalCombat';
 import { audioManager } from '../../engine/audioManager';
 import { triggerHaptic } from '../../engine/hapticFeedback';
 import { DebugDevConsoleModal } from './DebugDevConsoleModal';
+import { calculateBuildingAuras, BuildingAuraProfile } from '../../engine/buildingAuras';
+import { ReinforcementsEngineState } from '../../engine/reinforcementsEngine';
+import { matchDb } from '../../services/matchDatabaseService';
 
 const MapLoadingScreen = React.lazy(() =>
   import('./MapLoadingScreen').then(m => ({ default: m.MapLoadingScreen }))
@@ -107,6 +111,9 @@ export interface CombatTheaterViewProps {
   setIsTacticalDrawerOpen: (open: boolean) => void;
   onRetreatToLobby: () => void;
   onBarkTrigger: () => void;
+  reinforcementsState?: ReinforcementsEngineState;
+  onOpenReinforcementModal?: () => void;
+  onOpenProceduralModal?: () => void;
 }
 
 export const CombatTheaterView: React.FC<CombatTheaterViewProps> = ({
@@ -173,9 +180,20 @@ export const CombatTheaterView: React.FC<CombatTheaterViewProps> = ({
   setIsTacticalDrawerOpen,
   onRetreatToLobby,
   onBarkTrigger,
+  reinforcementsState,
+  onOpenReinforcementModal,
+  onOpenProceduralModal,
 }) => {
   const p1Count = units.filter(u => u.owner === 'p1').length;
   const supply = DeckManager.calculateSupplyStatus(p1Count);
+  const [isOutlinerOpen, setIsOutlinerOpen] = React.useState<boolean>(true);
+
+  // Auras de edificios territoriales activas
+  const buildingAuras = React.useMemo(() => calculateBuildingAuras(matchTiles, turn), [matchTiles, turn]);
+
+  // Refuerzos en tránsito para el jugador actual
+  const myPendingReinf = reinforcementsState?.pendingRequests.filter(r => r.playerId === turn && r.status === 'en_route') || [];
+  const minTurnsETA = myPendingReinf.length > 0 ? Math.min(...myPendingReinf.map(r => r.turnsUntilArrival)) : 0;
 
   // Estados para Paridad de Sub-Acciones y Menú Contextual (RFC Sección 1)
   const [tileContextMenu, setTileContextMenu] = React.useState<TileContextMenuData | null>(null);
@@ -331,11 +349,21 @@ export const CombatTheaterView: React.FC<CombatTheaterViewProps> = ({
             onActivatePower={(powerType) => handleActivateCOPower(turn, powerType)}
           />
 
-          {/* Fondos */}
+          {/* Fondos & Ingresos */}
           <div className="flex items-center gap-2 bg-[#181914] px-2 py-0.5 rounded border border-[#7B8A4A]/40 text-[11px] font-mono font-bold">
-            <span className="text-blue-400">P1: {playerFunds.p1.toLocaleString()}G</span>
+            <span className="text-blue-400">P1: {playerFunds.p1.toLocaleString()}G (+{p1Income}G)</span>
             <span className="text-slate-600">|</span>
-            <span className="text-red-400">P2: {playerFunds.p2.toLocaleString()}G</span>
+            <span className="text-red-400">P2: {playerFunds.p2.toLocaleString()}G (+{p2Income}G)</span>
+          </div>
+
+          {/* Ticker Stellaris de Auras Activas de Territorio */}
+          <div className="hidden xl:flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#181914] border border-[#7B8A4A]/40 text-[10px] font-mono">
+            <span className="text-[#7B8A4A] font-bold">AURAS:</span>
+            {buildingAuras.hqCount > 0 && <span className="text-amber-300 font-bold" title="HQ: +10% Ataque Aliado / -5% Moral Enemiga">HQ +{buildingAuras.hqAttackBonusPercent}%</span>}
+            {buildingAuras.commtowerCount > 0 && <span className="text-cyan-300 font-bold" title="Torre: +15% Daño balístico / +1 Visión">📡+{buildingAuras.commtowerDamageBonusPercent}%</span>}
+            {buildingAuras.factoryCount > 0 && <span className="text-emerald-300 font-bold" title="Fábrica: +10% Blindaje Vehicular / Refuerzos en 3T">🛡️+{buildingAuras.vehicleArmorBonusPercent}%</span>}
+            {buildingAuras.cityCount > 0 && <span className="text-yellow-300 font-bold" title="Ciudades: +2 Estrellas Cobertura / Fricción de Asedio">🏙️+2Def</span>}
+            {buildingAuras.labCount > 0 && <span className="text-purple-300 font-bold" title="Laboratorio: +10% Perforación / +1 Alcance Indirecto">🔬+1Rng</span>}
           </div>
 
           {/* Suministro */}
@@ -352,6 +380,51 @@ export const CombatTheaterView: React.FC<CombatTheaterViewProps> = ({
               <span className="text-amber-400 font-bold">(-{supply.totalUpkeepG}G)</span>
             )}
           </div>
+
+          {/* Botón Solicitar Refuerzos */}
+          {onOpenReinforcementModal && (
+            <button
+              onClick={onOpenReinforcementModal}
+              onMouseEnter={() => audioManager.playHoverTick()}
+              className={`px-2.5 py-1 rounded-[6px_2px_6px_2px] text-xs font-mono font-black border-2 border-[#0A0B08] flex items-center gap-1 transition-all cursor-pointer ${
+                minTurnsETA > 0
+                  ? 'bg-amber-500 text-slate-950 animate-pulse shadow-[2px_2px_0px_#0A0B08]'
+                  : 'bg-[#46521F] hover:bg-[#586827] text-white shadow-[2px_2px_0px_#0A0B08]'
+              }`}
+              title="Solicitar Refuerzos de Reserva Militar (Llegada en 4 turnos o 3 con fábrica)"
+            >
+              <Radio className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Refuerzos</span>
+              {minTurnsETA > 0 && <span className="text-[10px] font-black font-mono">({minTurnsETA}T)</span>}
+            </button>
+          )}
+
+          {/* Botón Mapa Procedural */}
+          {onOpenProceduralModal && (
+            <button
+              onClick={onOpenProceduralModal}
+              onMouseEnter={() => audioManager.playHoverTick()}
+              className="px-2.5 py-1 rounded-[6px_2px_6px_2px] text-xs font-mono font-black bg-[#C46A3A] hover:bg-[#a8572d] text-white border-2 border-[#0A0B08] shadow-[2px_2px_0px_#0A0B08] flex items-center gap-1 transition cursor-pointer"
+              title="Generar un nuevo Territorio Continental Procedural"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">ProcGen</span>
+            </button>
+          )}
+
+          {/* Conmutador Outliner Militar Stellaris */}
+          <button
+            onClick={() => setIsOutlinerOpen(!isOutlinerOpen)}
+            onMouseEnter={() => audioManager.playHoverTick()}
+            className={`px-2 py-1 rounded-[6px_2px_6px_2px] text-xs font-mono font-black border-2 border-[#0A0B08] flex items-center gap-1 transition cursor-pointer ${
+              isOutlinerOpen
+                ? 'bg-cyan-900 text-cyan-200 border-[#0A0B08] shadow-[2px_2px_0px_#0A0B08]'
+                : 'bg-[#181914] text-zinc-400 border-[#0A0B08]'
+            }`}
+            title="Mostrar / Ocultar Outliner Militar Estilo Stellaris"
+          >
+            <span>Outliner</span>
+          </button>
 
           {/* Botón de Ceder Turno */}
           <button
@@ -411,7 +484,113 @@ export const CombatTheaterView: React.FC<CombatTheaterViewProps> = ({
             </React.Suspense>
           </div>
         ) : viewMode === 'canvas' ? (
-          <div className="w-full h-full flex flex-col items-center justify-center">
+          <div className="w-full h-full flex flex-row items-stretch justify-center relative overflow-hidden">
+            {/* STELLARIS OUTLINER LATERAL (DESPLEGABLE / FLOTANTE) */}
+            {isOutlinerOpen && (
+              <aside className="w-64 max-w-[280px] bg-[#161712]/95 backdrop-blur border-r-2 border-[#0A0B08] z-20 flex flex-col p-2 space-y-2 text-[#F2E8D5] font-mono text-xs shadow-[4px_0_12px_rgba(0,0,0,0.5)] select-none shrink-0 overflow-y-auto">
+                {/* Header del Outliner */}
+                <div className="flex items-center justify-between pb-1 border-b border-[#0A0B08]">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-300">
+                    ESTADO MAYOR • OUTLINER
+                  </span>
+                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-black/50 text-zinc-400">
+                    {turn === 'p1' ? 'ORANGE STAR' : 'BLUE MOON'}
+                  </span>
+                </div>
+
+                {/* Auras de Territorio */}
+                <div className="p-2 rounded bg-[#2B2C24]/80 border border-[#0A0B08] text-[10px] space-y-1">
+                  <div className="font-black text-[#C46A3A] uppercase tracking-wide">AURAS DE CONTROL</div>
+                  <div className="flex justify-between text-zinc-300">
+                    <span>Cuartel General:</span>
+                    <span className="text-amber-400 font-bold">+{buildingAuras.hqAttackBonusPercent}% Atk</span>
+                  </div>
+                  <div className="flex justify-between text-zinc-300">
+                    <span>Red C4ISR (Torres):</span>
+                    <span className="text-cyan-400 font-bold">+{buildingAuras.commtowerDamageBonusPercent}% Balística</span>
+                  </div>
+                  <div className="flex justify-between text-zinc-300">
+                    <span>Parque Industrial:</span>
+                    <span className="text-emerald-400 font-bold">+{buildingAuras.vehicleArmorBonusPercent}% Blindaje ({buildingAuras.reinforcementTurnDelay}T)</span>
+                  </div>
+                  <div className="flex justify-between text-zinc-300">
+                    <span>Baluarte Urbano:</span>
+                    <span className="text-yellow-400 font-bold">+{buildingAuras.cityCoverageBonusStars} Def / Asedio</span>
+                  </div>
+                </div>
+
+                {/* Refuerzos en Tránsito */}
+                {myPendingReinf.length > 0 && (
+                  <div className="p-2 rounded bg-amber-950/60 border border-amber-600/60 text-[10px] space-y-1 animate-pulse">
+                    <div className="font-black text-amber-300 uppercase">REFUERZOS EN CAMINO</div>
+                    {myPendingReinf.map(req => (
+                      <div key={req.id} className="flex justify-between text-zinc-200">
+                        <span>{req.unitCodes.length} Divisiones:</span>
+                        <span className="font-black text-amber-400">ETA {req.turnsUntilArrival}T</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Divisiones en el Frente */}
+                <div className="flex-1 space-y-1.5 overflow-y-auto">
+                  <div className="text-[10px] font-black text-zinc-400 uppercase tracking-wide">
+                    FUERZAS ACTIVAS ({units.filter(u => u.owner === turn).length})
+                  </div>
+                  {units.filter(u => u.owner === turn).map(u => {
+                    const isSelected = selectedUnit?.id === u.id;
+                    const hpPercent = (u.hp / 10) * 100;
+                    const hpColor = u.hp >= 7 ? 'bg-emerald-500' : u.hp >= 4 ? 'bg-amber-500' : 'bg-red-500';
+
+                    return (
+                      <button
+                        key={u.id}
+                        onClick={() => {
+                          audioManager.playHoverTick();
+                          setSelectedUnitId(u.id);
+                        }}
+                        className={`w-full text-left p-1.5 rounded-[6px_2px_6px_2px] border transition cursor-pointer flex flex-col gap-1 ${
+                          isSelected
+                            ? 'bg-[#46521F] border-[#C46A3A] text-white shadow-[2px_2px_0px_#0A0B08]'
+                            : 'bg-[#2B2C24]/60 border-[#0A0B08] text-zinc-300 hover:border-zinc-500'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-bold truncate">{u.name}</span>
+                          <span className="text-[9px] font-mono text-zinc-400">({u.x},{u.y})</span>
+                        </div>
+                        {/* Barra de Desgaste HP */}
+                        <div className="w-full h-1.5 rounded-full bg-black/60 overflow-hidden flex">
+                          <div className={`h-full ${hpColor} transition-all`} style={{ width: `${hpPercent}%` }} />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Registro de Eventos en Base de Datos (Event Sourcing AAA) */}
+                <div className="p-2 rounded bg-[#181914] border border-[#0A0B08] text-[10px] space-y-1">
+                  <div className="flex items-center justify-between text-[#7B8A4A] font-bold">
+                    <span>REGISTRO DB • EVENT SOURCING</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                  </div>
+                  <div className="flex justify-between text-zinc-400 font-mono">
+                    <span>Partida ID:</span>
+                    <span className="text-zinc-200 truncate max-w-[110px]">{matchDb.getCurrentMatch()?.id || 'OP_ACTIVA'}</span>
+                  </div>
+                  <div className="flex justify-between text-zinc-400 font-mono">
+                    <span>Acciones en DB:</span>
+                    <span className="text-cyan-400 font-bold">{matchDb.getCurrentMatch()?.totalActionsCount || 0} deltas</span>
+                  </div>
+                  <div className="flex justify-between text-zinc-400 font-mono">
+                    <span>Semilla PRNG:</span>
+                    <span className="text-amber-400 font-bold">#{matchDb.getCurrentMatch()?.mapSeed || 0}</span>
+                  </div>
+                </div>
+              </aside>
+            )}
+
+            <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden w-full h-full">
             <GameCanvas
               tiles={convertedTiles}
               units={convertedUnits}
@@ -578,6 +757,7 @@ export const CombatTheaterView: React.FC<CombatTheaterViewProps> = ({
               tileContextMenu={tileContextMenu}
               inSituTargetBadge={inSituTargetBadge}
             />
+            </div>
           </div>
         ) : (
           <div

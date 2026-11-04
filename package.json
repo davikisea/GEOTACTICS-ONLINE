@@ -15,6 +15,7 @@
     "test:paso4": "npx tsx src/engine/advancedWarsWorldSystems.test.ts",
     "test:pve": "npx tsx src/engine/autonomousOrchestrator.test.ts",
     "test:sprint3": "npx tsx src/engine/deckAndSupply.test.ts",
+    "test:procgen": "npx tsx src/engine/proceduralMapGenerator.test.ts",
     "test:all": "npx tsx src/engine/subActionsAndArrow.test.ts && npx tsx src/engine/advancedTactics.test.ts && npx tsx src/engine/expandedCOs.test.ts && npx tsx src/engine/advancedWarsWorldSystems.test.ts && npx tsx src/engine/autonomousOrchestrator.test.ts && npx tsx src/engine/deckAndSupply.test.ts && npx tsx src/engine/e2eIntegration.test.ts",
     "lint": "npx tsc --noEmit"
   },
