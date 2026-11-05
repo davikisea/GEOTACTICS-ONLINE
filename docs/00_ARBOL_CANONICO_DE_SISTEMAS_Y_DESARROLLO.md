@@ -17,6 +17,11 @@ Cada rama, nodo y subsistema del juego se clasifica de forma estricta e invariab
 | **`DESARROLLADO`** | 🟡 | **Lógica de Código Implementada.** Algoritmos, modelos de TypeScript o controladores de estado escritos y funcionales en local, pero aún no cableados a la interfaz principal o al backend persistente. | Archivo `.ts` o `.tsx` funcional en `src/engine/` o `src/components/`. |
 | **`EN DESARROLLO`** | 🟠 | **En Especificación o Refactor Activo.** Módulo en proceso de alineación con el canon, diseño de contratos o refactorización arquitectónica para erradicar discrepancias legacy. | PR abierto, RFC aprobado o tarea activa en roadmap. |
 
+> [!NOTE] CALIBRACIÓN OPERATIVA DE CAPAS EN v0.0.2-alfa (MVP POLÍTICO)
+> - **Capa 1 (Metajuego Político ALICE):** 🟢 `[LISTO / ACTIVO]` en Teatro Venezuela (24 Estados + 7 Zonas Buffer).
+> - **Capa 2 (Combate Táctico en Cuadrícula 1-100 HP):** 🟡 `[DESARROLLADO / EN ESPERA DE FASE 2]` en runtime del cliente. El motor balístico y las reglas deterministas están programados y certificados con tests, pero el punto de entrada UI redirige al asedio geopolítico en el mapa macro.
+> - **Capa 3 (Bark Engine & Mando):** 🟢 `[LISTO / CALIBRACIÓN DE SUJETO ÚNICO STELLA]` con aprendizaje adaptativo.
+
 ---
 
 # 2. LOS 7 PILARES INMUTABLES DE LA FUENTE DE VERDAD (SSOT)
@@ -273,6 +278,8 @@ Para que la base de código y la documentación subordinada alcancen el estado 1
 | **2.1.4 Modal de Producción** | 🟠 | Desacoplado de mazos. Opera mediante Doble Llave ($G + Chasis físico) en `ProductionModal.tsx`. | 🟢 `[LISTO]` |
 | **2.2.1 Retiro de Nivel de Carta** | 🟠 | Purgado nivel 1-15. Todo el motor opera bajo Tiers industriales T1-T5 (+2%/tier). | 🟢 `[LISTO]` |
 | **3.4.2 Handshake 120s** | 🟠 | Certificado en `territorialSiege.test.ts` y `tacticalCombatSeamlessIntegration.ts`. | 🟢 `[LISTO]` |
+| **3.1.2 WebGL Zero-Raster** | 🟠 | Erradicación de CartoDB y `WorldMapCanvas.tsx`. Carga local de `world_land.json`, `theatre_regions.json` y `theatre_roads.json`. | 🟢 `[LISTO]` |
+| **1.0.0 Capa 2 MVP Standby** | 🟢 | El motor determinista TBS queda en espera en la UI para priorizar la estabilidad geopolítica de Capa 1. | 🟡 `[DESARROLLADO]` |
 | **3.1.5 Expansión Territorial** | 🟠 | Implementado motor de ondas celulares tipo Territorial.io (`territorialExpansionEngine.ts`). | 🟢 `[LISTO]` |
 | **5.1.5 & 5.1.6 Migraciones 26 y 27** | 🟠 | Creadas migraciones SQL para asedios, 24 regiones VE, nodos estratégicos y colas. | 🟢 `[LISTO]` |
 | **2.2.1 Retiro de Nivel de Carta** | 🟠 | Eliminar `getLevelAttackBonus` de `canonicalCombat.ts`, preservando únicamente `attackerTierBonus` (Tiers T1 a T5). | 🟢 `[LISTO]` |

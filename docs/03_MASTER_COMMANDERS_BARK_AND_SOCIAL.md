@@ -22,7 +22,7 @@ Los Comandantes representan la cúspide doctrinal del ejército del jugador. A d
          ▼                            ▼                            ▼
 [ DOCTRINA PASIVA ]          [ MEDIDOR DE SUPERPODER ]     [ VÍNCULO DE CAMARADERÍA ]
 • Bonus de Ataque/Defensa    • Carga por daño infligido/   • Niveles de Vínculo (1-10)
-  a tipos específicos         recibido y AirDrops          • Diálogos personalizados
+  a tipos específicos         recibido y combate activo • Diálogos personalizados
 • Modificador de Terreno     • Activación de Gran Impacto  • Apodos y viñetas únicas
 ```
 
@@ -62,7 +62,7 @@ El motor implementa el catálogo canónico completo de **28 Comandantes Táctico
 **[ESTADO: 100% IMPLEMENTADO Y CERTIFICADO EN MOTOR, FRONTEND Y TESTS]**  
 *Implementación de Referencia:* `src/engine/barkEngine.ts`, `src/components/game/ComicVignetteOverlay.tsx`, `src/engine/barkEngine.test.ts`.
 
-El Bark Engine proyecta sobre el Canvas y la interfaz web una narrativa visual reactiva inspirada en la novela gráfica bélica, el Pop-Art clásico con tramas de puntos Ben-Day y el **sistema de diseño atompunk de la skill [`retro-futurism`](file:///c:/Users/Mor%C3%ADn/TacticalCommand/agents/skills/retro-futurism/skill.md)** (`agents/skills/retro-futurism/skill.md`), **prescindiendo por completo de archivos de audio de voz** para garantizar tiempos de carga instantáneos ($< 1.0$s) y cero consumo innecesario de ancho de banda.
+El Bark Engine proyecta sobre el Canvas y la interfaz web una narrativa visual reactiva inspirada en la novela gráfica bélica, el Pop-Art clásico con tramas de puntos Ben-Day y el **sistema de diseño atompunk de la skill [`retro-futurism`](.agents/skills/tactical-command-intel/SKILL.md)** (`.agents/skills/tactical-command-intel/SKILL.md`), **prescindiendo por completo de archivos de audio de voz** para garantizar tiempos de carga instantáneos ($< 1.0$s) y cero consumo innecesario de ancho de banda.
 
 ### 2.0 Arquitectura de Ejecución en Tiempo Real
 1. **Buffer de Memoria Anti-Repetición (`recentBarksBuffer`):** Almacena los últimos 5 IDs de diálogo disparados, descartándolos estocásticamente para evitar frases repetitivas durante un mismo combate.
@@ -73,7 +73,7 @@ El Bark Engine proyecta sobre el Canvas y la interfaz web una narrativa visual r
 4. **Disparadores Reactivos (Hooks) Integrados en Combate (`App.tsx`):**
    - Detonación de Superpoderes CO (`co_power_active` / `co_power_enemy`).
    - Emboscadas en niebla de guerra (`trap_ambush`).
-   - Caída y captura de cajas de suministros (`airdrop_spawn`).
+   - Captura de silos y reabastecimiento logístico (`supply_capture`).
    - Destrucción de unidades blindadas pesadas (`kill_heavy_tank`).
    - Derrota ajustada por telemetría (`near_miss`).
 

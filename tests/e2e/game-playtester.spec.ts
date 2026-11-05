@@ -58,11 +58,9 @@ test.describe('Tactical Command - Playtesting E2E Capa 1 (Metajuego Geopolítico
     await page.screenshot({ path: bootScreenshot, fullPage: true });
     console.log('QA: Captura 01_boot_screen.png registrada.');
 
-    // Esperar a que el Boot Screen alcance el 100% y hacer clic en ENTRAR AL ESTADO MAYOR
-    const enterButton = page.getByRole('button', { name: /ENTRAR AL ESTADO MAYOR/i });
-    await expect(enterButton).toBeVisible({ timeout: 10000 });
-    await enterButton.click();
-    await page.waitForTimeout(1000);
+    // Esperar a que el Boot Screen alcance el 100% y transicione automáticamente al Estado Mayor
+    await page.waitForSelector('[data-region-id^="REG_VE_"]', { timeout: 20000 });
+    await page.waitForTimeout(1200);
 
     // --- FASE A.2: VISUALIZACIÓN DEL MAPA DE VENEZUELA (24 SOBERANAS + 7 BUFFERS) ---
     console.log('QA [2/6]: Verificando Teatro Venezuela (24 regiones soberanas + 7 zonas buffer)...');
@@ -108,7 +106,7 @@ test.describe('Tactical Command - Playtesting E2E Capa 1 (Metajuego Geopolítico
     await maracaiboSlider.dispatchEvent('change');
     await page.waitForTimeout(400);
 
-    await expect(page.getByText('7.5%')).toBeVisible();
+    await expect(page.getByText('7.5%', { exact: true })).toBeVisible();
     await expect(page.getByText(/Mayor Stella \(stella\)/i)).toBeVisible();
 
     const metaConsoleScreenshot = path.join(screenshotsDir, '03_meta_console.png');

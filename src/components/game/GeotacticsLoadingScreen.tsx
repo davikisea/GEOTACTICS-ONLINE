@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Volume2, VolumeX, Shield, Radio, Terminal, Play, CheckCircle2, Crosshair, Cpu } from 'lucide-react';
+import { Volume2, VolumeX, Shield, Radio, CheckCircle2, Crosshair, Cpu } from 'lucide-react';
 
 interface GeotacticsLoadingScreenProps {
   mapName?: string;
@@ -9,29 +9,15 @@ interface GeotacticsLoadingScreenProps {
   isBootScreen?: boolean;
 }
 
-const TACTICAL_BOOT_LOGS = [
-  '>> [C4ISR] INICIALIZANDO PROTOCOLO DE TRANSMISIÓN CUARTEL GENERAL...',
-  '>> [CRIPTO] NEGOCIANDO CLAVE ASIMÉTRICA MIL-STD-810H...',
-  '>> [HEX] SINCRONIZANDO MATRIZ DE BALÍSTICA Y COBERTURA DE TERRENO...',
-  '>> [RADAR] ESCANEANDO ESPACIO AÉREO, TERRESTRE Y MARÍTIMO...',
-  '>> [INDUSTRIA] ENLAZANDO BÚFER DE RECURSOS P2P Y REFINERÍA...',
-  '>> [MAZO] AUDITANDO 10 CARTAS TÁCTICAS DEL HANGAR Y VANGUARDIA...',
-  '>> [IA] ALINEANDO RED NEURONAL DE BOT CON DETERMINISMO GBA...',
-  '>> [AUDIO] SINTETIZADOR WEB AUDIO API CALIBRADO (0 LATENCIA)...',
-  '>> [DEFCON-2] ENLACE OPERATIVO COMPLETO. AUTORIZACIÓN ALFA CONCEDIDA.',
-];
-
 export const GeotacticsLoadingScreen: React.FC<GeotacticsLoadingScreenProps> = ({
   mapName,
   onLoadingComplete,
-  autoProceed = false,
-  autoProceedDelayMs = 800,
+  autoProceed = true,
+  autoProceedDelayMs = 200,
   isBootScreen = true,
 }) => {
   const [progress, setProgress] = useState<number>(0);
   const [ghostProgress, setGhostProgress] = useState<number>(0);
-  const [currentLogIndex, setCurrentLogIndex] = useState<number>(0);
-  const [logs, setLogs] = useState<string[]>([TACTICAL_BOOT_LOGS[0]]);
   const [isReady, setIsReady] = useState<boolean>(false);
   const [audioMuted, setAudioMuted] = useState<boolean>(false);
   const [zuluTime, setZuluTime] = useState<string>('');
@@ -127,50 +113,16 @@ export const GeotacticsLoadingScreen: React.FC<GeotacticsLoadingScreenProps> = (
     return () => clearTimeout(timeout);
   }, [progress]);
 
-  // Streaming de logs de telemetría militar
+  // Transición automática inmediata al Cuartel General cuando la precarga llega al 100%
   useEffect(() => {
-    const logInterval = setInterval(() => {
-      setCurrentLogIndex(prev => {
-        const next = prev + 1;
-        if (next < TACTICAL_BOOT_LOGS.length) {
-          setLogs(l => [...l.slice(-4), TACTICAL_BOOT_LOGS[next]]);
-          return next;
-        }
-        return prev;
-      });
-    }, 380);
-
-    return () => clearInterval(logInterval);
-  }, []);
-
-  // Autoproceed opcional
-  useEffect(() => {
-    if (isReady && autoProceed && onLoadingComplete) {
+    if (isReady && onLoadingComplete) {
       const timer = setTimeout(() => {
+        playHeavyDeploySound();
         onLoadingComplete();
       }, autoProceedDelayMs);
       return () => clearTimeout(timer);
     }
-  }, [isReady, autoProceed, autoProceedDelayMs, onLoadingComplete]);
-
-  const handleStart = () => {
-    playHeavyDeploySound();
-    if (onLoadingComplete) {
-      onLoadingComplete();
-    }
-  };
-
-  // Soporte para teclado [ESPACIO] o [ENTER] para desplegar
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.code === 'Space' || e.code === 'Enter') && isReady) {
-        e.preventDefault();
-        handleStart();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isReady]);
+  }, [isReady, autoProceedDelayMs, onLoadingComplete, playHeavyDeploySound]);
 
   return (
     <div className="relative w-full h-full min-h-screen bg-[#161712] text-[#F2E8D5] flex flex-col items-center justify-between p-4 sm:p-6 lg:p-8 select-none overflow-hidden font-sans">
@@ -324,54 +276,23 @@ export const GeotacticsLoadingScreen: React.FC<GeotacticsLoadingScreenProps> = (
           </div>
         </div>
 
-        {/* Consola Terminal de E/S Militar */}
-        <div className="bg-[#1E1F18]/90 border border-[#7B8A4A]/50 rounded-[10px_3px_10px_3px] p-2.5 font-mono text-[11px] text-[#A9B87A] shadow-[4px_4px_0px_#0A0B08]">
-          <div className="flex items-center justify-between pb-1 border-b border-[#7B8A4A]/30 text-[10px] text-[#7B8A4A] font-bold uppercase mb-1">
-            <span className="flex items-center gap-1.5">
-              <Terminal className="w-3 h-3 text-[#00FF66]" /> CONSOLA DE DIAGNÓSTICO C4ISR
-            </span>
-            <span className="text-amber-400">60 FPS VERIFIED</span>
+        {/* Estado y Badges de Conexión Militar */}
+        <div className="pt-2 flex flex-col items-center gap-2">
+          <div className="flex items-center justify-center gap-2 text-xs font-mono text-[#A9B87A] py-1">
+            <div className="w-3.5 h-3.5 border-2 border-[#00FF66] border-t-transparent rounded-full animate-spin" />
+            <span>{isReady ? 'ENLACE AL ESTADO MAYOR ESTABLECIDO' : 'ESTABLECIENDO CONEXIÓN MILITAR C4ISR...'}</span>
           </div>
-          <div className="space-y-0.5 min-h-[52px]">
-            {logs.map((line, idx) => (
-              <div key={idx} className="truncate tracking-wide text-[#F2E8D5]/90">
-                {line}
-              </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Botón de Entrada Táctico (Activo al 100% o Interactivo) */}
-        <div className="pt-1 flex flex-col items-center gap-2">
-          {isReady ? (
-            <button
-              onClick={handleStart}
-              className="w-full sm:w-auto min-w-[320px] py-3.5 px-8 tactical-btn-heavy flex items-center justify-center gap-3 text-sm sm:text-base animate-pulse"
-            >
-              <Play className="w-4 h-4 fill-current text-amber-300" />
-              <span>COMANDANTE: ENTRAR AL ESTADO MAYOR</span>
-              <span className="text-[10px] bg-[#0A0B08]/60 px-2 py-0.5 rounded border border-[#F2E8D5]/30">
-                [ESPACIO]
-              </span>
-            </button>
-          ) : (
-            <div className="flex items-center justify-center gap-2 text-xs font-mono text-[#7B8A4A] py-3">
-              <div className="w-4 h-4 border-2 border-[#C46A3A] border-t-transparent rounded-full animate-spin" />
-              <span>Estableciendo conexión militar segura...</span>
-            </div>
-          )}
-
-          {/* Badges de Pie de Pantalla */}
           <div className="flex flex-wrap items-center justify-center gap-4 text-[10px] font-mono text-[#7B8A4A]">
             <span className="flex items-center gap-1">
-              <CheckCircle2 className="w-3 h-3 text-[#00FF66]" /> Motor GBA Balístico
+              <CheckCircle2 className="w-3 h-3 text-[#00FF66]" /> WebGL 2.0 MapLibre
             </span>
             <span>•</span>
-            <span>Mazo de 10 Cartas</span>
+            <span>Teatro Venezuela 24 Estados</span>
             <span>•</span>
-            <span>Soberanía Territorial P2P</span>
+            <span>Red Troncal Nacional</span>
             <span>•</span>
-            <span className="text-amber-400 font-bold">Alfa v0.0.1</span>
+            <span className="text-amber-400 font-bold">Alfa v0.1.0</span>
           </div>
         </div>
       </footer>

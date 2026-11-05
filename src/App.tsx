@@ -2364,6 +2364,8 @@ export default function App() {
     return (
       <GeotacticsLoadingScreen
         isBootScreen={true}
+        autoProceed={false}
+        autoProceedDelayMs={400}
         onLoadingComplete={() => setShowBootScreen(false)}
       />
     );

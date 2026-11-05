@@ -15,6 +15,84 @@ Consolidación acumulativa de la versión `0.1.0` en desarrollo: arquitectura de
 
 ### Fase 1 & 2: Geotactics Persistente (Project Alice Engine × Consola C4ISR Atompunk)
 
+### Fase 1: Arquitectura Cartográfica WebGL 2.0 Venezuela & Certificación E2E Multimodal
+
+#### Added
+- **Arquitectura Cartográfica Zero-Raster Local (Estilo WarEra)**:
+  - Eliminación total de dependencias externas y API keys comerciales de CartoDB/Mapbox.
+  - Generación de `public/map/theatre_regions.json` (164 KB) con los 24 estados oficiales de Venezuela (geoBoundaries simplificado).
+  - Generación de `public/map/theatre_roads.json` (2.1 MB) con la red vial troncal de Venezuela (OpenStreetMap Overpass: Troncales 1 a 19 y autopistas) optimizada con compresión Douglas-Peucker.
+  - Masas continentales circundantes `public/map/world_land.json` (134 KB) para dar contexto geográfico al Caribe y Sudamérica.
+
+#### Changed
+- **Pantalla de Carga 100% Cinemática y Automática (`GeotacticsLoadingScreen.tsx`)**:
+  - Eliminada la consola de diagnóstico de texto C4ISR inferior y el botón manual `COMANDANTE: ENTRAR AL ESTADO MAYOR`.
+  - Transición automática al Cuartel General y mapa WebGL en cuanto la precarga de búferes alcanza el 100%.
+  - Actualización de la suite E2E de Playwright (`tests/e2e/game-playtester.spec.ts`) para verificar la auto-transición sin clicks manuales.
+- **Consolidación de Arquitectura WebGL 2.0 Exclusiva (`WarLobbyHub.tsx`)**:
+  - Eliminado el estado `mapRenderer` y el botón de alternancia `CANVAS 2D`, dejando a `TacticalWorldMap` (WebGL 2.0 MapLibre) como renderizador cartográfico único y canónico.
+
+#### Removed
+- **Erradicación del Motor Canvas 2D Legacy (`src/components/world/WorldMapCanvas.tsx`)**:
+  - Eliminación definitiva del archivo `WorldMapCanvas.tsx` (841 líneas de renderizado 2D obsoleto).
+  - Migración de la interfaz `ProvinceVisualData` hacia `src/types/metagame.ts` para preservar la integridad de tipos en `TerritoryInspectorModal.tsx`.
+
+#### Changed
+- **Neutralización del Parpadeo Cíclico en WebGL (`TacticalWorldMap.tsx` & `WarLobbyHub.tsx`)**:
+  - Implementación del patrón de *Stable Ref* (`useRef`) para callbacks de selección (`onSelectProvinceRef`, `onSelectTacticalCellRef`), desacoplando el ciclo de vida del contexto WebGL 2.0 del ticker económico de 1000ms.
+  - Inicialización del mapa en efecto de montaje único (`[]`), manteniendo viva la instancia de MapLibre GL a 60 FPS ininterrumpidos.
+  - Memoización de `handleSelectProvinceFromMap` con `useCallback` en `WarLobbyHub.tsx`.
+- **Alineación Cromática Canónica (`@tactical-command-intel`)**:
+  - Sustitución de colores genéricos de Tailwind por la paleta militar de sala de guerra:
+    - Océano / Mar Caribe: `--color-bunker-void` (`#0E100C`).
+    - Masa continental circundante: `--color-armor-base` (`#1C1E17`) con bisel `--color-military-olive` (`#46521F`).
+    - *Clan Ferro*: Blue Moon (`#1D4ED8`).
+    - *Clan Orinoco*: Orange Star (`#E65100`).
+    - *Clan Andes*: Black Hole / Crimson (`#991B1B`).
+    - *Zonas Buffer / Neutrales*: Chasis blindado (`#2B2C24`) con bisel metálico (`#7B8A4A`).
+    - *Estado Seleccionado*: Verde Fósforo CRT Radar (`#00FF66`).
+    - *Autopistas y Troncales*: Triple capa en WebGL con sombra de tinta cómic (`#0A0B08`), resplandor radar y núcleo verde fósforo CRT (`#00FF66`) / ámbar militar (`#FBBF24`).
+
+#### Added
+- **Plan Maestro de Despliegue Cartográfico (`docs/PLAN_DESPLIEGUE_MAPA_WEBGL_VENEZUELA.md`)**:
+  - Especificación de las 5 fases para reemplazar el grafo de tarjetas Canvas 2D por un lienzo geográfico WebGL 2.0 (MapLibre GL v6) Zero-Raster.
+  - Mapeo canónico de las 24 entidades federales soberanas (`REG_VE_01` a `REG_VE_24`) y las 7 zonas buffer de frontera (`BUF_*`).
+  - Matriz de jerarquía para las Troncales 1 a 19, Eje Fluvial Orinoco-Apure y corredores marítimos del Caribe.
+- **Worker Autónomo WebGL (`public/maplibre-gl-worker.mjs`)**:
+  - Binario desacoplado del bundler de Vite para carga inmediata local con código 200 OK, eliminando excepciones 504 de tiempo de espera en workers de mapas.
+- **Capa Semántica Accesible E2E en `TacticalWorldMap.tsx`**:
+  - Puntos de anclaje accesibles (`data-region-id` y `data-buffer-zone`) proyectados sobre el lienzo WebGL que permiten a los motores de accesibilidad y suites de automatización Playwright ejecutar navegación, asedios y selección de provincias a 60 FPS sin sobrecargar la CPU.
+
+#### Changed
+- **Pantalla de Carga 100% Cinemática y Automática (`GeotacticsLoadingScreen.tsx`)**:
+  - Eliminada la consola de diagnóstico de texto C4ISR inferior y el botón manual `COMANDANTE: ENTRAR AL ESTADO MAYOR`.
+  - Transición automática al Cuartel General y mapa WebGL en cuanto la precarga de búferes alcanza el 100%.
+  - Actualización de la suite E2E de Playwright (`tests/e2e/game-playtester.spec.ts`) para verificar la auto-transición sin clicks manuales.
+- **Consolidación de Arquitectura WebGL 2.0 Exclusiva (`WarLobbyHub.tsx`)**:
+  - Eliminado el estado `mapRenderer` y el botón de alternancia `CANVAS 2D`, dejando a `TacticalWorldMap` (WebGL 2.0 MapLibre) como renderizador cartográfico único y canónico.
+
+#### Removed
+- **Erradicación del Motor Canvas 2D Legacy (`src/components/world/WorldMapCanvas.tsx`)**:
+  - Eliminación definitiva del archivo `WorldMapCanvas.tsx` (841 líneas de renderizado 2D obsoleto).
+  - Migración de la interfaz `ProvinceVisualData` hacia `src/types/metagame.ts` para preservar la integridad de tipos en `TerritoryInspectorModal.tsx`.
+
+#### Changed
+- **Conmutación Canónica a WebGL (`WarLobbyHub.tsx`)**:
+  - El lobby de guerra consolida a `TacticalWorldMap` (WebGL 2.0) como renderizador cartográfico único y canónico, eliminando el estado `mapRenderer` y el botón de alternancia `canvas2d`.
+- **Calibración de Centroide Nacional (`TacticalWorldMap.tsx`)**:
+  - Centro geográfico reajustado a las coordenadas precisas de la República de Venezuela (`lng: -66.5897, lat: 6.4238`) a zoom `5.5`, abarcando toda la fachada caribeña y los límites fronterizos.
+- **Transición Cinemática 100% Automática en Boot Screen (`GeotacticsLoadingScreen.tsx`)**:
+  - El botón manual de entrada fue retirado en favor de la transición automática e inmediata al alcanzar el 100% de carga del búfer cartográfico.
+
+#### Verified
+- **Suite de Calidad Playwright E2E (`test-results/qa-run-latest.json`)**:
+  - Estado: `PASS_CLEAN` (12.4s en Chromium).
+  - Telemetría: 0 errores fatales (`fatalErrorsCount: 0`), 0 fallos de red (`networkFailuresCount: 0`), 60 FPS estables.
+  - 24 regiones soberanas y 7 zonas buffer validadas.
+  - Promulgación de edicto, ajuste de peaje en `CHK-MARACAIBO` (7.5%), bloqueo de zona buffer `BUF_CO_01`, asedio político en Cojedes (`REG_VE_20`) y bark reactivo de la Mayor Stella certificados.
+- **Suite Cartográfica Determinista (`coordinatesAndBitmap.test.ts`)**:
+  - 10/10 tests superados (100% de éxito en 6ms).
+
 ### Documentación & Especificación Arquitectónica Canónica
 
 #### Added

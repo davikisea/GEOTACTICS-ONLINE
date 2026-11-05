@@ -236,7 +236,7 @@ El cliente de *Tactical Command* combina dos motores de renderizado optimizados 
 3. **Bucle de Dibujo en Canvas Táctico a 60 FPS:**
    - *Capa 0 (Terreno Base):* Malla de celdas estáticas dibujada en un OffscreenCanvas para evitar redibujados innecesarios.
    - *Capa 1 (Propiedades y Fábricas):* Sprites de ciudades con animación de bandera según el bando capturador.
-   - *Capa 2 (AirDrops):* Sprite de baliza de suministros con gradiente radial oscilante mediante $\sin(\text{time} \times 4)$.
+   - *Capa 2 (Suministros y Silos):* Balizas y depósitos tácticos con gradiente de iluminación.
    - *Capa 3 (Unidades):* Sprites pixelados escalados por pixel art nítido (`imageSmoothingEnabled = false`), con barras de HP proporcionales de 1 a 100.
    - *Capa 4 (Niebla de Guerra):* Máscara semitransparente con recorte radial (*globalCompositeOperation = 'destination-out'*).
    - *Capa 5 (VFX y Onomatopeyas):* Sellos de cómic Pop-Art, explosiones de partículas y trazos de proyectiles.
@@ -244,11 +244,11 @@ El cliente de *Tactical Command* combina dos motores de renderizado optimizados 
 ### 4.2 Motor de Audio Procedural Web Audio API
 El juego **no descarga archivos de sonido externos** (.mp3 o .wav). Todos los efectos son sintetizados al vuelo mediante nodos de osciladores senoidales, ruido blanco y filtros biquad:
 - **Disparo de Cañón:** Generador de ruido blanco filtrado con un filtro pasa-bajos exponencial descendente de $800\,\text{Hz} \to 40\,\text{Hz}$ en $0.4\text{s}$.
-- **Sirena de AirDrop:** Dos ondas senoidales entrelazadas en $520\,\text{Hz}$ y $660\,\text{Hz}$ con LFO en diente de sierra.
+- **Sirena de Alerta DEFCON:** Dos ondas senoidales entrelazadas en 520Hz y 660Hz.
 - **Temporizador de 15s (Duelo Espejo):** Pulsos de onda cuadrada a $880\,\text{Hz}$ con duración de $40\text{ms}$ en los segundos 5, 3, 2 y 1.
 
 ### 4.3 Sistema de Diseño Frontend: Especificación Canónica de la Skill `retro-futurism`
-Todo el desarrollo de la interfaz de usuario web (HUD táctico, barras de mando, modales de producción, armería, tienda y viñetas de cómic) debe implementar obligatoriamente las directrices de diseño contenidas en [`agents/skills/retro-futurism/skill.md`](file:///c:/Users/Mor%C3%ADn/TacticalCommand/agents/skills/retro-futurism/skill.md):
+Todo el desarrollo de la interfaz de usuario web (HUD táctico, barras de mando, modales de producción, armería, tienda y viñetas de cómic) debe implementar obligatoriamente las directrices de diseño contenidas en [`.agents/skills/tactical-command-intel/SKILL.md`](.agents/skills/tactical-command-intel/SKILL.md):
 
 1. **Axiomas de Maquetación Atompunk (Space-Age):**
    - **Formas Aerodinámicas:** Evitar cajas con rectángulos perfectos o bordes genéricos. Toda tarjeta contenedora táctica debe aplicar radios de esquina asimétricos:

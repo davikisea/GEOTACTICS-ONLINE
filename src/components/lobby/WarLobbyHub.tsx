@@ -58,7 +58,6 @@ import { CommanderLivingVignette } from './CommanderLivingVignette';
 import { TacticalDock, LobbyStationView } from './TacticalDock';
 import { TacticalGhostBar } from './TacticalGhostBar';
 import { WarRoomModal, PrizeItem } from './WarRoomModal';
-import { WorldMapCanvas } from '../world/WorldMapCanvas';
 import { TacticalWorldMap } from '../world/TacticalWorldMap';
 import { TerritoryInspectorModal } from '../world/TerritoryInspectorModal';
 import { UnitHangarModal } from '../world/UnitHangarModal';
@@ -212,7 +211,6 @@ export const WarLobbyHub: React.FC<WarLobbyHubProps> = ({
   // Estados del Metajuego V2 (Global Sovereignty, Hangar Físico y Guarniciones)
   // En el MVP de Capa 1 (Implicación Política en Mapa Venezuela), el mapa se abre como experiencia principal
   const [isWorldMapExpanded, setIsWorldMapExpanded] = useState(true);
-  const [mapRenderer, setMapRenderer] = useState<'webgl' | 'canvas2d'>('canvas2d');
   const [inspectedProvinceId, setInspectedProvinceId] = useState<string | null>(null);
   const [isHangarModalOpen, setIsHangarModalOpen] = useState(false);
   const [isGarrisonDrawerOpen, setIsGarrisonDrawerOpen] = useState(false);
@@ -403,6 +401,29 @@ export const WarLobbyHub: React.FC<WarLobbyHubProps> = ({
       onOpenDocs,
     ]
   );
+
+  const handleSelectProvinceFromMap = useCallback((provId: string) => {
+    setSelectedProvinceId(provId);
+    setIsMetaConsoleOpen(true);
+    if (provId.startsWith('BUF_')) {
+      setBarkWidgetMessage({
+        id: `buf_${Date.now()}`,
+        text: 'SECTOR FUERA DEL TEATRO OPERACIONAL DE FASE 1 (ACTIVO: REPÚBLICA DE VENEZUELA)',
+        balloonType: 'panic',
+        stamp: 'ZONA RESTRINGIDA',
+        durationMs: 5000,
+      });
+    } else {
+      const prov = provinces.find((p) => p.id === provId);
+      setBarkWidgetMessage({
+        id: `sel_${Date.now()}`,
+        text: `Fijando telemetría en ${prov?.name || provId}. Búnker y defensas en pantalla.`,
+        balloonType: 'radio',
+        stamp: 'SECTOR FIJADO',
+        durationMs: 4500,
+      });
+    }
+  }, [provinces]);
 
   const toggleTournament = () => {
     audioManager.playSFX('button_click');
@@ -693,64 +714,12 @@ export const WarLobbyHub: React.FC<WarLobbyHubProps> = ({
              MODO SOBERANÍA TERRITORIAL EXPANDIDO: WORLD MAP CANVAS + METAMANDO
              ================================================================== */
           <div className="absolute inset-0 w-full h-full z-0 overflow-hidden">
-            {mapRenderer === 'webgl' ? (
-              <TacticalWorldMap
-                className="w-full h-full"
-                activeProvinceId={selectedProvince?.id}
-                onSelectProvince={(provId) => {
-                  setSelectedProvinceId(provId);
-                  setIsMetaConsoleOpen(true);
-                  if (provId.startsWith('BUF_')) {
-                    setBarkWidgetMessage({
-                      id: `buf_${Date.now()}`,
-                      text: 'SECTOR FUERA DEL TEATRO OPERACIONAL DE FASE 1 (ACTIVO: REPÚBLICA DE VENEZUELA)',
-                      balloonType: 'panic',
-                      stamp: 'ZONA RESTRINGIDA',
-                      durationMs: 5000,
-                    });
-                  } else {
-                    const prov = provinces.find((p) => p.id === provId);
-                    setBarkWidgetMessage({
-                      id: `sel_${Date.now()}`,
-                      text: `Fijando telemetría en ${prov?.name || provId}. Búnker y defensas en pantalla.`,
-                      balloonType: 'radio',
-                      stamp: 'SECTOR FIJADO',
-                      durationMs: 4500,
-                    });
-                  }
-                }}
-                userClanId={clan?.id ?? 'clan-ferro'}
-              />
-            ) : (
-              <WorldMapCanvas
-                className="w-full h-full"
-                activeProvinceId={selectedProvince?.id}
-                onSelectProvince={(provId) => {
-                  setSelectedProvinceId(provId);
-                  setIsMetaConsoleOpen(true);
-                  if (provId.startsWith('BUF_')) {
-                    setBarkWidgetMessage({
-                      id: `buf_${Date.now()}`,
-                      text: 'SECTOR FUERA DEL TEATRO OPERACIONAL DE FASE 1 (ACTIVO: REPÚBLICA DE VENEZUELA)',
-                      balloonType: 'panic',
-                      stamp: 'ZONA RESTRINGIDA',
-                      durationMs: 5000,
-                    });
-                  } else {
-                    const prov = provinces.find((p) => p.id === provId);
-                    setBarkWidgetMessage({
-                      id: `sel_${Date.now()}`,
-                      text: `Fijando telemetría en ${prov?.name || provId}. Búnker y defensas en pantalla.`,
-                      balloonType: 'radio',
-                      stamp: 'SECTOR FIJADO',
-                      durationMs: 4500,
-                    });
-                  }
-                }}
-                onJoinActiveBattle={(provId) => handleDeploy('blitz_skirmish')}
-                userClanId={clan?.id ?? 'clan-ferro'}
-              />
-            )}
+            <TacticalWorldMap
+              className="w-full h-full"
+              activeProvinceId={selectedProvince?.id}
+              onSelectProvince={handleSelectProvinceFromMap}
+              userClanId={clan?.id ?? 'clan-ferro'}
+            />
 
             {/* C4ISR THEATER STRIP (BARRA DIEGÉTICA SUPERIOR FLOTANTE DEL MAPA) */}
             <div className="absolute top-2.5 left-3 right-3 z-20 pointer-events-none flex items-center justify-between gap-2">
@@ -770,16 +739,9 @@ export const WarLobbyHub: React.FC<WarLobbyHubProps> = ({
                 <span className="text-xs font-mono text-amber-300 font-bold hidden sm:inline ml-1">
                   MAPA TERRITORIAL GLOBAL • SOBERANÍA Y CAPITALES
                 </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMapRenderer((prev) => (prev === 'webgl' ? 'canvas2d' : 'webgl'));
-                    audioManager.playSFX('button_click');
-                  }}
-                  className="px-2 py-0.5 bg-[#161712] hover:bg-[#23241C] text-emerald-400 border border-[#46521F] font-mono font-bold text-[10px] uppercase rounded ml-2 cursor-pointer shadow"
-                >
-                  {mapRenderer === 'webgl' ? '⚡ WEBGL 2.0 (MAPLIBRE)' : '🎨 CANVAS 2D'}
-                </button>
+                <span className="px-2 py-0.5 bg-[#161712] text-emerald-400 border border-[#46521F] font-mono font-bold text-[10px] uppercase rounded ml-2 shadow">
+                  ⚡ WEBGL 2.0 (MAPLIBRE)
+                </span>
               </div>
 
               <div className="pointer-events-auto flex items-center gap-1.5">
@@ -839,127 +801,6 @@ export const WarLobbyHub: React.FC<WarLobbyHubProps> = ({
                   <span>{isMetaConsoleOpen ? 'PLEGAR CONSOLA' : 'METAMANDO'}</span>
                 </button>
               </div>
-            </div>
-
-            {/* VIÑETA DIEGÉTICA FLOTANTE DEL COMANDANTE (CUADRANTE INFERIOR IZQUIERDO DEL MAPA) */}
-            <div className="absolute left-3 bottom-3 z-30 pointer-events-auto">
-              <AnimatePresence mode="wait">
-                {isVignetteCollapsed ? (
-                  <motion.button
-                    key="vignette-pill"
-                    initial={{ opacity: 0, x: -30, scale: 0.9 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: -30, scale: 0.9 }}
-                    transition={{ duration: 0.2 }}
-                    onClick={() => {
-                      audioManager.playSFX('button_click');
-                      setIsVignetteCollapsed(false);
-                    }}
-                    className="tactical-comic-card p-2 bg-[#2B2C24]/95 border-2 border-[#0A0B08] shadow-[4px_4px_0px_#0A0B08] flex items-center gap-2.5 cursor-pointer hover:bg-[#3A3B30] text-[#F2E8D5]"
-                    title="Desplegar Viñeta del Comandante"
-                  >
-                    <div className="w-9 h-9 rounded-[6px_2px_6px_2px] bg-[#161712] border border-amber-400 flex items-center justify-center font-display font-black text-amber-300 uppercase">
-                      {activeCO.name[0]}
-                    </div>
-                    <div className="text-left font-mono text-xs">
-                      <div className="font-extrabold text-amber-300 uppercase flex items-center gap-1.5">
-                        <span>{activeCO.name}</span>
-                        <span className="text-[10px] px-1 rounded bg-[#E65100] text-black">
-                          BOND {commanderBondLevel}
-                        </span>
-                      </div>
-                      <div className="text-[10px] text-[#A2A790] truncate max-w-[180px]">
-                        {resolvedClanTag} • C4ISR Activo
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-amber-400 ml-1" />
-                  </motion.button>
-                ) : (
-                  <motion.div
-                    key="vignette-full"
-                    initial={{ opacity: 0, x: -40, scale: 0.95 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: -40, scale: 0.95 }}
-                    transition={{ type: 'spring', stiffness: 380, damping: 26 }}
-                    className="w-[340px] sm:w-[380px] lg:w-[420px] max-h-[calc(100vh-140px)] flex flex-col"
-                  >
-                    <div className="flex items-center justify-between pb-1 px-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                        <span className="text-[10px] font-mono text-[#F2E8D5] uppercase font-bold tracking-widest">
-                          OFICIAL AL MANDO // {activeCO.name}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          audioManager.playHoverTick();
-                          setIsVignetteCollapsed(true);
-                        }}
-                        className="px-2 py-0.5 rounded bg-[#2B2C24] hover:bg-[#E65100] hover:text-black text-[#F2E8D5] border border-[#0A0B08] font-mono text-[9px] uppercase font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-[2px_2px_0px_#0A0B08]"
-                      >
-                        <span>OCULTAR VIÑETA</span>
-                        <ChevronLeft className="w-3 h-3" />
-                      </button>
-                    </div>
-
-                    <div className="flex-1 min-h-[380px] max-h-[560px] overflow-hidden rounded-[10px_2px_10px_2px] border-2 border-[#0A0B08] shadow-[6px_6px_0px_#0A0B08]">
-                      <CommanderLivingVignette
-                        activeCommanderId={selectedCOId}
-                        onSelectCommander={handleCommanderChange}
-                        commanderBondLevel={commanderBondLevel}
-                        hoverIntent={hoverIntent}
-                        lastMatchResult={lastMatchResult}
-                        streak={streak}
-                        streakMultiplier={streakMultiplier}
-                        resolvedClanTag={resolvedClanTag}
-                        isReducedMotion={isReducedMotion}
-                        isCrtActive={isCrtActive}
-                        onOpenCommanderDossier={() => {
-                          audioManager.playSFX('button_click');
-                          setActiveModal('modal-commander-dossier');
-                        }}
-                        onClaimSupplyGift={() => {
-                          openGenericModal(
-                            'DEPÓSITO DE SUMINISTROS DE ALIANZA',
-                            <div className="p-3.5 rounded-[10px_2px_10px_2px] bg-[#161712] border-2 border-[#0A0B08] space-y-3">
-                              <p className="text-xs text-[#F2E8D5] leading-relaxed">
-                                Cargamento logístico recibido del Cuartel General de{' '}
-                                <strong className="text-amber-400">{resolvedClanName}</strong> (
-                                {resolvedClanTag}).
-                              </p>
-                              <button
-                                type="button"
-                                onMouseEnter={() => audioManager.playHoverTick()}
-                                onClick={() => {
-                                  audioManager.playComboAction(4);
-                                  addSteelReward(50);
-                                  setActiveModal(null);
-                                }}
-                                className="tactical-btn-heavy w-full py-2 text-xs"
-                              >
-                                Reclamar Suministro (+50t Acero)
-                              </button>
-                            </div>
-                          );
-                        }}
-                        onOpenEncryptedMail={() => {
-                          openGenericModal(
-                            'TRANSMISIONES ENCRIPTADAS C4ISR',
-                            <div className="p-3.5 rounded-[10px_2px_10px_2px] bg-[#161712] border-2 border-[#0A0B08] space-y-2">
-                              <p className="text-xs text-[#F2E8D5]">
-                                Frecuencia segura de Estado Mayor activa. Todas las directivas de{' '}
-                                <strong className="text-amber-400">{resolvedClanTag}</strong> y el oficial{' '}
-                                <strong className="text-amber-300">{activeCO.name}</strong> están sincronizadas.
-                              </p>
-                            </div>
-                          );
-                        }}
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
 
             {/* CONSOLA LATERAL DESPLEGABLE DE METAMANDO (BORDE DERECHO) */}
@@ -1732,6 +1573,7 @@ export const WarLobbyHub: React.FC<WarLobbyHubProps> = ({
         externalMessage={barkWidgetMessage}
         onClearExternalMessage={() => setBarkWidgetMessage(null)}
         selectedSectorName={selectedProvince?.name}
+        onOpenDossier={() => setActiveModal('modal-commander-dossier')}
       />
 
       {/* 4. CONSOLA DE MACROGESTIÓN Y FORJA (ESTILO PARADOX - LATERAL DERECHO) */}

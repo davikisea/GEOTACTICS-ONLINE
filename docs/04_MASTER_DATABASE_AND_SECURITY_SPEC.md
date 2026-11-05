@@ -53,7 +53,8 @@ CREATE TABLE public.profiles (
     clan_id UUID DEFAULT NULL,
     daily_offline_matches_count INTEGER NOT NULL DEFAULT 0,
     last_offline_match_date DATE DEFAULT NULL,
-    equipped_deck JSONB NOT NULL DEFAULT '["infantry", "mech", "recon", "tank_light", "artillery", "anti_air", "b_copter", "tank_medium", "fighter", "rocket"]'::jsonb,
+    -- LEGACY (Migrado a user_unit_hangar según Axioma 1):
+    equipped_deck JSONB DEFAULT NULL,
     equipped_cosmetics JSONB NOT NULL DEFAULT '{
         "tank_light": "skin_default",
         "infantry": "skin_default",

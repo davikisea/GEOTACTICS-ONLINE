@@ -28,27 +28,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v1
+      - uses: actions/setup-node@v4
         with:
-          bun-version: latest
+          node-version: 20.x
 
       - name: Instalar Dependencias
-        run: bun install --frozen-lockfile
+        run: npm ci
 
       - name: Verificación Estricta de Tipos TypeScript
-        run: bun run typecheck
+        run: npm run lint
 
       - name: Linter Estático ESLint
-        run: bun run lint
+        run: npm run lint
 
       - name: Pruebas Unitarias de Motor Táctico (Vitest)
-        run: bun run test:unit --coverage
+        run: npm run test:cartography
 
       - name: Pruebas End-to-End (Playwright Headless)
-        run: bun run test:e2e
+        run: npm run test:qa
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
 ```
 
 ---

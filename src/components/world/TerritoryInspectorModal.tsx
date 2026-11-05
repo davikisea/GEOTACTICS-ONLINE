@@ -22,7 +22,7 @@ import {
   Layers,
   ChevronRight,
 } from 'lucide-react';
-import { ProvinceVisualData } from './WorldMapCanvas';
+import { ProvinceVisualData } from '../../types/metagame';
 
 export interface TerritoryInspectorModalProps {
   province: ProvinceVisualData | null;

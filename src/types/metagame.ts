@@ -30,6 +30,29 @@ export type WeatherType = 'clear' | 'rain' | 'snow' | 'sandstorm';
 
 export type SecurityZone = 'high_sec' | 'low_sec' | 'null_sec';
 
+export interface ProvinceVisualData {
+  id: string;
+  name: string;
+  countryIso: string;
+  isCapital: boolean;
+  biome: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  ownerTag: string;
+  ownerColor: string;
+  isUnderSiege: boolean;
+  currentTcp: number;
+  maxTcp: number;
+  tcpPercent: number;
+  bunkerLevel: 1 | 2 | 3 | 4 | 5;
+  activeBuffsCount: number;
+  connectedAdjacenciesCount: number;
+  isCapitalCutoff: boolean;
+  isSupplyStarved: boolean;
+}
+
 export type TerritoryStatus = 'stable' | 'under_siege' | 'disputed' | 'cooldown_priority';
 
 export type GarrisonAIEngineTier = 'easy' | 'normal' | 'hard' | 'chess' | 'mcts_legendary';

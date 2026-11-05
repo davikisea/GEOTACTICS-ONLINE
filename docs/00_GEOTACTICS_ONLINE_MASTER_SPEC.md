@@ -1,18 +1,24 @@
-# 🌐 ESPECIFICACIÓN MAESTRA DEFINITIVA: GEOTACTICS: ONLINE (`v0.0.1-alfa`)
+# 🌐 ESPECIFICACIÓN MAESTRA DEFINITIVA: GEOTACTICS: ONLINE (`v0.0.2-alfa`)
 ## *Documento de Verdad Absoluta (SSOT) — Síntesis Project Alice + OpenPlace WebGL + Hegemonía Rebalance*
 
 > **Código de Documento:** `docs/00_GEOTACTICS_ONLINE_MASTER_SPEC.md`  
-> **Versión Canónica:** `v0.0.1-alfa (Hegemonía — Global Sovereignty Edition)`  
+> **Versión Canónica:** `v0.0.2-alfa (Hegemonía — WebGL 2.0 Zero-Raster & Persistencia MVP)`  
 > **Estado:** **ÚNICA FUENTE DE VERDAD CANÓNICA (SSOT — CERO INCERTIDUMBRE / ZERO-TODO)**  
 > **Pilares Unificados:**  
 > 1. **Pilar Geopolítico (Project Alice Bridge):** `METAGAME_DESIGN/PROPUESTA_GEOTACTICS_ALICE_HYBRID_MMO.md`  
 > 2. **Pilar Cartográfico WebGL (OpenPlace Bridge):** `METAGAME_DESIGN/GEOTACTICS_MMO_OPENPLACE_SYNTHESIS_PROPOSAL.md`  
 > 3. **Pilar de Combate 1-100 HP & Economía Albion P2P:** `docs/PLAN_MAESTRO_REESTRUCTURACION_HEGEMONIA.md`  
 > **Documento Subordinado de Depuración:** `docs/MIGRATION_AND_LEGACY_PURGE_PLAN.md`
+> **Diagnóstico Forense de Sincronización:** `docs/AUDITORIA_DISCREPANCIAS_V0.0.2_ALFA.md`
 
 ---
 
-# 1. MANIFIESTO FUNDACIONAL Y VISIÓN DE PRODUCTO (`GEOTACTICS: ONLINE v0.0.1-alfa`)
+# 1. MANIFIESTO FUNDACIONAL Y VISIÓN DE PRODUCTO (`GEOTACTICS: ONLINE v0.0.2-alfa`)
+
+> [!NOTE] ESTADO OPERATIVO DE LAS 3 CAPAS EN v0.0.2-alfa (MVP POLÍTICO)
+> - **Capa 1: Metajuego Político Macro (Project Alice):** 🟢 **100% ACTIVA.** Rige la soberanía sobre el Teatro Venezuela (24 Entidades Federales + 7 Zonas Buffer internacionales). Las disputas territoriales se resuelven mediante asedio político directo y erosión progresiva de Puntos de Control Territorial (TCP).
+> - **Capa 2: Combate Táctico en Cuadrícula (Advance Wars 1-100 HP):** 🟡 **DESARROLLADA / EN ESPERA EN RUNTIME.** El motor determinista de combate (`canonicalCombat.ts`, `pathfinding.ts`) está completamente programado y probado, pero la inyección de cuadrícula sobre el mapa (TileCanvas) está temporalmente deshabilitada en el MVP para garantizar 60 FPS ininterrumpidos y foco pleno en la Capa 1. Todo intento de combate en el Lobby redirige hacia asedio político.
+> - **Capa 3: Bark Engine & Mando:** 🟢 **ACTIVA CON SUJETO ÚNICO.** El sistema de bocadillos de historieta y telemetría adaptativa opera bajo candado monousuario exclusivo con la Mayor Stella (`stella`) como Sujeto de Calibración C4ISR #01.
 
 ## 1.1 Identidad Formal del Proyecto y Transición Histórica
 **GEOTACTICS: ONLINE (`v0.0.1-alfa`)**, conocido internamente bajo el nombre en clave **Proyecto Hegemonía**, constituye la refundación arquitectónica, sistémica y lúdica de *Tactical Command: Wars of Legacy*. El proyecto evoluciona formalmente desde un juego de estrategia por turnos de bolsillo con mecánicas heredadas de juegos de cartas coleccionables (CCG) hacia un **MMORTS Geopolítico, Industrial y Táctico Persistente a Escala Planetaria** ejecutado de forma nativa en navegadores web modernos (Desktop y Mobile) a $60\text{ FPS}$ sin pantallas de carga desconectadas.
@@ -234,7 +240,7 @@ Al caer a $0\text{ TCP}$, el atacante se convierte en `controller_clan_id` (*Ocu
 
 # 3. MOTOR CARTOGRÁFICO WEBGL, SEAMLESS ZOOM Y PIPELINE OPENPLACE
 
-Esta sección especifica la arquitectura de renderizado de alta frecuencia para **GEOTACTICS: ONLINE (`v0.0.1-alfa`)**. Sustituye el antiguo lienzo DOM/SVG (`src/components/world/WorldMapCanvas.tsx`), basado en `div` posicionados porcentualmente y escalado CSS (`transform: scale()`), por el motor **OpenPlace Bridge** sobre **MapLibre GL (WebGL 2.0)**. Esta arquitectura sostiene más de $3,000$ regiones geopolíticas y proyecta cuadrículas tácticas estilo *Advance Wars* en vivo directamente sobre la cartografía terrestre real a **60 FPS constantes**, sin pantallas de carga desconectadas.
+Esta sección especifica la arquitectura de renderizado de alta frecuencia para **GEOTACTICS: ONLINE (`v0.0.2-alfa`)**. Ha erradicado definitivamente el antiguo lienzo DOM/SVG (`src/components/world/WorldMapCanvas.tsx`, purgado físicamente del repositorio), consolidando el motor **OpenPlace Bridge** sobre **MapLibre GL (WebGL 2.0) Zero-Raster** con geometría vectorial local e interactividad C4ISR a **60 FPS constantes**. Esta arquitectura sostiene más de $3,000$ regiones geopolíticas y proyecta cuadrículas tácticas estilo *Advance Wars* en vivo directamente sobre la cartografía terrestre real a **60 FPS constantes**, sin pantallas de carga desconectadas.
 
 ---
 
@@ -337,31 +343,35 @@ const C4ISR_HIDE_LAYERS_REGEX = /^poi_|^landuse|^building(-3d)?$|^road_label|^wa
 const ACTIVITY_TIMEOUT_MS = 300_000; // 5 minutos para standby automático (0% CPU)
 const TACTICAL_GRID_DIMENSION = 20;  // Cuadrícula de 20x20 celdas (50x50 px por celda en canvas de 1000px)
 
-const MILITARY_C4ISR_STYLE: StyleSpecification = {
+/**
+ * ESTILO CANÓNICO C4ISR ZERO-RASTER LOCAL (v0.0.2-alfa)
+ * Renderizado local en GPU sin llamadas externas a servidores de teselas.
+ */
+const ZERO_RASTER_MILITARY_STYLE: StyleSpecification = {
   version: 8,
   sources: {
-    'c4isr-dark-tiles': {
-      type: 'raster',
-      tiles: [
-        'https://cartodb-basemaps-a.global.ssl.fastly.net/dark_nolabels/{z}/{x}/{y}.png',
-        'https://cartodb-basemaps-b.global.ssl.fastly.net/dark_nolabels/{z}/{x}/{y}.png',
-      ],
-      tileSize: 256,
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
+    'world-land': {
+      type: 'geojson',
+      data: '/map/world_land.json',
     },
   },
   layers: [
     {
-      id: 'c4isr-base-raster',
-      type: 'raster',
-      source: 'c4isr-dark-tiles',
-      minzoom: 0,
-      maxzoom: 22,
-      paint: {
-        'raster-opacity': 0.78,
-        'raster-contrast': 0.22,
-        'raster-saturation': -0.55,
-      },
+      id: 'background',
+      type: 'background',
+      paint: { 'background-color': '#0E100C' },
+    },
+    {
+      id: 'world-land-mass',
+      type: 'fill',
+      source: 'world-land',
+      paint: { 'fill-color': '#1C1E17', 'fill-opacity': 0.95 },
+    },
+    {
+      id: 'world-land-border',
+      type: 'line',
+      source: 'world-land',
+      paint: { 'line-color': '#46521F', 'line-width': 1.2, 'line-opacity': 0.65 },
     },
   ],
 };
@@ -1551,7 +1561,7 @@ flowchart TD
 | Categoría | Módulos del Repositorio | Estado en `v0.0.1-alfa` |
 | :--- | :--- | :--- |
 | **🟢 PRESERVAR AL 100% (Núcleo Canónico)** | `canonicalDamageChart.ts`, `canonicalMovement.ts`, `pathfinding.ts`, `fogOfWar.ts`, `weatherSystem.ts`, `coSystem.ts`, `barkEngine.ts`, `industrialEngine.ts`, `worldMapEngine.ts`, `garrisonAIEngine.ts`, `reinforcementEngine.ts`, `upkeepEngine.ts`, `clanSystem.ts`, `useUserHangar.ts`, `useUserIndustry.ts`, `useTerritoryMap.ts`, Migraciones SQL 23 a 25. | **Intactos.** Constituyen los cimientos matemáticos, industriales y geopolíticos de *GEOTACTICS: ONLINE*. |
-| **🟡 REFACTORIZAR (Alineación Quirúrgica)** | `types/index.ts`, `types/metagame.ts` (`120s`), `canonicalCombat.ts` (1-100 HP puro, sin niveles 1-15), `turnEconomy.ts` (fábricas y reparaciones a 100 HP), `combat.ts` (captura normalizada), `ProductionModal.tsx` (Doble Llave), `GameCanvas.tsx` (HUD 100 HP), `WorldMapCanvas.tsx` / `TacticalWorldMap.tsx` (LOD + Asedio), `LoadoutCustomizer.tsx` (solo skins), `App.tsx`. | **Intervención en Fases 0 y 1** bajo garantía de compilación continua. |
+| **🟡 REFACTORIZAR (Alineación Quirúrgica)** | `types/index.ts`, `types/metagame.ts` (`120s`), `canonicalCombat.ts` (1-100 HP puro, sin niveles 1-15), `turnEconomy.ts` (fábricas y reparaciones a 100 HP), `combat.ts` (captura normalizada), `ProductionModal.tsx` (Doble Llave), `GameCanvas.tsx` (HUD 100 HP), `TacticalWorldMap.tsx` (WebGL 2.0 Zero-Raster); `WorldMapCanvas.tsx` [PURGADO DEFINITIVAMENTE en v0.0.2], `LoadoutCustomizer.tsx` (solo skins), `App.tsx`. | **Intervención en Fases 0 y 1** bajo garantía de compilación continua. |
 | **🔴 DEPRECAR / RETIRAR (Legado CCG)** | `deckManager.ts`, `deckAndSupply.test.ts` (se transforma en `hangarAndSupply.test.ts`), `asymmetricLadderEngine.ts`, `asymmetricLadderEngine.test.ts`, `airdropSystem.ts`, `airdropSystem.test.ts`, `TiltEmergencyOfferModal.tsx`, `NearMissAnalysisModal.tsx`, 19 documentos CCG/Drafts en `docs/` y `METAGAME_DESIGN/`. | **Retirados del árbol activo** y archivados en `docs/archive_legacy/`. |
 | **🔵 CREAR (Nueva Infraestructura Alfa)** | `docs/00_GEOTACTICS_ONLINE_MASTER_SPEC.md`, `docs/MIGRATION_AND_LEGACY_PURGE_PLAN.md`, `src/engine/coordinates.ts`, `src/engine/tacticalBitmap.ts`, `src/components/world/TacticalWorldMap.tsx`, `supabase/migrations/20261104000001_geotactics_alpha_siege_and_venezuela_seed.sql`, `src/engine/territorialSiegeOrchestrator.ts`, `src/components/world/TerritorySiegeModal.tsx`, `src/hooks/useSiegeRealtime.ts`. | **Nuevos entregables** para cerrar el bucle de soberanía global en vivo. |
 
