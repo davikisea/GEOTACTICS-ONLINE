@@ -15,6 +15,20 @@ Consolidación acumulativa de la versión `0.1.0` en desarrollo: arquitectura de
 
 ### Fase 1 & 2: Geotactics Persistente (Project Alice Engine × Consola C4ISR Atompunk)
 
+### Documentación & Especificación Arquitectónica Canónica
+
+#### Added
+- **Master MVP Blueprint & Roadmap (`docs/MASTER_MVP_BLUEPRINT_AND_ROADMAP.md`)**:
+  - Especificación canónica de refundación modular bajo Arquitectura Hexagonal Pura y Estado Unidireccional Basado en Eventos (v5.1.0-MODULAR-FOUNDATION).
+  - Aislamiento e invariantes de los 4 Dominios: Metapolítica Macro & Cartografía WGS84 (Estudio Alpha), Motor Táctico TBS & Atrición Determinista (Estudio Beta), Bark Engine & Game Feel Cómic (Estudio Gamma) y Capa de Invariantes Universales (Estudio Delta).
+  - Contratos de tipo inmutables (`docs/contracts/`): `macroCartographyContracts.ts`, `tacticalContracts.ts`, `schema.ts`, `typesBridge.ts`.
+- **Análisis Forense & Replicación Cartográfica WarEra (`docs/WARERA_MAP_ARCHITECTURE_DEEP_DIVE.md`)**:
+  - Deconstrucción de arquitectura WebGL Zero-Raster, TopoJSON estático quantizado y reactividad en GPU con `feature-state` con 0% de re-renders de CPU.
+- **Plan de Implementación Mapa Vectorial Zero-Raster (`docs/PLAN_IMPLEMENTACION_MAPA_VECTORIAL_ZERO_RASTER.md`)**:
+  - Hoja de ruta para migración a TopoJSON, MapLibre GL nativo y Deck.gl (`MapboxOverlay`).
+- **Análisis de Arquitectura Geotactics (`docs/ANALISIS_ARQUITECTURA_GEOTACTICS.md`)**:
+  - Convergencia entre lienzo territorial OpenPlace y motor de eventos y logística Project Alice.
+
 #### Added
 - **Topología de Nodos Estratégicos & Soberanía Regional (`20261105000001_geotactics_strategic_nodes_and_queues.sql`)**:
   - Migración DDL con tabla `public.strategic_nodes` para los 7 puntos estratégicos del Teatro Venezuela: Capital Central Caracas (`REG_VE_01`), Estrecho Canal de Maracaibo (`REG_VE_02`), Refinería CRP Amuay (`REG_VE_11`), Estrecho Golfo de Paria (`REG_VE_13`), Hidroeléctrica Guri (`REG_VE_03`), Radar C4ISR Margarita (`REG_VE_14`) y Base SAM Maracay (`REG_VE_08`).
