@@ -33,6 +33,8 @@ import {
   P2PPriceReference
 } from '../../engine/industrialEngine';
 import { audioManager } from '../../engine/audioManager';
+import { supabase } from '../../lib/supabase/client';
+import { MASTER_METAGAME_CONSTANTS } from '../../types/metagame';
 
 interface P2PMarketplaceViewProps {
   currentUserId: string;
@@ -53,73 +55,85 @@ export const P2PMarketplaceView: React.FC<P2PMarketplaceViewProps> = ({
   onUpdateInventory,
   onNavigateToIndustry,
 }) => {
-  // Precios de referencia de mercado canónicos (PMM)
+  // Precios de referencia de mercado canónicos (PMM con bandas VWAP Collar ±25%)
   const [priceReferences, setPriceReferences] = useState<Record<RefinedResourceType, P2PPriceReference>>({
     refined_steel: {
       resourceType: 'refined_steel',
       movingAveragePriceGold: 50,
-      collarMinPriceGold: 32, // -35%
-      collarMaxPriceGold: 68, // +35%
+      collarMinPriceGold: 37, // -25%
+      collarMaxPriceGold: 63, // +25%
       volume24h: 1420,
     },
     refined_concrete: {
       resourceType: 'refined_concrete',
       movingAveragePriceGold: 30,
-      collarMinPriceGold: 19,
-      collarMaxPriceGold: 41,
+      collarMinPriceGold: 22, // -25%
+      collarMaxPriceGold: 38, // +25%
       volume24h: 2150,
     },
     refined_microchip: {
       resourceType: 'refined_microchip',
       movingAveragePriceGold: 120,
-      collarMinPriceGold: 78,
-      collarMaxPriceGold: 162,
+      collarMinPriceGold: 90, // -25%
+      collarMaxPriceGold: 150, // +25%
       volume24h: 680,
     },
   });
 
-  // Lista activa de órdenes en el mercado (semilla canónica)
-  const [listings, setListings] = useState<P2PMarketListing[]>([
-    {
-      id: 'list_seed_01',
-      sellerId: 'user_hawk_99',
-      sellerName: 'Comandante Hawk',
-      resourceType: 'refined_steel',
-      quantity: 20,
-      pricePerUnitGold: 48,
-      totalPriceGold: 960,
-      taxDeductedGold: 115,
-      netSellerRevenueGold: 845,
-      status: 'active',
-      createdAt: Date.now() - 3600000,
-    },
-    {
-      id: 'list_seed_02',
-      sellerId: 'user_stella_01',
-      sellerName: 'Mayor Stella (Reserva)',
-      resourceType: 'refined_concrete',
-      quantity: 30,
-      pricePerUnitGold: 28,
-      totalPriceGold: 840,
-      taxDeductedGold: 100,
-      netSellerRevenueGold: 740,
-      status: 'active',
-      createdAt: Date.now() - 1800000,
-    },
-    {
-      id: 'list_seed_03',
-      sellerId: 'user_volkov_02',
-      sellerName: 'Brigada Volkov',
-      resourceType: 'refined_microchip',
-      quantity: 10,
-      pricePerUnitGold: 115,
-      totalPriceGold: 1150,
-      taxDeductedGold: 138,
-      netSellerRevenueGold: 1012,
-      status: 'active',
-      createdAt: Date.now() - 7200000,
-    },
-  ]);
+  // Lista activa de órdenes en el mercado con canon del 2% (1% sink + 1% regalía)
+  const [listings, setListings] = useState<P2PMarketListing[]>([]);
+
+  // Sincronización en vivo con public.p2p_market_orders en Supabase
+  const fetchOrders = React.useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('p2p_market_orders')
+        .select('*')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (data) {
+        const liveListings: P2PMarketListing[] = data.map((o) => ({
+          id: o.id,
+          sellerId: o.seller_id,
+          sellerName: `Comandante ${o.seller_id.slice(0, 8)}`,
+          resourceType: (o.item_code as RefinedResourceType) || 'refined_steel',
+          quantity: o.quantity,
+          pricePerUnitGold: o.unit_price_ec,
+          totalPriceGold: o.total_price_ec,
+          taxDeductedGold: (o.platform_burn_ec || 0) + (o.province_royalty_ec || 0),
+          netSellerRevenueGold: o.net_seller_revenue_ec,
+          status: o.status as any,
+          createdAt: new Date(o.created_at).getTime(),
+        }));
+        setListings(liveListings);
+      }
+    } catch (err) {
+      console.error('[P2PMarketplaceView] Error consultando órdenes Supabase:', err);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchOrders();
+
+    const channelName = `p2p_orders_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'p2p_market_orders' },
+        () => {
+          fetchOrders();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchOrders]);
 
   // Filtros y Pestañas
   const [resourceFilter, setResourceFilter] = useState<'all' | RefinedResourceType>('all');
@@ -133,82 +147,239 @@ export const P2PMarketplaceView: React.FC<P2PMarketplaceViewProps> = ({
   const [publishPricePerUnit, setPublishPricePerUnit] = useState<number>(50);
 
   const activeRef = priceReferences[publishResource];
-  const activeCollars = IndustrialEngine.calculatePriceCollars(activeRef.movingAveragePriceGold);
+  const activeCollars = {
+    minPrice: Math.floor(activeRef.movingAveragePriceGold * (1 - MASTER_METAGAME_CONSTANTS.P2P_COLLAR_MAX_DEVIATION)),
+    maxPrice: Math.ceil(activeRef.movingAveragePriceGold * (1 + MASTER_METAGAME_CONSTANTS.P2P_COLLAR_MAX_DEVIATION)),
+  };
 
   const showFeedback = (text: string, type: 'success' | 'error' = 'success') => {
     setFeedbackAlert({ text, type });
     setTimeout(() => setFeedbackAlert(null), 3500);
   };
 
-  // Acción: Publicar Orden en el Mercado
-  const handlePublishListing = () => {
-    const result = IndustrialEngine.createMarketListing(
-      currentUserId,
-      currentUserName,
-      publishResource,
-      publishQuantity,
-      publishPricePerUnit,
-      activeRef,
-      inventory
-    );
-
-    if (!result.success || !result.listing || !result.updatedInventory) {
-      audioManager.playSFX('combat_hit');
-      showFeedback(result.errorMessage || 'Error al publicar venta.', 'error');
+  // Acción: Publicar Orden en el Mercado con Split del 2%
+  const handlePublishListing = async () => {
+    if (publishQuantity <= 0) {
+      showFeedback('La cantidad debe ser mayor a 0.', 'error');
       return;
     }
 
-    onUpdateInventory(result.updatedInventory);
-    setListings([result.listing, ...listings]);
-    setIsPublishModalOpen(false);
-    audioManager.playSFX('button_click');
-    showFeedback(
-      `¡Orden publicada! ${publishQuantity} unidades en venta a ${publishPricePerUnit}G/u (-12% tasa al venderse).`
-    );
+    if (publishPricePerUnit < activeCollars.minPrice || publishPricePerUnit > activeCollars.maxPrice) {
+      showFeedback(
+        `Precio fuera de banda. Rango: ${activeCollars.minPrice}G a ${activeCollars.maxPrice}G (±25% VWAP Collar).`,
+        'error'
+      );
+      return;
+    }
+
+    let available = 0;
+    if (publishResource === 'refined_steel') available = inventory.refinedSteel;
+    else if (publishResource === 'refined_concrete') available = inventory.refinedConcrete;
+    else if (publishResource === 'refined_microchip') available = inventory.refinedMicrochip;
+
+    if (available < publishQuantity) {
+      showFeedback('Inventario insuficiente para publicar la venta.', 'error');
+      return;
+    }
+
+    const totalPriceGold = publishQuantity * publishPricePerUnit;
+    const taxTotal = Math.round(totalPriceGold * MASTER_METAGAME_CONSTANTS.P2P_MARKET_FEE_RATE); // 2%
+    const taxBurn = Math.floor(taxTotal * MASTER_METAGAME_CONSTANTS.P2P_FEE_BURN_SHARE); // 1%
+    const taxRoyalty = taxTotal - taxBurn; // 1%
+    const netSellerRevenueGold = totalPriceGold - taxTotal;
+
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const activeSellerId = authData?.user?.id ?? currentUserId;
+
+      if (!activeSellerId || activeSellerId === 'user_me') {
+        showFeedback('Debe tener una sesión militar activa para publicar en el mercado P2P.', 'error');
+        return;
+      }
+
+      const { data: insertedOrder, error: insertError } = await supabase
+        .from('p2p_market_orders')
+        .insert({
+          seller_id: activeSellerId,
+          origin_province_id: 'ES_MADRID',
+          province_terminal_id: 'ES_MADRID',
+          item_category: 'refined_material',
+          item_code: publishResource,
+          tier: 1,
+          quantity: publishQuantity,
+          unit_price_ec: publishPricePerUnit,
+          total_price_ec: totalPriceGold,
+          platform_burn_ec: taxBurn,
+          province_royalty_ec: taxRoyalty,
+          net_seller_revenue_ec: netSellerRevenueGold,
+          status: 'active',
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        showFeedback(`Error en base de datos: ${insertError.message}`, 'error');
+        return;
+      }
+
+      // Descontar inventario local solo tras confirmación de base de datos
+      const updatedInv: IndustrialInventory = {
+        ...inventory,
+        refinedSteel:
+          publishResource === 'refined_steel'
+            ? inventory.refinedSteel - publishQuantity
+            : inventory.refinedSteel,
+        refinedConcrete:
+          publishResource === 'refined_concrete'
+            ? inventory.refinedConcrete - publishQuantity
+            : inventory.refinedConcrete,
+        refinedMicrochip:
+          publishResource === 'refined_microchip'
+            ? inventory.refinedMicrochip - publishQuantity
+            : inventory.refinedMicrochip,
+      };
+
+      onUpdateInventory(updatedInv);
+
+      if (insertedOrder) {
+        const newListing: P2PMarketListing = {
+          id: insertedOrder.id,
+          sellerId: insertedOrder.seller_id,
+          sellerName: currentUserName,
+          resourceType: publishResource,
+          quantity: publishQuantity,
+          pricePerUnitGold: publishPricePerUnit,
+          totalPriceGold,
+          taxDeductedGold: taxTotal,
+          netSellerRevenueGold,
+          status: 'active',
+          createdAt: new Date(insertedOrder.created_at).getTime(),
+        };
+        setListings((prev) => [newListing, ...prev]);
+      }
+
+      setIsPublishModalOpen(false);
+      audioManager.playSFX('button_click');
+      showFeedback(
+        `¡Orden publicada en Supabase! ${publishQuantity} unidades en venta a ${publishPricePerUnit}G/u (Canon 2%: 1% sink + 1% regalía).`
+      );
+    } catch (err: any) {
+      console.error('[P2PMarketplaceView] Error en publicación:', err);
+      showFeedback(err.message || 'Error de red al publicar orden', 'error');
+    }
   };
 
-  // Acción: Cancelar Venta Propia
-  const handleCancelListing = (listingId: string) => {
-    const target = listings.find(l => l.id === listingId);
+  // Acción: Cancelar Venta Propia en Supabase
+  const handleCancelListing = async (listingId: string) => {
+    const target = listings.find((l) => l.id === listingId);
     if (!target || target.status !== 'active') return;
 
-    // Devolver recursos de custodia al inventario
-    const updatedInv: IndustrialInventory = {
-      ...inventory,
-      refinedSteel: target.resourceType === 'refined_steel' ? inventory.refinedSteel + target.quantity : inventory.refinedSteel,
-      refinedConcrete: target.resourceType === 'refined_concrete' ? inventory.refinedConcrete + target.quantity : inventory.refinedConcrete,
-      refinedMicrochip: target.resourceType === 'refined_microchip' ? inventory.refinedMicrochip + target.quantity : inventory.refinedMicrochip,
-    };
+    try {
+      const { error: cancelError } = await supabase
+        .from('p2p_market_orders')
+        .update({ status: 'cancelled' })
+        .eq('id', listingId);
 
-    onUpdateInventory(updatedInv);
-    setListings(listings.map(l => (l.id === listingId ? { ...l, status: 'cancelled' } : l)));
-    audioManager.playSFX('button_click');
-    showFeedback(`Orden cancelada. Los materiales han regresado a tu inventario.`);
+      if (cancelError) {
+        showFeedback(`Fallo al cancelar orden: ${cancelError.message}`, 'error');
+        return;
+      }
+
+      // Devolver recursos al inventario tras cancelación confirmada en DB
+      const updatedInv: IndustrialInventory = {
+        ...inventory,
+        refinedSteel:
+          target.resourceType === 'refined_steel'
+            ? inventory.refinedSteel + target.quantity
+            : inventory.refinedSteel,
+        refinedConcrete:
+          target.resourceType === 'refined_concrete'
+            ? inventory.refinedConcrete + target.quantity
+            : inventory.refinedConcrete,
+        refinedMicrochip:
+          target.resourceType === 'refined_microchip'
+            ? inventory.refinedMicrochip + target.quantity
+            : inventory.refinedMicrochip,
+      };
+
+      onUpdateInventory(updatedInv);
+      setListings((prev) => prev.filter((l) => l.id !== listingId));
+      audioManager.playSFX('button_click');
+      showFeedback(`Orden cancelada. Los materiales han regresado a tu inventario.`);
+    } catch (err: any) {
+      showFeedback('Error al cancelar orden en servidor', 'error');
+    }
   };
 
-  // Acción: Comprar Orden P2P
-  const handleBuyListing = (listing: P2PMarketListing) => {
-    const result = IndustrialEngine.executeP2PPurchase(
-      listing,
-      currentUserId,
-      userGold,
-      inventory,
-      0 // En demo local el vendedor no está conectado
-    );
-
-    if (!result.success || result.updatedBuyerGold === undefined || !result.updatedBuyerInventory) {
-      audioManager.playSFX('combat_hit');
-      showFeedback(result.errorMessage || 'Error en la compra.', 'error');
+  // Acción: Comprar Orden P2P vía RPC execute_p2p_market_transaction
+  const handleBuyListing = async (listing: P2PMarketListing) => {
+    if (listing.status !== 'active') {
+      showFeedback('La orden ya no está disponible.', 'error');
+      return;
+    }
+    if (listing.sellerId === currentUserId) {
+      showFeedback('No puedes comprar tu propia orden.', 'error');
+      return;
+    }
+    if (userGold < listing.totalPriceGold) {
+      showFeedback(
+        `Fondos insuficientes. Requiere ${listing.totalPriceGold}G (Posees ${userGold}G).`,
+        'error'
+      );
       return;
     }
 
-    onUpdateUserGold(result.updatedBuyerGold);
-    onUpdateInventory(result.updatedBuyerInventory);
-    setListings(listings.map(l => (l.id === listing.id ? result.updatedListing! : l)));
-    audioManager.playSFX('victory');
-    showFeedback(
-      `¡Compra completada con éxito! -${listing.totalPriceGold}G. 12% (${listing.taxDeductedGold}G) quemado por el tesoro.`
-    );
+    try {
+      const { data: rpcRes, error: rpcError } = await supabase.rpc(
+        'execute_p2p_market_transaction',
+        {
+          p_order_id: listing.id,
+        }
+      );
+
+      if (rpcError) {
+        showFeedback(`Transacción rechazada por el servidor: ${rpcError.message}`, 'error');
+        return;
+      }
+
+      const res = rpcRes as any;
+      if (!res?.success) {
+        showFeedback(`Transacción rechazada: ${res?.error || 'Error desconocido'}`, 'error');
+        return;
+      }
+
+      // Actualizar saldos tras éxito confirmado por la RPC
+      const updatedBuyerGold = userGold - listing.totalPriceGold;
+      const updatedBuyerInv: IndustrialInventory = {
+        ...inventory,
+        refinedSteel:
+          listing.resourceType === 'refined_steel'
+            ? inventory.refinedSteel + listing.quantity
+            : inventory.refinedSteel,
+        refinedConcrete:
+          listing.resourceType === 'refined_concrete'
+            ? inventory.refinedConcrete + listing.quantity
+            : inventory.refinedConcrete,
+        refinedMicrochip:
+          listing.resourceType === 'refined_microchip'
+            ? inventory.refinedMicrochip + listing.quantity
+            : inventory.refinedMicrochip,
+      };
+
+      onUpdateUserGold(updatedBuyerGold);
+      onUpdateInventory(updatedBuyerInv);
+      setListings((prev) => prev.filter((l) => l.id !== listing.id));
+
+      audioManager.playSFX('victory');
+      const taxBurn = Math.floor(listing.taxDeductedGold * 0.5);
+      const taxRoyalty = listing.taxDeductedGold - taxBurn;
+      showFeedback(
+        `¡Compra completada con éxito! -${listing.totalPriceGold}G. Canon 2%: ${taxBurn}G quemados + ${taxRoyalty}G a la provincia soberana.`
+      );
+    } catch (err: any) {
+      console.error('[P2PMarketplaceView] RPC error:', err);
+      showFeedback(`Fallo de conexión en transacción P2P: ${err.message}`, 'error');
+    }
   };
 
   // Acción: Barrido de Liquidez por Intendencia Militar (NPC Market Maker)
@@ -250,7 +421,7 @@ export const P2PMarketplaceView: React.FC<P2PMarketplaceViewProps> = ({
             </h1>
           </div>
           <p className="text-xs text-[#F2E8D5]/80 mt-1">
-            Comercio entre jugadores con Tasa Municipal del 12% a quema, bandas dinámicas (±35% PMM) y Garantía de Liquidez NPC.
+            Comercio P2P Soberano: Canon del 2% (1% Quema Permanente + 1% Regalía Provincial), Bandas VWAP Collar (±25%) y Garantía de Liquidez.
           </p>
         </div>
 
@@ -566,14 +737,22 @@ export const P2PMarketplaceView: React.FC<P2PMarketplaceViewProps> = ({
                 <span className="text-[#F2E8D5]/70">Ingreso Bruto de la Venta:</span>
                 <strong className="text-white">{publishQuantity * publishPricePerUnit}G</strong>
               </div>
-              <div className="flex justify-between text-red-400">
-                <span>Tasa Municipal (12% Quema Deflacionaria):</span>
-                <span>-{Math.floor(publishQuantity * publishPricePerUnit * 0.12)}G</span>
+              <div className="flex justify-between text-amber-300">
+                <span>Canon P2P (2% Split: 1% Sink + 1% Regalía):</span>
+                <span>-{Math.round(publishQuantity * publishPricePerUnit * 0.02)}G</span>
+              </div>
+              <div className="flex justify-between text-[10px] text-[#A2A790] pl-2">
+                <span>• 1% Quema Permanente (Sink):</span>
+                <span>-{Math.floor(publishQuantity * publishPricePerUnit * 0.01)}G</span>
+              </div>
+              <div className="flex justify-between text-[10px] text-[#A2A790] pl-2">
+                <span>• 1% Regalía Provincia Soberana:</span>
+                <span>-{Math.round(publishQuantity * publishPricePerUnit * 0.02) - Math.floor(publishQuantity * publishPricePerUnit * 0.01)}G</span>
               </div>
               <div className="flex justify-between pt-1 border-t border-[#7B8A4A] font-black text-amber-300">
-                <span>Ingreso Neto para tu Tesoro:</span>
+                <span>Ingreso Neto para tu Tesoro (98%):</span>
                 <span>
-                  {publishQuantity * publishPricePerUnit - Math.floor(publishQuantity * publishPricePerUnit * 0.12)}G
+                  {publishQuantity * publishPricePerUnit - Math.round(publishQuantity * publishPricePerUnit * 0.02)}G
                 </span>
               </div>
             </div>

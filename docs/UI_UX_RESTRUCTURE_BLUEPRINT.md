@@ -1,8 +1,8 @@
 # 📐 BLUEPRINT CANÓNICO DE REESTRUCTURACIÓN UI/UX (`UI_UX_RESTRUCTURE_BLUEPRINT.md`)
 
 **Proyecto:** *Tactical Command: Wars of Legacy*  
-**Versión de Arquitectura:** 4.0.0 (*Kinetic Comic War-Room Engine — Advance Wars meets Persona 5 / Hades + C4ISR*)  
-**Estado:** Listo para Ejecución (Gate de Aprobación Humana Activo)  
+**Versión de Arquitectura:** 5.0.0 (*Kinetic Comic War-Room Engine — Advance Wars meets Persona 5 / Hades + C4ISR*)  
+**Estado:** Producción Certificada (Fase 1 a 4 Verificadas)  
 **Invariante Crítica:** **CERO modificaciones a la lógica de combate, motores matemáticos, contratos de Supabase ni firmas públicas de `WarLobbyHubProps`.**
 
 ---
@@ -273,3 +273,27 @@ flowchart LR
 | `src/components/lobby/WarLobbyHub.tsx` | Modificar | Orquestar los submódulos conservando **exactamente** la interfaz `WarLobbyHubProps` (las 29 props intactas) + soporte de teclado (`1-6`, `Space`, `Escape`, `R`). |
 | `src/App.tsx` | Modificar | Mantener `<WarLobbyHub />` montado como fondo interactivo cuando `mainNav` abre sub-vistas (`shop`, `armory`, `industry`, `marketplace`, `clans`, `docs`, `qa`) dentro de un chasis modal diegético C4ISR, sincronizar oro/acero cosechados y eliminar el desbordamiento de `42px` del `<footer>` global en Lobby y Combate. |
 | `src/components/game/GameCanvas.tsx` & `COCommandBar.tsx` | Modificar | Corregir inversión de colores P1/P2, añadir trauma cuadrático (Screen Shake), eliminar botón debug `💥 Cañón` y aplicar estética blindada `#2B2C24` / `rounded-[14px_4px_14px_4px]` con Ghost Bar en `COCommandBar`. |
+
+---
+
+## 6. Tríada C4ISR Canónica de Geotactics (Fase 2 Certificada)
+
+Para integrar la experiencia macro y territorial (*Advance Wars meets Paradox / Stellaris*), el War Lobby cuenta con 3 componentes C4ISR canónicos totalmente integrados:
+
+### 6.1. Cabecera Dual de Recursos (`src/components/lobby/DualResourceHeader.tsx`)
+- Proyecta en la parte superior la telemetría dual dividida con estética militar:
+  1. **Recursos Personales del Jugador:** Fondos $G, Gemas de Mando, Acero Militar y Energía (EC) con indicadores de tasa horaria ($+\text{EC/h}$).
+  2. **Arcas Comunitarias de Facción:** Bóveda del Clan, multiplicadores económicos en vivo emanados del control de Nodos Estratégicos (ej. $+15\%$ por Caracas, $+25\%$ energía por Amuay/Guri) y badge de jerarquía del clan (`Leader`, `Officer`, `Member`).
+
+### 6.2. Viñeta Táctica del Comandante (`src/components/comic/CommanderBarkWidget.tsx`)
+- Ubicado en la esquina inferior izquierda (`bottom-left`):
+  - Retrato dinámico del Comandante activo con marco Ben-Day y badge de nivel.
+  - Bocadillo estilo cómic con cola reactiva conectada al `barkEngine`.
+  - Interactividad física: reacciona en tiempo real a clics del usuario ciclando frases doctrinales, estados de alerta DEFCON y respuestas hápticas.
+
+### 6.3. Gaveta Retráctil de Mando Paradox (`src/components/metagame/ParadoxCommandDrawer.tsx`)
+- Panel lateral retráctil en el extremo derecho (`right drawer`) inspirado en la interfaz C4ISR de *Stellaris* y *Victoria 3*:
+  - **Pestaña de Frentes Territoriales:** Estado de las 24 regiones de Venezuela, frentes activos, asedios en curso y control de TCP.
+  - **Pestaña de Nodos Estratégicos:** Control soberano de los 7 activos clave del teatro (Amuay, Paria, Guri, etc.) y sus multiplicadores proyectados.
+  - **Pestaña de Cola de Ensamblaje:** Tiempos de fabricación restantes con cuentas regresivas en vivo y botón de reclamo atómico (`claim_finished_unit`).
+  - **Pestaña de Arsenal de Facción:** Tropas donadas disponibles en el hangar colectivo listas para despliegue en el frente territorial.

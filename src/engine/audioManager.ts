@@ -950,6 +950,96 @@ class TacticalAudioManager {
     osc.start(t);
     osc.stop(t + 0.16);
   }
+
+  // =========================================================================
+  // ATAJOS TÁCTICOS DE INTERFAZ Y EVENTOS ESPECIALES (C4ISR / BARK / LOBBY)
+  // =========================================================================
+
+  /**
+   * Sirena/cuerno metálico de despliegue operacional (Mapa, Hangar, Guarnición)
+   */
+  public playDeployHorn() {
+    if (this.settings.muted || this.settings.masterVolume === 0 || this.settings.sfxVolume === 0) {
+      return;
+    }
+    const ctx = this.initContext();
+    if (!ctx || !this.sfxGain) return;
+    const now = ctx.currentTime;
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(220, now);
+    osc1.frequency.exponentialRampToValueAtTime(330, now + 0.14);
+    gain1.gain.setValueAtTime(0.22, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+    osc1.connect(gain1);
+    gain1.connect(this.sfxGain);
+    osc1.start(now);
+    osc1.stop(now + 0.15);
+
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(330, now + 0.08);
+    osc2.frequency.exponentialRampToValueAtTime(440, now + 0.26);
+    gain2.gain.setValueAtTime(0.2, now + 0.08);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
+    osc2.connect(gain2);
+    gain2.connect(this.sfxGain);
+    osc2.start(now + 0.08);
+    osc2.stop(now + 0.27);
+  }
+
+  /**
+   * Pulso táctil de movimiento del cursor sobre el mapa o grilla
+   */
+  public playCursorMove() {
+    this.playHoverTick();
+  }
+
+  /**
+   * Impacto de cápsula de suministros / refuerzos aéreos
+   */
+  public playAirdropImpact() {
+    this.playSFX('capture');
+  }
+
+  /**
+   * Cancelación o retroceso de orden táctica
+   */
+  public playCancelRollback() {
+    if (this.settings.muted || this.settings.masterVolume === 0 || this.settings.sfxVolume === 0) {
+      return;
+    }
+    const ctx = this.initContext();
+    if (!ctx || !this.sfxGain) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(520, now);
+    osc.frequency.exponentialRampToValueAtTime(260, now + 0.09);
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.1);
+  }
+
+  /**
+   * Alerta de emboscada en niebla de guerra (TRAP!)
+   */
+  public playTrapAlert() {
+    this.playSFX('combat_hit');
+  }
+
+  /**
+   * Activación directa de Poder de Comandante (COP / SCOP)
+   */
+  public playCOPower(isSuper: boolean = false) {
+    this.playSFX(isSuper ? 'super_co_power' : 'co_power');
+  }
 }
 
 export const audioManager = TacticalAudioManager.getInstance();

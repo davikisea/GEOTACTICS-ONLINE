@@ -338,18 +338,23 @@ export class TurnEconomyEngine {
         refreshedUnit.fuel = 99;
         refreshedUnit.ammo = CANONICAL_UNIT_PRODUCTION_CATALOG[unit.unitCode]?.ammo ?? 9;
 
-        // Reparación de salud (Máximo 2 HP por turno)
-        const missingHp = 10 - unit.hp;
+        // Reparación de salud (Escala nativa continua 1-100 HP: +20 HP/turno, 1% de coste por HP)
+        const is100Scale = unit.maxHp === 100 || unit.hp > 10;
+        const maxHp = is100Scale ? 100 : 10;
+        const maxRepair = is100Scale ? 20 : 2;
+        const divisor = is100Scale ? 100 : 10;
+
+        const missingHp = maxHp - unit.hp;
         if (missingHp > 0 && funds > 0) {
-          const costPerHp = Math.floor(unit.productionCost / 10);
+          const costPerHp = Math.max(1, Math.floor(unit.productionCost / divisor));
           const maxHpAffordable = Math.floor(funds / costPerHp);
-          const hpToHeal = Math.min(2, missingHp, maxHpAffordable);
+          const hpToHeal = Math.min(maxRepair, missingHp, maxHpAffordable);
 
           if (hpToHeal > 0) {
             const repairCost = hpToHeal * costPerHp;
             funds -= repairCost;
             spentFunds += repairCost;
-            refreshedUnit.hp = Math.min(10, unit.hp + hpToHeal);
+            refreshedUnit.hp = Math.min(maxHp, unit.hp + hpToHeal);
             unitsRepaired++;
           }
         }
@@ -379,6 +384,7 @@ export class TurnEconomyEngine {
     totalUnits: number;
     excessUnits: number;
     upkeepCost: number;
+    totalUpkeepG: number;
     isOverCapacity: boolean;
   } {
     const playerUnits = units.filter(u => u.ownerId === playerId);
@@ -390,6 +396,7 @@ export class TurnEconomyEngine {
       totalUnits,
       excessUnits,
       upkeepCost,
+      totalUpkeepG: upkeepCost,
       isOverCapacity: excessUnits > 0,
     };
   }
@@ -474,8 +481,8 @@ export class TurnEconomyEngine {
       ownerId,
       x: facilityCoord.x,
       y: facilityCoord.y,
-      hp: 10,
-      maxHp: 10,
+      hp: 100,
+      maxHp: 100,
       ammo: catalogEntry.ammo,
       fuel: catalogEntry.fuel,
       movementPoints: catalogEntry.movementPoints,
@@ -488,6 +495,7 @@ export class TurnEconomyEngine {
       hasMoved: true, // Nace en espera durante su turno de fabricación
       hasActed: true,
       skinId: 'default',
+      tier: 1,
     };
 
     return {

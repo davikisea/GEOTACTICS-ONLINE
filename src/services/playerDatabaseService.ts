@@ -41,6 +41,9 @@ const isSupabaseConfigured = (): boolean => {
   return !!url && !url.includes('placeholder') && !url.includes('your-project-id');
 };
 
+const isValidUuid = (value: string): boolean =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+
 export class PlayerDatabaseService {
   private static instance: PlayerDatabaseService | null = null;
   private currentUserId: string = 'user_commander_01';
@@ -66,8 +69,8 @@ export class PlayerDatabaseService {
   public async loadPlayerData(): Promise<PersistentPlayerData> {
     const userId = this.currentUserId;
 
-    // 1. Intentar cargar desde Supabase si el cliente está configurado con credenciales reales
-    if (isSupabaseConfigured()) {
+    // 1. Intentar cargar desde Supabase si el cliente está configurado con credenciales reales y UUID válido
+    if (isSupabaseConfigured() && isValidUuid(userId)) {
       try {
         const { data: profile, error } = await supabase
           .from('profiles')
@@ -150,8 +153,8 @@ export class PlayerDatabaseService {
       xp: 150,
       eloRating: 1200,
       trophies: 120,
-      activeCommanderId: 'andy',
-      commanderBondLevel: 3,
+      activeCommanderId: 'stella',
+      commanderBondLevel: 5,
       winStreak: 1,
       industrialInventory: {
         userId,
@@ -167,10 +170,10 @@ export class PlayerDatabaseService {
       },
       refiningJobs: [],
       clan: {
-        id: 'clan_vanguard_iron',
-        name: 'Vanguardia de Acero',
-        tag: '[STEEL]',
-        emblemIcon: '⚔️',
+        id: 'clan-ferro',
+        name: 'Iron Vanguard Syndicate',
+        tag: '[IVS]',
+        emblemIcon: '🛡️',
         tier: 'tier_1',
         treasuryGold: 15000,
         treasurySteel: 200,
@@ -231,7 +234,7 @@ export class PlayerDatabaseService {
    * Sincroniza hacia Supabase PostgreSQL
    */
   private async syncProfileToSupabase(data: PersistentPlayerData): Promise<void> {
-    if (!isSupabaseConfigured()) return;
+    if (!isSupabaseConfigured() || !isValidUuid(data.userId)) return;
     try {
       await supabase.from('profiles').upsert({
         id: data.userId,
@@ -281,7 +284,7 @@ export class PlayerDatabaseService {
       const raw = localStorage.getItem(`tactical_stock_${userId}`);
       if (raw) return JSON.parse(raw);
     } catch {}
-    return createInitialReserveStock('p1');
+    return createInitialReserveStock();
   }
 }
 

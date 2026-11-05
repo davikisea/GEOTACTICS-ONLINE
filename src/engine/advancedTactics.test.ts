@@ -311,7 +311,7 @@ export function runAdvancedTacticsSuite(): { total: number; passed: number; resu
   };
 }
 
-if (process.argv[1] && process.argv[1].includes('advancedTactics.test')) {
+if (typeof process !== 'undefined' && process.argv && process.argv[1]?.includes('advancedTactics.test')) {
   const summary = runAdvancedTacticsSuite();
   console.log(`\nRESUMEN PASO 2: ${summary.passed}/${summary.total} PASARON`);
   if (summary.passed < summary.total) {

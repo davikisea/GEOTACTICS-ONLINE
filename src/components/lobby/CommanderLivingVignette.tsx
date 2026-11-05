@@ -127,6 +127,7 @@ export const CommanderLivingVignette: React.FC<CommanderLivingVignetteProps> = (
     setHasPokedRecently(true);
     setIsSquashing(true);
 
+    barkEngine.recordUserPokeOptimization();
     audioManager.playComboAction((nextPoke % 6) + 2);
     setTimeout(() => setIsSquashing(false), 180);
 

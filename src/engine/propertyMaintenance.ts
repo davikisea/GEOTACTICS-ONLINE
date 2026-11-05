@@ -54,7 +54,6 @@ export function processPropertyMaintenance(
   coId?: string
 ): MaintenanceProcessingResult {
   const normCO = (coId || '').toLowerCase();
-  const maxHpRepair = normCO === 'rachel' ? 3 : 2;
 
   let currentFunds = playerFunds;
   let totalFundsSpent = 0;
@@ -82,8 +81,12 @@ export function processPropertyMaintenance(
     const newFuel = unit.movementType === 'air' ? 99 : 70;
 
     // 2. Repair HP (Up to maxHpRepair, capped by missing HP and available funds)
-    const missingHp = 10 - unit.hp;
-    const costPerHp = Math.max(1, Math.floor(unit.productionCost / 10));
+    const is100Scale = unit.maxHp === 100 || unit.hp > 10;
+    const maxHp = is100Scale ? 100 : 10;
+    const maxHpRepair = normCO === 'rachel' ? (is100Scale ? 30 : 3) : (is100Scale ? 20 : 2);
+    const divisor = is100Scale ? 100 : 10;
+    const missingHp = maxHp - unit.hp;
+    const costPerHp = Math.max(1, Math.floor(unit.productionCost / divisor));
 
     let hpToHeal = 0;
     if (missingHp > 0) {

@@ -7,7 +7,8 @@
 
 import { MovementType, TerrainType } from '../types';
 
-export type WeatherType = 'clear' | 'rain' | 'snow';
+export type WeatherType = 'clear' | 'rain' | 'snow' | 'sandstorm';
+
 
 export interface TerrainProperties {
   defenseStars: number;

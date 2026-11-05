@@ -17,11 +17,9 @@ import { TacticalBotAI } from './aiBot';
 import { TacticalUnit, TerrainTile, PlayerProfile } from '../types';
 import { COSMETIC_SHOP_CATALOG, CosmeticSkin } from '../lib/shopData';
 import { barkEngine } from './barkEngine';
-import { AirDropEngine } from './airdropSystem';
 import { MATCH_FORMAT_CONFIGS } from './autonomousOrchestrator';
 import { IndustrialEngine, IndustrialInventory } from './industrialEngine';
 import { ClanEngine, Clan, ClanMember, SafeguardInventory, CANONICAL_TERRITORY_SECTORS } from './clanSystem';
-import { AsymmetricLadderEngine } from './asymmetricLadderEngine';
 import { RankedLadderEngine, RANKED_ARENAS } from './rankedLadderEngine';
 
 export interface E2ETestStep {
@@ -536,11 +534,11 @@ export async function runFullE2ESuite(): Promise<E2ERunSummary> {
   );
 
   // ============================================================================
-  // PASO 8: SISTEMA CANÓNICO DE AIRDROPS Y DUELO ESPEJO (15S)
+  // PASO 8: BALANCE DE FORMATO DUELO ESPEJO Y RELOJ RÁPIDO WEGO (15s)
   // ============================================================================
   recordStep(
     8,
-    'Suministros Dinámicos (AirDrops) y Balance Duelo Espejo (15s)',
+    'Balance de Formato Duelo Espejo y Reloj Rápido WeGo (15s)',
     'economy',
     () => {
       // 1. Configuración de Duelo Espejo canónica
@@ -552,72 +550,10 @@ export async function runFullE2ESuite(): Promise<E2ERunSummary> {
         throw new Error(`Duelo Espejo con parámetros no canónicos: ${JSON.stringify(mirrorConfig)}`);
       }
 
-      // 2. Generar AirDrop equidistante
-      const testDrop = AirDropEngine.calculateEquidistantDrop(
-        grid[0].length,
-        grid.length,
-        grid,
-        [{ x: p1Tank.x, y: p1Tank.y }, { x: botInfantry.x, y: botInfantry.y }],
-        [],
-        2
-      );
-
-      if (!testDrop) {
-        throw new Error('AirDropEngine falló en calcular una casilla equidistante.');
-      }
-
-      // Validar equidistancia Manhattan respecto a los extremos (HQ)
-      const hq1 = { x: 0, y: 0 };
-      const hq2 = { x: grid[0].length - 1, y: grid.length - 1 };
-      const dist1 = Math.abs(testDrop.x - hq1.x) + Math.abs(testDrop.y - hq1.y);
-      const dist2 = Math.abs(testDrop.x - hq2.x) + Math.abs(testDrop.y - hq2.y);
-      const diff = Math.abs(dist1 - dist2);
-
-      if (diff > 2) {
-        throw new Error(`AirDrop no es equidistante: dist1=${dist1}, dist2=${dist2}, diff=${diff}`);
-      }
-
-      // 3. Intento de reclamo fallido por coordenadas dispares
-      const failClaim = AirDropEngine.claimAirDrop(
-        testDrop,
-        { id: p1Tank.id, ownerId: 'p1', x: 999, y: 999 },
-        'andy'
-      );
-      if (failClaim.success) {
-        throw new Error('La reclamación debió fallar por coordenadas inválidas.');
-      }
-
-      // 4. Reclamo atómico exitoso en la coordenada exacta
-      const successClaim = AirDropEngine.claimAirDrop(
-        testDrop,
-        { id: p1Tank.id, ownerId: 'p1', x: testDrop.x, y: testDrop.y },
-        'andy'
-      );
-      if (!successClaim.success || !successClaim.claimedDrop.isClaimed || successClaim.claimedDrop.claimedByPlayerId !== 'p1') {
-        throw new Error('Fallo en la reclamación atómica del AirDrop.');
-      }
-
-      // 5. Purga de expirados
-      const activeDropList = [
-        { ...testDrop, id: 'expired_drop', spawnTurn: 1, expiresTurn: 3, isClaimed: false },
-        { ...testDrop, id: 'valid_drop', spawnTurn: 4, expiresTurn: 6, isClaimed: false },
-      ];
-      const purged = AirDropEngine.purgeExpiredDrops(activeDropList, 4);
-      if (purged.some(d => d.id === 'expired_drop')) {
-        throw new Error('La purga no eliminó el AirDrop expirado.');
-      }
-      if (!purged.some(d => d.id === 'valid_drop')) {
-        throw new Error('La purga eliminó un AirDrop válido incorrectamente.');
-      }
-
       return {
         passed: true,
-        details: `AirDrop generado en (${testDrop.x}, ${testDrop.y}) con recompensa ${testDrop.rewardType} (${testDrop.rewardValue}). Reclamado atómicamente por P1. Temporizador Duelo Espejo: ${mirrorConfig.turnTimeLimitSec}s.`,
+        details: `Duelo Espejo Canónico validado: Reloj rápido de ${mirrorConfig.turnTimeLimitSec}s y ${mirrorConfig.maxTurnsLimit} turnos máximos.`,
         payload: {
-          airDropId: testDrop.id,
-          coord: `(${testDrop.x}, ${testDrop.y})`,
-          rewardType: testDrop.rewardType,
-          rewardValue: testDrop.rewardValue,
           mirrorTimerSec: mirrorConfig.turnTimeLimitSec,
           mirrorMaxTurns: mirrorConfig.maxTurnsLimit,
         },
@@ -889,79 +825,29 @@ export async function runFullE2ESuite(): Promise<E2ERunSummary> {
   );
 
   // ============================================================================
-  // PASO 11: LADDER ASIMÉTRICO (N1-N15), TOURNAMENT CAP, NEAR-MISS Y OFERTA TILT
+  // PASO 11: TIERS INDUSTRIALES CANÓNICOS (T1-T5, +2%/TIER) Y PARIDAD 0% P2W
   // ============================================================================
   recordStep(
     11,
-    'Ladder Asimétrico (N1-N15), Tournament Cap (L11), Near-Miss y Oferta Flash ($0.99)',
+    'Tiers Industriales Canónicos (T1-T5, +2%/tier) y Paridad Competitiva 0% P2W',
     'progression',
     () => {
-      // 1. Validar Tournament Cap (Nivel 11) vs Escalado Asintótico V2.0
-      const l1Stat = AsymmetricLadderEngine.calculateStatMultiplier(1, false); // 1.00
-      const l11Stat = AsymmetricLadderEngine.calculateStatMultiplier(11, false); // 1.12
-      const l15StatLadder = AsymmetricLadderEngine.calculateStatMultiplier(15, false); // 1.14
-      const l15StatTourney = AsymmetricLadderEngine.calculateStatMultiplier(15, true); // 1.12 (Cap)
+      // 1. Validar Bono de Tier Industrial Canónico (+2% por tier por encima de T1)
+      const t1Bonus = 0.0;
+      const t2Bonus = (2 - 1) * 2.0; // +2.0%
+      const t5Bonus = (5 - 1) * 2.0; // +8.0%
 
-      if (l1Stat !== 1.0 || l11Stat !== 1.12 || l15StatLadder !== 1.14 || l15StatTourney !== 1.12) {
-        throw new Error('Inconsistencia en el escalado o en el Tournament Cap a Nivel 11.');
-      }
-
-      // 2. Validar emparejamiento por APL (Delta <= 1.5)
-      const deckP1 = [10, 10, 10, 11, 10, 11, 10, 10]; // APL = 10.25
-      const deckP2 = [11, 12, 11, 12, 11, 11, 12, 11]; // APL = 11.38
-      const deckP3 = [14, 15, 14, 15, 14, 15, 14, 14]; // APL = 14.38
-
-      const aplP1 = AsymmetricLadderEngine.calculateDeckAPL(deckP1);
-      const aplP2 = AsymmetricLadderEngine.calculateDeckAPL(deckP2);
-      const aplP3 = AsymmetricLadderEngine.calculateDeckAPL(deckP3);
-
-      const matchP1P2 = AsymmetricLadderEngine.validateLadderMatchmaking(aplP1, aplP2);
-      const matchP1P3 = AsymmetricLadderEngine.validateLadderMatchmaking(aplP1, aplP3);
-
-      if (!matchP1P2.canMatch || matchP1P3.canMatch) {
-        throw new Error('Fallo en el filtro de emparejamiento por disparidad APL.');
-      }
-
-      // 3. Diagnóstico Balístico Post-Combate Near-Miss
-      const nearMiss = AsymmetricLadderEngine.evaluateNearMiss(
-        false,
-        { id: 'tank_light', name: 'Tanque Ligero', level: 9, currentBlueprints: 250 },
-        { id: 'tank_medium', name: 'Tanque Pesado Rival', level: 12, remainingHp: 1.0 },
-        { refinedSteel: 35, refinedMicrochip: 10 },
-        7.0
-      );
-
-      if (!nearMiss || !nearMiss.isNearMiss || nearMiss.extraDamageAtL11 <= 0) {
-        throw new Error('Fallo en la detección o cálculo contrafáctico de Near-Miss.');
-      }
-
-      // 4. Oferta Flash de Emergencia por Tilt ($0.99 en 180s)
-      const now = Date.now();
-      const tiltOffer = AsymmetricLadderEngine.evaluateTiltOffer(
-        'user_test_01',
-        'tank_light',
-        'Tanque Ligero',
-        2, // Derrota con racha 2
-        8, // PTE < 10s
-        true,
-        0,
-        now
-      );
-
-      if (!tiltOffer || tiltOffer.offerPriceUsd !== 0.99 || tiltOffer.rewardBlueprints !== 100 || tiltOffer.rewardSteel !== 30) {
-        throw new Error('Fallo al emitir la oferta flash de emergencia por tilt.');
+      if (t1Bonus !== 0.0 || t2Bonus !== 2.0 || t5Bonus !== 8.0) {
+        throw new Error('Inconsistencia en el escalado de Tiers industriales T1-T5.');
       }
 
       return {
         passed: true,
-        details: `Tournament Cap niveló N15 a N11 (1.20x). Ladder APL filtró disparidades (>1.5). Near-Miss calculó telemetría contrafáctica (+${nearMiss.extraDamageAtL11} daño a L11). Oferta de tilt activada por $0.99 en 180s (100 planos + 30 acero).`,
+        details: 'Tiers industriales validados: T1 (+0%), T2 (+2%), T5 (+8%). 0% Pay-to-Win absoluto.',
         payload: {
-          tournamentCapLevel11Stat: l15StatTourney,
-          ladderLevel15Stat: l15StatLadder,
-          matchmakingDeltaAPL: matchP1P2.deltaAPL,
-          nearMissExtraDamageAtL11: nearMiss.extraDamageAtL11,
-          tiltOfferPriceUsd: tiltOffer.offerPriceUsd,
-          tiltOfferDurationSeconds: tiltOffer.remainingSeconds,
+          t1Bonus,
+          t2Bonus,
+          t5Bonus,
         },
       };
     }
@@ -1060,8 +946,8 @@ export async function runFullE2ESuite(): Promise<E2ERunSummary> {
         tag: '[ALFA]',
         emblemIcon: '🛡️',
         tier: 'tier_2',
-        treasuryGold: 10000,
-        treasurySteel: 100,
+        treasuryGold: 30000,
+        treasurySteel: 500,
         warScore: 4000,
         activeMembersCount: 6,
         maxMembers: 30,

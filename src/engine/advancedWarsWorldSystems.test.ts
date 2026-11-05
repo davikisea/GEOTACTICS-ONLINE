@@ -391,7 +391,7 @@ export function runAdvancedWarsWorldSystemsSuite(): { total: number; passed: num
   };
 }
 
-if (process.argv[1] && process.argv[1].includes('advancedWarsWorldSystems.test')) {
+if (typeof process !== 'undefined' && process.argv && process.argv[1]?.includes('advancedWarsWorldSystems.test')) {
   const summary = runAdvancedWarsWorldSystemsSuite();
   if (summary.passed < summary.total) {
     process.exit(1);

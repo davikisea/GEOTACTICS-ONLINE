@@ -4,9 +4,17 @@ import { GridPosition, TacticalUnit, TerrainTile, TerrainType } from '../../type
 import { assetLoader } from '../../engine/assetLoader';
 import { audioManager, SfxType } from '../../engine/audioManager';
 import { triggerHaptic } from '../../engine/hapticFeedback';
-import { AirDrop } from '../../engine/airdropSystem';
 import { AvailableSubAction } from '../../engine/subActions';
 import { TileContextMenu } from './TileContextMenu';
+
+export interface TacticalDropMarker {
+  id: string;
+  x: number;
+  y: number;
+  rewardType: string;
+  rewardValue: number;
+  isClaimed: boolean;
+}
 
 export interface InSituTargetBadgeData {
   coord: GridPosition;
@@ -51,7 +59,7 @@ export interface GameCanvasProps {
   height?: number;
   fogOfWar?: FogOfWarVisualConfig | null;
   ambushAlert?: AmbushAlert | null;
-  airdrops?: AirDrop[];
+  airdrops?: TacticalDropMarker[];
   tileContextMenu?: TileContextMenuData | null;
   inSituTargetBadge?: InSituTargetBadgeData | null;
 }
@@ -785,7 +793,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           <div className="flex items-center gap-1">
             <span className="text-[#E84A27] font-black">💥 -{inSituTargetBadge.estimatedDamage} HP</span>
             <span className="text-[#D8D1C5]">
-              ({Math.max(0, inSituTargetBadge.defenderHp - inSituTargetBadge.estimatedDamage)}/10)
+              ({Math.max(0, inSituTargetBadge.defenderHp - inSituTargetBadge.estimatedDamage)}/100 HP)
             </span>
           </div>
           <span className="text-[#46521F]">|</span>
@@ -934,7 +942,8 @@ function drawTacticalUnitSprite(
     alpha: unit.hasActed ? 0.6 : 1.0, // Oscurecer unidad si ya actuó este turno
   });
 
-  // 2. Placa de HP militar táctica (1 a 10) - P1 = Blue Moon #1E64D0, P2 = Orange Star #E84A27
+  // 2. Placa de HP militar táctica (Escala compacta Advance Wars 1-10 o 1-100 HP)
+  const displayHp = unit.hp > 10 ? Math.ceil(unit.hp / 10) : unit.hp;
   ctx.fillStyle = '#0A0B08';
   ctx.fillRect(ux + 28, uy + 28, 16, 16);
   ctx.strokeStyle = team === 'p1' ? '#1E64D0' : '#E84A27';
@@ -945,7 +954,7 @@ function drawTacticalUnitSprite(
   ctx.font = 'bold 10px monospace';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(`${unit.hp}`, ux + 36, uy + 36);
+  ctx.fillText(`${displayHp}`, ux + 36, uy + 36);
 }
 
 function drawCornerBrackets(ctx: CanvasRenderingContext2D, sx: number, sy: number, size: number) {
@@ -1000,7 +1009,7 @@ function drawCameraHUD(
 
 function drawAirDropBeacon(
   ctx: CanvasRenderingContext2D,
-  drop: AirDrop,
+  drop: TacticalDropMarker,
   dx: number,
   dy: number,
   timestamp: number

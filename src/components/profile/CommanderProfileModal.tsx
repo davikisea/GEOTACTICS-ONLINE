@@ -41,6 +41,7 @@ interface CommanderProfileModalProps {
   onUpdateProfile: (updated: UserProfileIdentity) => void;
   userGems: number;
   onUpdateUserGems: (gems: number) => void;
+  onSignOut?: () => void;
 }
 
 const FACTION_FLAGS = [
@@ -81,6 +82,7 @@ export const CommanderProfileModal: React.FC<CommanderProfileModalProps> = ({
   onUpdateProfile,
   userGems,
   onUpdateUserGems,
+  onSignOut,
 }) => {
   const [activeTab, setActiveTab] = useState<'dossier' | 'customize' | 'medals'>('dossier');
   const [tempBio, setTempBio] = useState(profile.customBio);
@@ -490,8 +492,23 @@ export const CommanderProfileModal: React.FC<CommanderProfileModalProps> = ({
 
         {/* Pie del Expediente */}
         <div className="p-4 bg-[#181914] border-t-2 border-[#46521F] flex items-center justify-between text-[10px] text-[#7B8A4A]">
-          <span>ESTADO MAYOR • RED DE INTELIGENCIA DE COMANDO</span>
-          <span className="text-emerald-400 font-bold">● PROTOCOLO CIFRADO ACTIVO</span>
+          <div className="flex items-center gap-2">
+            <span>ESTADO MAYOR • RED DE INTELIGENCIA DE COMANDO</span>
+            <span className="text-emerald-400 font-bold hidden sm:inline">● PROTOCOLO CIFRADO ACTIVO</span>
+          </div>
+          {onSignOut && (
+            <button
+              type="button"
+              onClick={() => {
+                audioManager.playSFX('button_click');
+                onClose();
+                onSignOut();
+              }}
+              className="px-3 py-1 bg-red-950/80 hover:bg-red-800 text-red-200 border border-red-700/60 rounded text-xs font-mono font-bold cursor-pointer transition-colors"
+            >
+              Cerrar Sesión Militar
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -237,7 +237,7 @@ export function runExpandedCOsSuite(): { total: number; passed: number; results:
   };
 }
 
-if (process.argv[1] && process.argv[1].includes('expandedCOs.test')) {
+if (typeof process !== 'undefined' && process.argv && process.argv[1]?.includes('expandedCOs.test')) {
   const summary = runExpandedCOsSuite();
   console.log(`\nRESUMEN PASO 3: ${summary.passed}/${summary.total} PASARON`);
   if (summary.passed < summary.total) {

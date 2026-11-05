@@ -1,0 +1,90 @@
+﻿{
+    "frames":  {
+                   "tactical_recon_idle_0.png":  {
+                                                     "frame":  {
+                                                                   "y":  0,
+                                                                   "w":  16,
+                                                                   "h":  16,
+                                                                   "x":  0
+                                                               },
+                                                     "rotated":  false,
+                                                     "spriteSourceSize":  {
+                                                                              "y":  0,
+                                                                              "w":  16,
+                                                                              "h":  16,
+                                                                              "x":  0
+                                                                          },
+                                                     "trimmed":  false,
+                                                     "sourceSize":  {
+                                                                        "h":  16,
+                                                                        "w":  16
+                                                                    },
+                                                     "duration":  166
+                                                 },
+                   "tactical_recon_idle_2.png":  {
+                                                     "frame":  {
+                                                                   "y":  0,
+                                                                   "w":  16,
+                                                                   "h":  16,
+                                                                   "x":  32
+                                                               },
+                                                     "rotated":  false,
+                                                     "spriteSourceSize":  {
+                                                                              "y":  0,
+                                                                              "w":  16,
+                                                                              "h":  16,
+                                                                              "x":  0
+                                                                          },
+                                                     "trimmed":  false,
+                                                     "sourceSize":  {
+                                                                        "h":  16,
+                                                                        "w":  16
+                                                                    },
+                                                     "duration":  166
+                                                 },
+                   "tactical_recon_idle_1.png":  {
+                                                     "frame":  {
+                                                                   "y":  0,
+                                                                   "w":  16,
+                                                                   "h":  16,
+                                                                   "x":  16
+                                                               },
+                                                     "rotated":  false,
+                                                     "spriteSourceSize":  {
+                                                                              "y":  0,
+                                                                              "w":  16,
+                                                                              "h":  16,
+                                                                              "x":  0
+                                                                          },
+                                                     "trimmed":  false,
+                                                     "sourceSize":  {
+                                                                        "h":  16,
+                                                                        "w":  16
+                                                                    },
+                                                     "duration":  166
+                                                 }
+               },
+    "meta":  {
+                 "size":  {
+                              "h":  16,
+                              "w":  48
+                          },
+                 "version":  "1.0.0",
+                 "frameCount":  3,
+                 "timestamp":  "2026-11-04T22:11:00.7326347-04:00",
+                 "animation":  "idle",
+                 "unitCode":  "tactical_recon",
+                 "format":  "RGBA8888",
+                 "frameDurationMs":  166,
+                 "app":  "Tactical Studio Atlas Packer",
+                 "paletteRamp":  [
+                                     "#86EFAC",
+                                     "#16A34A",
+                                     "#14532D",
+                                     "#0B2810"
+                                 ],
+                 "faction":  "green-earth",
+                 "scale":  "1",
+                 "image":  "tactical_recon_idle_green-earth.png"
+             }
+}

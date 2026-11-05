@@ -13,6 +13,7 @@
 
 import { TacticalUnit, TerrainTile } from '../types';
 import { getCanonicalBaseDamage } from './canonicalDamageChart';
+import { getWeatherModifiers, WeatherType } from './weatherSystem';
 import { CombatAuraModifierResult } from './buildingAuras';
 
 export interface LuckRoll {
@@ -20,36 +21,6 @@ export interface LuckRoll {
   badLuck: number;  // 0.0 a 1.0 (normalmente 0, salvo COs inestables como Flak)
 }
 
-/**
- * Normaliza el nivel de carta para torneos esports o ladder competitivo.
- * Especificación: docs/orchestration/02_ECONOMY_AND_RETENTION_REBALANCE.md
- * - Modo Torneo (Esports): Nivel 11 forzado (Tournament Cap absoluto sin P2W).
- * - Ladder Asimétrico: Nivel entre 1 y 15.
- */
-export function normalizeCardLevel(rawLevel: number = 1, isTournamentMode: boolean = false): number {
-  if (isTournamentMode) {
-    return 11; // Tournament Cap Absoluto
-  }
-  return Math.max(1, Math.min(15, rawLevel));
-}
-
-/**
- * Calcula el bono porcentual de ataque según el nivel de la unidad y el modo.
- * Fórmula sigmoidea suave:
- * - Modo Torneo: 0.0% (paridad total).
- * - Nivel 1 a 11: +1.2% por nivel (tope 12.0%).
- * - Nivel 12 a 15: +0.5% por nivel (tope 14.0%).
- */
-export function getLevelAttackBonus(level: number = 1, isTournamentMode: boolean = false): number {
-  if (isTournamentMode) {
-    return 0.0;
-  }
-  const L = normalizeCardLevel(level, false);
-  if (L <= 11) {
-    return (L - 1) * 1.2;
-  }
-  return 12.0 + (L - 11) * 0.5;
-}
 
 export interface CanonicalCombatOptions {
   attackerHasAmmo?: boolean;
@@ -57,13 +28,16 @@ export interface CanonicalCombatOptions {
   commtowersCount?: number;
   coAttackModifier?: number;  // Multiplicador porcentual (base 100)
   coDefenseModifier?: number; // Multiplicador porcentual (base 100)
-  attackerLevel?: number;     // Nivel de la carta atacante (1-15)
-  defenderLevel?: number;     // Nivel de la carta defensora (1-15)
-  isTournamentMode?: boolean; // Forzar Tournament Cap Nivel 11
+  attackerTierLevel?: number; // Nivel de manufactura industrial de tropa (1-5, +2% efectividad por nivel)
+  defenderTierLevel?: number; // Nivel de manufactura industrial del defensor (1-5)
+  weather?: WeatherType;      // Clima activo en la cuadrícula
+  coId?: string;              // Comandante CO (para inmunidades climáticas)
+  scale100Hp?: boolean;       // Forzar escala 1-100 HP (por defecto true)
   luckRoll?: LuckRoll;
   deterministic?: boolean;    // true para partidas de torneo / pruebas sin RNG
   buildingAuraModifiers?: CombatAuraModifierResult; // Modificadores dinámicos de auras de edificios
 }
+
 
 export interface CanonicalCombatResult {
   canAttack: boolean;
@@ -104,12 +78,15 @@ export class CanonicalCombatEngine {
       commtowersCount = 0,
       coAttackModifier = 100,
       coDefenseModifier = 100,
-      attackerLevel = 1,
-      defenderLevel = 1,
-      isTournamentMode = false,
+      attackerTierLevel = 1,
+      defenderTierLevel = 1,
+      weather,
+      coId,
+      scale100Hp = true,
       luckRoll = { goodLuck: 0, badLuck: 0 },
       deterministic = true,
     } = options;
+
 
     const distance = Math.abs(attacker.x - defender.x) + Math.abs(attacker.y - defender.y);
     const effectiveMaxRange = attacker.maxRange + (options.buildingAuraModifiers?.attackerMaxRangeBonus || 0);
@@ -169,11 +146,20 @@ export class CanonicalCombatEngine {
       };
     }
 
-    // 2. Cálculo de modificadores de ataque (+10% por torre de comunicación y bono por nivel)
-    const attackerLevelBonus = getLevelAttackBonus(attackerLevel, isTournamentMode);
+    // 2. Cálculo de modificadores de ataque (+10% por torre de comunicación, tier industrial y clima)
+    const attackerTier = attacker.tier || attackerTierLevel || 1;
+    const tierBonus = Math.max(0, (attackerTier - 1) * 2.0);
     const auraAttackBonus = options.buildingAuraModifiers?.attackerEffectiveAttackBonus || 0;
-    const attackModifier = coAttackModifier + commtowersCount * 10 + attackerLevelBonus + auraAttackBonus;
+    
+    let weatherAttackMultiplier = 1.0;
+    if (weather) {
+      const weatherMods = getWeatherModifiers(weather, coId);
+      if (distance >= 2) {
+        weatherAttackMultiplier = weatherMods.indirectDamageModifier;
+      }
+    }
 
+    const attackModifier = (coAttackModifier + commtowersCount * 10 + tierBonus + auraAttackBonus) * weatherAttackMultiplier;
     const auraDefenseBonus = options.buildingAuraModifiers?.defenderEffectiveDefenseBonus || 0;
     const defenseModifier = coDefenseModifier + auraDefenseBonus;
 
@@ -186,12 +172,16 @@ export class CanonicalCombatEngine {
       luckModifier = goodLuckVal - badLuckVal;
     }
 
-    // 4. Aplicación de la fórmula oficial Advance Wars / AWBW
+    // 4. Aplicación de la fórmula oficial Advance Wars / AWBW normalizada para escala continua 1-100 HP
+    const is100Scale = scale100Hp || attacker.hp > 10 || defender.hp > 10 || attacker.maxHp === 100 || defender.maxHp === 100;
+    const attackerHPVal = is100Scale ? attacker.hp / 10 : attacker.hp;
+    const defenderHPVal = is100Scale ? defender.hp / 10 : defender.hp;
+
     // attackFactor = floor(baseDamage * (attackModifier / 100) + luckModifier)
     const attackFactor = Math.max(0, Math.floor(baseDamage * (attackModifier / 100) + luckModifier));
 
     // attackHPFactor = floor(attackFactor * (attackerHP / 10))
-    const attackHPFactor = Math.floor(attackFactor * (attacker.hp / 10));
+    const attackHPFactor = Math.floor(attackFactor * (attackerHPVal / 10));
 
     // defenseFactor = floor(200 - (defenseModifier + defenderTerrainStars * defenderHP)) / 100
     let defenderTerrainStars = defenderTile.defenseStars + (options.buildingAuraModifiers?.defenderExtraStars || 0);
@@ -200,13 +190,15 @@ export class CanonicalCombatEngine {
       defenderTerrainStars = Math.max(0, defenderTerrainStars * (1 - pen));
     }
     const defenseFactor =
-      Math.floor(200 - (defenseModifier + defenderTerrainStars * defender.hp)) / 100;
+      Math.floor(200 - (defenseModifier + defenderTerrainStars * defenderHPVal)) / 100;
 
     // Daño en porcentaje (ej: 67 = 67% de una unidad de 100 HP)
     const damagePercent = Math.max(1, Math.floor(attackHPFactor * defenseFactor));
 
-    // Conversión a puntos de daño en la barra de 10 HP
-    const attackerDamageDealt = Math.min(defender.hp, Math.max(1, Math.floor(damagePercent / 10)));
+    // Conversión a puntos de daño respetando la escala continua (1 a 100 HP)
+    const attackerDamageDealt = is100Scale
+      ? Math.min(defender.hp, Math.max(1, damagePercent))
+      : Math.min(defender.hp, Math.max(1, Math.floor(damagePercent / 10)));
     const defenderHpAfter = Math.max(0, defender.hp - attackerDamageDealt);
     const defenderEliminated = defenderHpAfter === 0;
 
@@ -234,18 +226,23 @@ export class CanonicalCombatEngine {
         canCounterAttack = true;
         counterWeaponUsed = counterWeapon.weaponUsed;
 
-        const defenderLevelBonus = getLevelAttackBonus(defenderLevel, isTournamentMode);
-        const counterAttackFactor = Math.max(0, Math.floor(counterWeapon.baseDamage * ((defenseModifier + defenderLevelBonus) / 100)));
-        const counterAttackHPFactor = Math.floor(counterAttackFactor * (defenderHpAfter / 10));
+        const defenderTier = defender.tier || defenderTierLevel || 1;
+        const defenderTierBonus = Math.max(0, (defenderTier - 1) * 2.0);
+        const counterAttackFactor = Math.max(0, Math.floor(counterWeapon.baseDamage * ((defenseModifier + defenderTierBonus) / 100)));
+        const defenderHpAfterVal = is100Scale ? defenderHpAfter / 10 : defenderHpAfter;
+        const counterAttackHPFactor = Math.floor(counterAttackFactor * (defenderHpAfterVal / 10));
         const attackerTerrainStars = attackerTile.defenseStars;
         const attackerDefenseFactor =
-          Math.floor(200 - (attackModifier + attackerTerrainStars * attacker.hp)) / 100;
+          Math.floor(200 - (attackModifier + attackerTerrainStars * attackerHPVal)) / 100;
 
         counterDamagePercent = Math.max(1, Math.floor(counterAttackHPFactor * attackerDefenseFactor));
-        counterDamageDealt = Math.min(attacker.hp, Math.max(1, Math.floor(counterDamagePercent / 10)));
+        counterDamageDealt = is100Scale
+          ? Math.min(attacker.hp, Math.max(1, counterDamagePercent))
+          : Math.min(attacker.hp, Math.max(1, Math.floor(counterDamagePercent / 10)));
         attackerHpAfter = Math.max(0, attacker.hp - counterDamageDealt);
       }
     }
+
 
     return {
       canAttack: true,

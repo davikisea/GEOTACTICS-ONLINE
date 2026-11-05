@@ -13,18 +13,24 @@ export { CANONICAL_TERRAIN_PROPERTIES, getCanonicalMovementCost };
  * Coste 'Infinity' representa terreno infranqueable para ese tipo de tracción.
  */
 export const TERRAIN_MOVEMENT_COSTS: Record<TerrainType, Record<MovementType, number>> = {
-  plains:   { foot: 1, mech: 1, wheels: 2, treads: 1, air: 1, sea: Infinity },
-  forest:   { foot: 1, mech: 1, wheels: 3, treads: 2, air: 1, sea: Infinity },
-  mountain: { foot: 2, mech: 1, wheels: Infinity, treads: Infinity, air: 1, sea: Infinity },
-  road:     { foot: 1, mech: 1, wheels: 1, treads: 1, air: 1, sea: Infinity },
-  river:    { foot: 2, mech: 1, wheels: Infinity, treads: Infinity, air: 1, sea: Infinity },
-  city:     { foot: 1, mech: 1, wheels: 1, treads: 1, air: 1, sea: Infinity },
-  factory:  { foot: 1, mech: 1, wheels: 1, treads: 1, air: 1, sea: Infinity },
-  airport:  { foot: 1, mech: 1, wheels: 1, treads: 1, air: 1, sea: Infinity },
-  port:     { foot: 1, mech: 1, wheels: 1, treads: 1, air: 1, sea: 1 },
-  hq:       { foot: 1, mech: 1, wheels: 1, treads: 1, air: 1, sea: Infinity },
-  sea:      { foot: Infinity, mech: Infinity, wheels: Infinity, treads: Infinity, air: 1, sea: 1 },
-  reef:     { foot: Infinity, mech: Infinity, wheels: Infinity, treads: Infinity, air: 1, sea: 2 },
+  plains:    { foot: 1, mech: 1, wheels: 2, treads: 1, air: 1, sea: Infinity },
+  forest:    { foot: 1, mech: 1, wheels: 3, treads: 2, air: 1, sea: Infinity },
+  mountain:  { foot: 2, mech: 1, wheels: Infinity, treads: Infinity, air: 1, sea: Infinity },
+  road:      { foot: 1, mech: 1, wheels: 1, treads: 1, air: 1, sea: Infinity },
+  bridge:    { foot: 1, mech: 1, wheels: 1, treads: 1, air: 1, sea: Infinity },
+  river:     { foot: 2, mech: 1, wheels: Infinity, treads: Infinity, air: 1, sea: Infinity },
+  city:      { foot: 1, mech: 1, wheels: 1, treads: 1, air: 1, sea: Infinity },
+  factory:   { foot: 1, mech: 1, wheels: 1, treads: 1, air: 1, sea: Infinity },
+  airport:   { foot: 1, mech: 1, wheels: 1, treads: 1, air: 1, sea: Infinity },
+  port:      { foot: 1, mech: 1, wheels: 1, treads: 1, air: 1, sea: 1 },
+  hq:        { foot: 1, mech: 1, wheels: 1, treads: 1, air: 1, sea: Infinity },
+  commtower: { foot: 1, mech: 1, wheels: 1, treads: 1, air: 1, sea: Infinity },
+  lab:       { foot: 1, mech: 1, wheels: 1, treads: 1, air: 1, sea: Infinity },
+  silo:      { foot: 1, mech: 1, wheels: 1, treads: 1, air: 1, sea: Infinity },
+  pipe:      { foot: Infinity, mech: Infinity, wheels: Infinity, treads: Infinity, air: Infinity, sea: Infinity },
+  shoal:     { foot: 1, mech: 1, wheels: 1, treads: 1, air: 1, sea: 1 },
+  sea:       { foot: Infinity, mech: Infinity, wheels: Infinity, treads: Infinity, air: 1, sea: 1 },
+  reef:      { foot: Infinity, mech: Infinity, wheels: Infinity, treads: Infinity, air: 1, sea: 2 },
 };
 
 export interface PathNode {

@@ -1,0 +1,48 @@
+﻿{
+    "superpower":  {
+                       "name":  "Meteor Strike (DEFCON 1)",
+                       "powerType":  "scop",
+                       "stars":  6,
+                       "turnDurationPassives":  {
+                                                    "universalDefenseBonus":  0.2,
+                                                    "terrainPenaltyImmunity":  true,
+                                                    "universalFirepowerBonus":  0.4
+                                                },
+                       "instantEffect":  {
+                                             "aoeRadius":  2,
+                                             "damageHp":  8,
+                                             "fundsLossOpponent":  0.25,
+                                             "target":  "highest_density_cluster",
+                                             "type":  "meteor_aoe"
+                                         },
+                       "starCostG":  54000
+                   },
+    "id":  "sturm_defcon1",
+    "vignette":  {
+                     "aspectRatio":  "2:1",
+                     "onomatopoeia":  {
+                                          "font":  "Impact Bold",
+                                          "color":  "#FFFFFF",
+                                          "rotationDeg":  -12,
+                                          "shadowColor":  "#0C1017",
+                                          "text":  "KR-ZZZT!"
+                                      },
+                     "width":  128,
+                     "style":  "comic_halftone_atompunk",
+                     "image":  "sturm_defcon1_vignette.png",
+                     "height":  64
+                 },
+    "bark":  {
+                 "audioCue":  "/assets/audio/sfx/defcon1_alarm.wav",
+                 "dialogue":  "DEFCON 1 DECLARADO! TODAS LAS BATERIAS... FUEGO DE ANIQUILACION TOTAL.",
+                 "voicePitch":  "sub_bass",
+                 "emotion":  "apocalyptic"
+             },
+    "timestamp":  "2026-11-04T22:13:43.8838045-04:00",
+    "app":  "Tactical Studio Commander and Bark Engine",
+    "name":  "Sturm",
+    "coId":  "sturm",
+    "title":  "Comandante Supremo Black Hole",
+    "faction":  "black-hole",
+    "version":  "1.0.0"
+}

@@ -42,6 +42,7 @@ export type COId =
   | 'sasha'
   | 'sensei'
   | 'sonja'
+  | 'stella'
   | 'sturm'
   | 'von_bolt';
 
@@ -823,6 +824,30 @@ export const CANONICAL_CO_REGISTRY: Record<COId, CODefinition> = {
     },
   },
 
+  stella: {
+    id: 'stella',
+    name: 'Mayor Stella',
+    title: 'Sujeto de Prueba C4ISR #01 (Capa 3 Bark Engine)',
+    faction: 'orange-star',
+    portraitFull: '/assets/CO/pixelated/sami-full.png',
+    portraitSmall: '/assets/CO/pixelated/sami-small.png',
+    dayToDay: {
+      description: 'Comandante de Prueba del Bark Engine Auto-Optimizable y enlace directo con el Motor Geopolítico Project Alice en el Teatro Venezuela.',
+    },
+    powers: {
+      cop: {
+        name: 'Directiva Hegemónica',
+        stars: 3,
+        description: 'Aumenta +25% la proyección de soberanía sobre regiones en disputa y optimiza la telemetría de radio C4ISR.',
+      },
+      scop: {
+        name: 'Doctrina Soberana Total',
+        stars: 7,
+        description: 'Consolidación inmediata de líneas de suministro desde Caracas y +50% de eficiencia de asedio político.',
+      },
+    },
+  },
+
   sturm: {
     id: 'sturm',
     name: 'Sturm',
@@ -1203,7 +1228,12 @@ export function resolveCanonicalCOId(rawId?: string | null): COId {
  */
 export function getCOFullBodyUrl(coId?: string | null): string {
   const canonicalId = resolveCanonicalCOId(coId);
-  const fileSlug = canonicalId === 'von_bolt' ? 'von-bolt' : canonicalId;
+  const fileSlug =
+    canonicalId === 'von_bolt'
+      ? 'von-bolt'
+      : canonicalId === 'stella'
+      ? 'sami'
+      : canonicalId;
   return `/assets/CO/smoothFull/Awds-${fileSlug}.webp`;
 }
 

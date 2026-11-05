@@ -11,6 +11,10 @@ import {
   Trophy,
   ShieldCheck,
   Activity,
+  LogIn,
+  Eye,
+  Radio,
+  Globe,
 } from 'lucide-react';
 import { audioManager } from '../../engine/audioManager';
 import {
@@ -49,6 +53,9 @@ export interface CommandHUDProps {
   onNavigate: (view: 'shop' | 'armory' | 'industry' | 'marketplace' | 'clans' | 'docs' | 'qa') => void;
   activeCommanderId?: COId;
   onHoverIntent?: (intent: LobbyBarkIntent | null) => void;
+  isGuestMode?: boolean;
+  onOpenAuthModal?: () => void;
+  onOpenLoadingScreen?: () => void;
 }
 
 export const CommandHUD: React.FC<CommandHUDProps> = ({
@@ -77,6 +84,9 @@ export const CommandHUD: React.FC<CommandHUDProps> = ({
   onNavigate,
   activeCommanderId = 'andy',
   onHoverIntent,
+  isGuestMode = false,
+  onOpenAuthModal,
+  onOpenLoadingScreen,
 }) => {
   const canonicalId = resolveCanonicalCOId(activeCommanderId);
   const activeCO = CANONICAL_CO_REGISTRY[canonicalId];
@@ -292,8 +302,41 @@ export const CommandHUD: React.FC<CommandHUDProps> = ({
           </div>
         </div>
 
+        {/* Botón de Enlistarse si es Modo Huésped */}
+        {isGuestMode && onOpenAuthModal && (
+          <button
+            type="button"
+            onClick={() => {
+              audioManager.playDeployHorn();
+              onOpenAuthModal();
+            }}
+            onMouseEnter={() => audioManager.playHoverTick()}
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-[#E65100] hover:bg-amber-400 text-black border-2 border-[#0A0B08] font-display font-black text-[11px] uppercase rounded-[6px_2px_6px_2px] shadow-[2px_2px_0px_#0A0B08] cursor-pointer transition-transform active:translate-y-0.5 ml-1"
+            title="Iniciar sesión para guardar tu expediente militar en Supabase"
+          >
+            <LogIn className="w-3.5 h-3.5" />
+            <span>ACCEDER</span>
+          </button>
+        )}
+
         {/* Controles de Consola: Audio, Scanlines CRT y Accesibilidad Reduce Motion */}
         <div className="flex items-center gap-1 ml-0.5">
+          {onOpenLoadingScreen && (
+            <button
+              type="button"
+              onMouseEnter={() => audioManager.playHoverTick()}
+              onClick={() => {
+                audioManager.playSFX('button_click');
+                onOpenLoadingScreen();
+              }}
+              title="Ver Pantalla de Carga Táctica // GEOTACTICS ONLINE"
+              aria-label="Ver Pantalla de Carga Táctica"
+              className="w-8 h-8 rounded-[8px_2px_8px_2px] flex items-center justify-center bg-[#2B2C24] border-2 border-[#0A0B08] shadow-[2px_2px_0px_#0A0B08] hover:border-[#00FF66] text-xs text-[#00FF66] cursor-pointer transition-colors"
+            >
+              <Radio className="w-4 h-4 animate-pulse" />
+            </button>
+          )}
+
           <button
             type="button"
             onMouseEnter={() => audioManager.playHoverTick()}

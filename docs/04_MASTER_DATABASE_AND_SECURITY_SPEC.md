@@ -1,12 +1,12 @@
 # VOLUMEN 4: ESQUEMA MAESTRO DE BASE DE DATOS Y SEGURIDAD (SUPABASE / POSTGRESQL)
 **Documento Canónico Unificado:** `04_MASTER_DATABASE_AND_SECURITY_SPEC.md`  
 **Proyecto:** *Tactical Command: Wars of Legacy*  
-**Versión:** 4.0.0-DEFINITIVE-MASTER-SPEC  
+**Versión:** 5.0.0-DEFINITIVE-MASTER-SPEC  
 **Estado:** Documento de Verdad Absoluta (SSOT - Single Source of Truth)  
 **Archivos Consolidados y Reemplazados:**  
 - `02_DATABASE_SCHEMA.md` (Completo)  
 - `07_DATABASE_INFRASTRUCTURE_PLAN.md` (Completo)  
-- Todos los scripts DDL y RPCs de `13, 15, 16, 17, 18, 19, 20, 21`.
+- Todos los scripts DDL y RPCs de migraciones 13 a 22, Migración 26 (`geotactics_alpha_siege_and_venezuela_seed`) y Migración 27 (`geotactics_strategic_nodes_and_queues`).
 
 ---
 
@@ -399,6 +399,126 @@ CREATE TABLE public.tilt_emergency_offers (
 CREATE INDEX idx_tilt_offers_user ON public.tilt_emergency_offers(user_id, status);
 ```
 
+### 2.8 Geopolítica, Topología Alice y Asedios Territoriales (Migración 26)
+```sql
+-- 19. TABLA: regions (Topología Geopolítica Alice de GEOTACTICS)
+CREATE TABLE public.regions (
+    id TEXT PRIMARY KEY,
+    country_iso VARCHAR(2) NOT NULL REFERENCES public.world_countries(iso_code) ON DELETE RESTRICT,
+    name TEXT NOT NULL,
+    biome TEXT NOT NULL CHECK (biome IN ('BIO-PLA', 'BIO-HGH', 'BIO-URB', 'BIO-ARC-ISL', 'BIO-JGL')),
+    is_playable BOOLEAN NOT NULL DEFAULT TRUE,
+    is_national_capital BOOLEAN NOT NULL DEFAULT FALSE,
+    is_capturable BOOLEAN NOT NULL DEFAULT TRUE CHECK (is_capturable = TRUE),
+    center_x NUMERIC(5,2) NOT NULL CHECK (center_x >= 0.00 AND center_x <= 100.00),
+    center_y NUMERIC(5,2) NOT NULL CHECK (center_y >= 0.00 AND center_y <= 100.00),
+    primary_commodity TEXT NOT NULL DEFAULT 'mineral_metalico',
+    resource_tier SMALLINT NOT NULL DEFAULT 1 CHECK (resource_tier BETWEEN 1 AND 5),
+    base_hourly_yield NUMERIC(10,2) NOT NULL DEFAULT 250.00,
+    base_energy_upkeep_ec NUMERIC(10,2) NOT NULL DEFAULT 100.00,
+    max_building_slots SMALLINT NOT NULL DEFAULT 10 CHECK (max_building_slots BETWEEN 4 AND 16),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc', NOW())
+);
+
+CREATE INDEX idx_regions_country ON public.regions(country_iso);
+CREATE INDEX idx_regions_playable ON public.regions(is_playable);
+CREATE INDEX idx_regions_capital ON public.regions(is_national_capital);
+
+-- 20. TABLA: region_adjacencies (Grafo Topológico Comprimido)
+CREATE TABLE public.region_adjacencies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    from_region_id TEXT NOT NULL REFERENCES public.regions(id) ON DELETE CASCADE,
+    to_region_id TEXT NOT NULL REFERENCES public.regions(id) ON DELETE CASCADE,
+    is_strait_crossing BOOLEAN NOT NULL DEFAULT FALSE,
+    toll_fee_ec INTEGER NOT NULL DEFAULT 0 CHECK (toll_fee_ec >= 0),
+    CONSTRAINT uq_region_pair UNIQUE (from_region_id, to_region_id)
+);
+
+CREATE INDEX idx_region_adj_from ON public.region_adjacencies(from_region_id);
+CREATE INDEX idx_region_adj_to ON public.region_adjacencies(to_region_id);
+
+-- 21. TABLA: region_sovereignty (Control Político, Escudos y TCP)
+CREATE TABLE public.region_sovereignty (
+    region_id TEXT PRIMARY KEY REFERENCES public.regions(id) ON DELETE CASCADE,
+    controlling_clan_id UUID REFERENCES public.clans(id) ON DELETE SET NULL,
+    current_tcp INTEGER NOT NULL DEFAULT 10000 CHECK (current_tcp >= 0 AND current_tcp <= 10000),
+    shield_active_until TIMESTAMPTZ DEFAULT NULL,
+    tax_rate_percent NUMERIC(4,2) NOT NULL DEFAULT 5.00 CHECK (tax_rate_percent >= 0.00 AND tax_rate_percent <= 25.00),
+    last_upkeep_paid_at TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc', NOW()),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc', NOW())
+);
+
+CREATE INDEX idx_region_sovereignty_clan ON public.region_sovereignty(controlling_clan_id);
+
+-- 22. TABLA: territorial_battle_sessions (Instancias de Asedio Territorial)
+CREATE TABLE public.territorial_battle_sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    region_id TEXT NOT NULL REFERENCES public.regions(id) ON DELETE CASCADE,
+    attacker_clan_id UUID NOT NULL REFERENCES public.clans(id) ON DELETE CASCADE,
+    defender_clan_id UUID REFERENCES public.clans(id) ON DELETE SET NULL,
+    status TEXT NOT NULL DEFAULT 'handshake_pending' CHECK (status IN ('handshake_pending', 'in_progress', 'attacker_won', 'defender_won', 'expired_draw')),
+    handshake_deadline TIMESTAMPTZ NOT NULL DEFAULT (TIMEZONE('utc', NOW()) + INTERVAL '120 seconds'),
+    battle_instance_id TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc', NOW()),
+    resolved_at TIMESTAMPTZ
+);
+
+CREATE INDEX idx_territorial_battles_region ON public.territorial_battle_sessions(region_id, status);
+CREATE INDEX idx_territorial_battles_status ON public.territorial_battle_sessions(status);
+```
+
+### 2.9 Nodos Estratégicos, Hangar de Facción y Colas de Producción (Migración 27)
+```sql
+-- 23. TABLA: strategic_nodes (Nodos Estratégicos Provinciales)
+CREATE TABLE public.strategic_nodes (
+    id TEXT PRIMARY KEY,
+    region_id TEXT NOT NULL REFERENCES public.regions(id) ON DELETE CASCADE,
+    node_type TEXT NOT NULL CHECK (node_type IN ('capital_hq', 'refinery_hub', 'strait_canal', 'radar_c4isr', 'missile_silo')),
+    name TEXT NOT NULL,
+    buff_type TEXT NOT NULL CHECK (buff_type IN ('hegemonic_capital', 'energy_extraction', 'toll_chokepoint', 'radar_recon', 'area_denial')),
+    buff_value NUMERIC(6,2) NOT NULL DEFAULT 1.00,
+    controlling_clan_id UUID REFERENCES public.clans(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc', NOW())
+);
+
+CREATE INDEX idx_strategic_nodes_region ON public.strategic_nodes(region_id);
+CREATE INDEX idx_strategic_nodes_clan ON public.strategic_nodes(controlling_clan_id);
+CREATE INDEX idx_strategic_nodes_type ON public.strategic_nodes(node_type);
+
+-- 24. TABLA: faction_unit_hangar (Hangar Colectivo Comunitario del Clan)
+CREATE TABLE public.faction_unit_hangar (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    clan_id UUID NOT NULL REFERENCES public.clans(id) ON DELETE CASCADE,
+    unit_code TEXT NOT NULL,
+    tier SMALLINT NOT NULL DEFAULT 1 CHECK (tier BETWEEN 1 AND 5),
+    stock_quantity INTEGER NOT NULL DEFAULT 0 CHECK (stock_quantity >= 0),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc', NOW()),
+    CONSTRAINT uq_faction_hangar_clan_unit_tier UNIQUE (clan_id, unit_code, tier)
+);
+
+CREATE INDEX idx_faction_hangar_clan ON public.faction_unit_hangar(clan_id);
+CREATE INDEX idx_faction_hangar_unit_tier ON public.faction_unit_hangar(unit_code, tier);
+
+-- 25. TABLA: unit_production_queue (Cola de Ensamblaje con Tiempos de Espera)
+CREATE TABLE public.unit_production_queue (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    clan_id UUID REFERENCES public.clans(id) ON DELETE SET NULL,
+    destination TEXT NOT NULL DEFAULT 'user' CHECK (destination IN ('user', 'faction')),
+    unit_code TEXT NOT NULL,
+    tier SMALLINT NOT NULL DEFAULT 1 CHECK (tier BETWEEN 1 AND 5),
+    duration_seconds INTEGER NOT NULL CHECK (duration_seconds >= 0),
+    started_at TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc', NOW()),
+    ready_at TIMESTAMPTZ NOT NULL,
+    is_claimed BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc', NOW())
+);
+
+CREATE INDEX idx_unit_prod_queue_user ON public.unit_production_queue(user_id);
+CREATE INDEX idx_unit_prod_queue_clan ON public.unit_production_queue(clan_id);
+CREATE INDEX idx_unit_prod_queue_ready ON public.unit_production_queue(ready_at, is_claimed);
+```
+
 ---
 
 # 3. CATÁLOGO MAESTRO DE FUNCIONES RPC ALMACENADAS (ACID)
@@ -519,16 +639,47 @@ Asienta los resultados de combate, actualiza el balance de cuenta y controla la 
 - **Función RPC:** `rpc_reconnect_match_state(p_match_id UUID, p_client_turn INTEGER, p_client_last_seq INTEGER)`.
 - **Retorno:** Entrega el último snapshot íntegro si el cliente está desfasado de turno, o la secuencia de deltas incrementales si el cliente está en el mismo turno pero perdió paquetes.
 
+### 3.15 Liquidación de Pérdidas de Combate Territorial (`settle_territorial_combat_losses`)
+*Implementación de Referencia:* `supabase/migrations/20261104000001_geotactics_alpha_siege_and_venezuela_seed.sql`.
+- **Parámetros:** `p_user_id UUID`, `p_destroyed_units JSONB`, `p_battle_session_id UUID DEFAULT NULL`.
+- **Lógica de Ejecución:**
+  1. Itera sobre el array de unidades destruidas (`p_destroyed_units`), validando código y tier.
+  2. Descuenta de forma atómica el stock en `user_unit_hangar` (omitiendo infantería ligera y recon básicos F2P).
+  3. Calcula el 35% de los costes de materiales en chatarra balística (`tech_scrap`).
+  4. Acredita el `tech_scrap` en `user_industrial_inventory`.
+  5. Si se especifica `p_battle_session_id`, vincula la liquidación con la auditoría del asedio.
+
+### 3.16 Encolado de Producción con Tiempos Físicos (`queue_unit_production`)
+*Implementación de Referencia:* `supabase/migrations/20261105000001_geotactics_strategic_nodes_and_queues.sql`.
+- **Parámetros:** `p_unit_code TEXT`, `p_tier INT DEFAULT 1`, `p_destination TEXT DEFAULT 'user'`.
+- **Lógica de Ejecución:**
+  1. Determina los costes de materiales y el tiempo base de fabricación según el arquetipo (ej. 300s para neotanques, 0s para kit básico).
+  2. Valida fondos de Créditos Energéticos (`EC`) y stock de aleaciones del usuario. Si el destino es `'faction'`, valida que el usuario sea miembro de un clan.
+  3. Deduce los materiales inmediatamente.
+  4. Inserta el registro en `unit_production_queue` con `started_at = NOW()` y `ready_at = NOW() + duration_seconds`.
+
+### 3.17 Reclamo Atómico de Tropas Terminadas (`claim_finished_unit`)
+*Implementación de Referencia:* `supabase/migrations/20261105000001_geotactics_strategic_nodes_and_queues.sql`.
+- **Parámetros:** `p_queue_id UUID`.
+- **Lógica de Ejecución:**
+  1. Bloquea la fila en `unit_production_queue` con `FOR UPDATE`.
+  2. Verifica que `ready_at <= NOW()` y `is_claimed = false`.
+  3. Marca `is_claimed = true`.
+  4. Incrementa el stock en `user_unit_hangar` si `destination = 'user'`, o en `faction_unit_hangar` con `ON CONFLICT DO UPDATE SET stock_quantity = stock_quantity + 1` si `destination = 'faction'`.
+
 ---
 
 # 4. POLÍTICAS DE SEGURIDAD (ROW LEVEL SECURITY - RLS)
 
 Todas las tablas operan bajo `ENABLE ROW LEVEL SECURITY`:
-- **Lectura Pública de Catálogos:** `SELECT` permitido para todos sobre `units_catalog`, `commanders_catalog`, `cosmetics_catalog`, `maps`, `commander_bonding_rewards_catalog` y `p2p_price_reference`.
-- **Inventario, Progresión y Cosméticos:** Aislados estrictamente al propietario (`auth.uid() = user_id`) en `user_cards`, `user_decks`, `user_chest_slots`, `user_industrial_inventory`, `user_industrial_plots`, `user_stranded_cargo`, `industrial_refining_jobs`, `user_cosmetics` y `player_tactical_behavior_profile`.
+- **Lectura Pública de Catálogos y Geografía:** `SELECT` permitido para todos sobre `units_catalog`, `commanders_catalog`, `cosmetics_catalog`, `maps`, `commander_bonding_rewards_catalog`, `p2p_price_reference`, `regions`, `region_adjacencies`, `region_sovereignty` y `strategic_nodes`.
+- **Inventario, Progresión y Hangares Personales:** Aislados estrictamente al propietario (`auth.uid() = user_id`) en `user_unit_hangar`, `user_chest_slots`, `user_industrial_inventory`, `user_industrial_plots`, `user_stranded_cargo`, `industrial_refining_jobs`, `user_cosmetics` y `player_tactical_behavior_profile`.
+- **Hangar de Facción y Colas:**
+  - `faction_unit_hangar`: Lectura pública para telemetría de mapa; mutaciones restringidas a RPCs autoritativas.
+  - `unit_production_queue`: Lectura permitida al propietario del encargo o a compañeros de su clan.
 - **Aislamiento Estricto de Chat (`chat_messages`):**
   - Canal `global`: Lectura para cualquier usuario autenticado sin veto activo.
   - Canal `clan`: Restringido a miembros del mismo clan.
   - Canal `match_team`: Restringido a participantes de la partida activa.
   - Canal `match_dm`: Exclusivo para el emisor y el destinatario (`sender_id = auth.uid() OR recipient_id = auth.uid()`).
-- **Partidas Activas y Niebla:** Vistas de niebla aisladas en `match_player_views` para prevenir ataques de lectura de memoria (Map-Hacking). Las mutaciones del tablero se ejecutan a través de funciones RPC securizadas (`SECURITY DEFINER`).
+- **Partidas Activas y Niebla:** Vistas de niebla aisladas en `match_player_views` para prevenir ataques de lectura de memoria (Map-Hacking). Las mutaciones del tablero y asedios se ejecutan a través de funciones RPC securizadas (`SECURITY DEFINER`).

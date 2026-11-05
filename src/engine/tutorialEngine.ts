@@ -78,8 +78,8 @@ export function createTutorialUnits(): TacticalUnit[] {
       ownerId: 'p1',
       x: 1,
       y: 2,
-      hp: 10,
-      maxHp: 10,
+      hp: 100,
+      maxHp: 100,
       ammo: 9,
       fuel: 99,
       movementPoints: 3,
@@ -100,8 +100,8 @@ export function createTutorialUnits(): TacticalUnit[] {
       ownerId: 'p2',
       x: 5,
       y: 2,
-      hp: 5, // Tropa enemiga debilitada para garantizar kill
-      maxHp: 10,
+      hp: 50, // Tropa enemiga debilitada para garantizar kill
+      maxHp: 100,
       ammo: 9,
       fuel: 99,
       movementPoints: 3,

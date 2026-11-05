@@ -1,7 +1,7 @@
 {
   "name": "tactical-command",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "npx vite --port=3000 --host=0.0.0.0",
@@ -15,9 +15,25 @@
     "test:paso4": "npx tsx src/engine/advancedWarsWorldSystems.test.ts",
     "test:pve": "npx tsx src/engine/autonomousOrchestrator.test.ts",
     "test:sprint3": "npx tsx src/engine/deckAndSupply.test.ts",
+    "test:metagame": "npx tsx src/engine/metagame.test.ts",
+    "test:hangar": "npx tsx src/engine/hangarAndSupply.test.ts",
+    "test:siege": "npx tsx src/engine/territorialSiege.test.ts",
+    "test:cartography": "npx tsx src/engine/coordinatesAndBitmap.test.ts",
+    "test:strategic": "npx tsx src/engine/strategicAndProductionEngine.test.ts",
+    "test:interface": "npx tsx src/engine/phase2InterfaceAndBark.test.ts",
+    "test:expansion": "npx tsx src/engine/territorialExpansionEngine.test.ts",
+    "test:seamless": "npx tsx src/engine/tacticalCombatSeamlessIntegration.test.ts",
+    "test:geotactics": "npx tsx src/engine/strategicAndProductionEngine.test.ts && npx tsx src/engine/phase2InterfaceAndBark.test.ts && npx tsx src/engine/territorialExpansionEngine.test.ts && npx tsx src/engine/tacticalCombatSeamlessIntegration.test.ts && npx tsx src/engine/territorialSiege.test.ts && npx tsx src/engine/hangarAndSupply.test.ts && npx tsx src/engine/coordinatesAndBitmap.test.ts",
+    "test:auras": "npx tsx src/engine/buildingAuras.test.ts",
     "test:procgen": "npx tsx src/engine/proceduralMapGenerator.test.ts",
-    "test:all": "npx tsx src/engine/subActionsAndArrow.test.ts && npx tsx src/engine/advancedTactics.test.ts && npx tsx src/engine/expandedCOs.test.ts && npx tsx src/engine/advancedWarsWorldSystems.test.ts && npx tsx src/engine/autonomousOrchestrator.test.ts && npx tsx src/engine/deckAndSupply.test.ts && npx tsx src/engine/e2eIntegration.test.ts",
-    "lint": "npx tsc --noEmit"
+    "test:reinf": "npx tsx src/engine/reinforcementsEngine.test.ts",
+    "test:combat": "npx tsx src/engine/buildingAuras.test.ts && npx tsx src/engine/proceduralMapGenerator.test.ts && npx tsx src/engine/reinforcementsEngine.test.ts",
+    "test:all": "npx tsx src/engine/subActionsAndArrow.test.ts && npx tsx src/engine/advancedTactics.test.ts && npx tsx src/engine/expandedCOs.test.ts && npx tsx src/engine/advancedWarsWorldSystems.test.ts && npx tsx src/engine/autonomousOrchestrator.test.ts && npx tsx src/engine/deckAndSupply.test.ts && npx tsx src/engine/buildingAuras.test.ts && npx tsx src/engine/proceduralMapGenerator.test.ts && npx tsx src/engine/reinforcementsEngine.test.ts && npx tsx src/engine/metagame.test.ts && npx tsx src/engine/hangarAndSupply.test.ts && npx tsx src/engine/territorialSiege.test.ts && npx tsx src/engine/coordinatesAndBitmap.test.ts",
+    "test:qa": "npx playwright test tests/e2e/game-playtester.spec.ts",
+    "test:qa:headed": "npx playwright test tests/e2e/game-playtester.spec.ts --headed",
+    "test:qa:report": "npx playwright show-report test-results/html-report",
+    "lint": "npx tsc --noEmit",
+    "quality:gate": "npm run lint && npm run test:all && npm run test:qa"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -27,12 +43,14 @@
     "@vitejs/plugin-react": "^6.1.1",
     "dotenv": "^17.2.3",
     "lucide-react": "^0.546.0",
+    "maplibre-gl": "^6.16.0",
     "motion": "^12.23.24",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "vite": "^8.3.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@types/node": "^22.14.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

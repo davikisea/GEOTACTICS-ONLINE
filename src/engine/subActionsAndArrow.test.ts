@@ -345,7 +345,7 @@ export function runSubActionsAndArrowSuite(): { total: number; passed: number; r
 }
 
 // Auto-run if executed directly via node / tsx
-if (process.argv[1] && process.argv[1].includes('subActionsAndArrow.test')) {
+if (typeof process !== 'undefined' && process.argv && process.argv[1]?.includes('subActionsAndArrow.test')) {
   const summary = runSubActionsAndArrowSuite();
   console.log(`\nRESUMEN PASO 1: ${summary.passed}/${summary.total} PASARON`);
   if (summary.passed < summary.total) {

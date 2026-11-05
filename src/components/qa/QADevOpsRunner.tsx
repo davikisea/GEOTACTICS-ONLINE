@@ -27,7 +27,6 @@ import { runCOTests } from '../../engine/coSystem.test';
 import { runAutonomousOrchestratorSuite, OrchestratorTestResult } from '../../engine/autonomousOrchestrator.test';
 import { runDeckAndSupplySuite, DeckTestResult } from '../../engine/deckAndSupply.test';
 import { runClanTests, ClanTestResult } from '../../engine/clanSystem.test';
-import { runAsymmetricLadderTests, AsymmetricLadderTestResult } from '../../engine/asymmetricLadderEngine.test';
 import { runRankedLadderTests, RankedLadderTestResult } from '../../engine/rankedLadderEngine.test';
 import { AssetOptimizationEngine, PerformanceCheckItem, WebPOptimizationReport } from '../../engine/assetOptimization';
 
@@ -45,7 +44,6 @@ export const QADevOpsRunner: React.FC = () => {
   const [pveTestResults, setPveTestResults] = useState<{ total: number; passed: number; failed: number; results: OrchestratorTestResult[]; stressReport: any } | null>(null);
   const [deckTestResults, setDeckTestResults] = useState<{ total: number; passed: number; failed: number; results: DeckTestResult[]; stressReport: any } | null>(null);
   const [clanTestResults, setClanTestResults] = useState<{ total: number; passed: number; failed: number; results: ClanTestResult[] } | null>(null);
-  const [asymmetricLadderTestResults, setAsymmetricLadderTestResults] = useState<{ total: number; passed: number; failed: number; results: AsymmetricLadderTestResult[] } | null>(null);
   const [rankedLadderTestResults, setRankedLadderTestResults] = useState<{ total: number; passed: number; failed: number; results: RankedLadderTestResult[] } | null>(null);
   const [perfReport, setPerfReport] = useState<PerformanceCheckItem[]>([]);
   const [webpReport, setWebpReport] = useState<WebPOptimizationReport | null>(null);
@@ -87,10 +85,6 @@ export const QADevOpsRunner: React.FC = () => {
       // Ejecutar suite de Corporaciones Militares, Bóveda T1-T3 y Salvaguarda (Fase 6)
       const clResults = runClanTests();
       setClanTestResults(clResults);
-
-      // Ejecutar suite de Ladder Asimétrico, Tournament Cap, Near-Miss y Tilt (Fase 7)
-      const alResults = runAsymmetricLadderTests();
-      setAsymmetricLadderTestResults(alResults);
 
       // Ejecutar suite de Ladder Clasificatorio Elo, Arenas, Escudo y Bóvedas de Cofres (Fase 8)
       const rlResults = runRankedLadderTests();

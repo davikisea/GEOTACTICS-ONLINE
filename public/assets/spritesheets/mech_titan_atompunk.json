@@ -1,0 +1,68 @@
+﻿{
+    "frames":  {
+                   "mech_titan_atompunk_0.png":  {
+                                                     "trimmed":  false,
+                                                     "spriteSourceSize":  {
+                                                                              "y":  0,
+                                                                              "w":  32,
+                                                                              "h":  32,
+                                                                              "x":  0
+                                                                          },
+                                                     "sourceSize":  {
+                                                                        "h":  32,
+                                                                        "w":  32
+                                                                    },
+                                                     "rotated":  false,
+                                                     "frame":  {
+                                                                   "y":  0,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  0
+                                                               }
+                                                 }
+               },
+    "meta":  {
+                 "image":  "mech_titan_atompunk.png",
+                 "unitCode":  "mech_titan_atompunk",
+                 "size":  {
+                              "h":  32,
+                              "w":  32
+                          },
+                 "histogram":  {
+                                   "#F59E0B":  35,
+                                   "#22C55E":  6,
+                                   "#4F6D8A":  42,
+                                   "#FFFFFF":  4,
+                                   "#1B2838":  48,
+                                   "#0C1017":  93,
+                                   "#EF4444":  20,
+                                   "#2C4258":  118
+                               },
+                 "timestamp":  "2026-11-04T22:12:05.0351684-04:00",
+                 "format":  "RGBA8888",
+                 "refinementAudit":  {
+                                         "initialPass":  "Drafted heavy bipedal hull with nuclear reactor",
+                                         "critique":  "Enforced diagonal hazard stripes on pauldrons and snapped colors to 8 atompunk tokens",
+                                         "finalStatus":  "PASSED"
+                                     },
+                 "scale":  "1",
+                 "app":  "Tactical Studio AI Prompt Architect",
+                 "paletteConformance":  {
+                                            "conformancePercentage":  100,
+                                            "nonConformingCount":  0,
+                                            "allowedTokens":  [
+                                                                  "ReactorRed",
+                                                                  "RadiumGlow",
+                                                                  "VoidBlack",
+                                                                  "SparkWhite",
+                                                                  "ArmorDark",
+                                                                  "ArmorSlate",
+                                                                  "AlloyHighlight",
+                                                                  "HazardAmber"
+                                                              ],
+                                            "strictPaletteSize":  8
+                                        },
+                 "style":  "atompunk_military",
+                 "totalActivePixels":  366
+             }
+}

@@ -1,0 +1,46 @@
+﻿{
+    "frames":  {
+                   "master_recon_idle_0.png":  {
+                                                   "trimmed":  false,
+                                                   "spriteSourceSize":  {
+                                                                            "y":  0,
+                                                                            "w":  16,
+                                                                            "h":  16,
+                                                                            "x":  0
+                                                                        },
+                                                   "sourceSize":  {
+                                                                      "h":  16,
+                                                                      "w":  16
+                                                                  },
+                                                   "rotated":  false,
+                                                   "frame":  {
+                                                                 "y":  0,
+                                                                 "w":  16,
+                                                                 "h":  16,
+                                                                 "x":  0
+                                                             }
+                                               }
+               },
+    "meta":  {
+                 "image":  "master_recon_yellow-comet.png",
+                 "unitCode":  "recon",
+                 "size":  {
+                              "h":  16,
+                              "w":  16
+                          },
+                 "version":  "2.0.0-CANONICAL",
+                 "timestamp":  "2026-11-04T22:33:34.2910807-04:00",
+                 "format":  "RGBA8888",
+                 "scale":  "1",
+                 "app":  "Tactical Studio Master Pixel Engine",
+                 "perspective":  "isometric_3_4_tilt",
+                 "qualityBenchmark":  "Advance Wars Dual Strike Canonical",
+                 "faction":  "yellow-comet",
+                 "features":  [
+                                  "selective_outlining_sel_out",
+                                  "ground_cast_shadow_50_alpha",
+                                  "optical_glass_specular_glint",
+                                  "high_detail_chassis_wheels"
+                              ]
+             }
+}

@@ -43,8 +43,8 @@ export interface TacticalUnit {
   ownerId: string;
   x: number;
   y: number;
-  hp: number;
-  maxHp: number;
+  hp: number; // 1-100 HP continua
+  maxHp: number; // 100 HP
   ammo: number;
   fuel: number;
   movementPoints: number;
@@ -57,6 +57,7 @@ export interface TacticalUnit {
   hasMoved: boolean;
   hasActed: boolean;
   skinId: string;
+  tier?: 1 | 2 | 3 | 4 | 5;
   loadedUnitIds?: string[];
   isLoadedInsideId?: string | null;
 }
@@ -103,3 +104,6 @@ export interface MatchState {
   playerFunds: Record<string, number>;
   lastActionSeq: number;
 }
+
+export * from './metagame';
+

@@ -76,8 +76,8 @@ Para evitar granjas pasivas (*bot farming*) preservando al mismo tiempo una ramp
 
 #### Bifurcación Competitiva: Elo Asimétrico vs Elo Esports
 - La base de datos y el motor implementan dos sistemas de clasificación independientes en `public.profiles`:
-  1. `elo_rating`: Clasificación del Ladder asimétrico regular, donde influyen los niveles de carta y mejoras acumuladas.
-  2. `elo_rating_esports`: Clasificación del circuito competitivo oficial y Duelo Espejo, donde el combate opera con Nivel 11 Tournament Cap y modificadores normalizados a $0.0\%$.
+  1. `elo_rating`: Clasificación del Ladder asimétrico regular y asedios territoriales, donde influyen los Tiers de manufactura industrial de los chasis (Tiers T1 a T5, +2% por escalón) y la disponibilidad de stock físico de hangares.
+  2. `elo_rating_esports`: Clasificación del circuito competitivo oficial y Duelo Espejo, donde el combate opera con Tier 1 Standard Base y modificadores normalizados a $0.0\%$ (paridad competitiva absoluta).
 
 #### Incentivo de Primera Sangre en Partida (`First Blood Bounty`):
 - Implementado en `App.tsx` (`FIRST_BLOOD_BOUNTY_G = 600`), el primer comandante en destruir una tropa enemiga recibe un bono instantáneo de **$+\$600\text{G}$** en sus fondos de partida (`funds`), dinamizando el segundo 90 y acelerando la producción de contra-unidades antes del primer AirDrop.
@@ -88,7 +88,7 @@ Para evitar la sobrecarga cognitiva en nuevos reclutas y garantizar un embudo de
 | Fase de Mando | Rango / Nivel | Módulos Visibles | Módulos Bloqueados (Candado) | Misión Guiada de Onboarding |
 | :---: | :---: | :--- | :--- | :--- |
 | **Fase 1: Recluta** | Nivel 1 | • `combat` (Duelo Espejo & Práctica vs Bot)<br>• `lobby` (Cabecera y Despliegue) | • `shop`, `armory`, `clans`<br>• `industry`, `marketplace`<br>• Balances de Acero/Gemas | **Misión 1: Bautismo de Fuego.**<br>Disputa tu primer combate PvP o vs Bot. Recompensa: $+150\text{ XP}$. |
-| **Fase 2: Cabo** | Nivel 2–3 | • `combat`<br>• `armory` (Mazo de 10 Cartas)<br>• `shop` (Intendencia Militar) | • `clans`<br>• `industry`<br>• `marketplace` | **Misión 2: Doctrina de Mazo.**<br>Configura tus 8 ranuras flexibles cumpliendo las restricciones taxonómicas. |
+| **Fase 2: Cabo** | Nivel 2–3 | • `combat`<br>• `armory` (Almacén de Unidades T1-T5)<br>• `shop` (Intendencia Militar) | • `clans`<br>• `industry`<br>• `marketplace` | **Misión 2: Gestión de Almacén.**<br>Revisa tu stock físico y equipa tus divisiones militares T1-T5. |
 | **Fase 3: Sargento** | Nivel 4–7 | • `combat`, `armory`, `shop`<br>• `clans` (Corporaciones, Bóveda, Salvaguarda) | • `industry`<br>• `marketplace` | **Misión 3: Alianza Estratégica.**<br>Afíliate a una corporación militar o activa un seguro de racha. |
 | **Fase 4: Veterano** | Nivel 8+ | **ACCESO INTEGRAL (8 Módulos):**<br>• `industry` (10 Parcelas Territoriales)<br>• `marketplace` (Bolsa Libre P2P) | *Ninguno.* | **Misión 4: Forja Territorial.**<br>Construye tu primera fundición y extrae 50 lingotes de Acero en los Altos Hornos Vulcan. |
 | **Modo Auditor** | Todos | • `qa` (Telemetría de arnés)<br>• `docs` (Inteligencia de doctrina) | Agrupados en cabecera técnica: `[⚙️ Terminal de Estado Mayor]` | Acceso a arnés de pruebas y benchmarks en vivo. |
@@ -187,43 +187,59 @@ El complejo industrial opera sobre una cuadrícula modular donde cada parcela pu
 
 ---
 
-# 3. EL MERCADO P2P GLOBAL Y BANCO CENTRAL NPC
+# 3. EL MERCADO P2P GLOBAL, SPLIT TRANSACCIONAL DEL 2% Y BANCO CENTRAL NPC
 
-Los jugadores comercian excedentes de materiales procesados en un mercado abierto:
-- **Moneda de Intercambio:** Créditos de Batalla o Gemas de Mando.
-- **Sumidero Deflacionario (Gold Sink):** El sistema retiene automáticamente una **Tasa Municipal del 12%** sobre el total de cada venta completada.
-- **Bandas de Precio Dinámicas (Price Collars):** El precio por unidad no puede superar ni caer más allá de un $\pm 35\%$ del Promedio Móvil de Mercado (PMM) de las últimas 24 horas, bloqueando transferencias ilegítimas entre cuentas secundarias.
+Los comandantes comercian materias primas, derivados industriales, patentes tecnológicas y consumibles en un mercado descentralizado:
+- **Moneda de Intercambio:** Créditos Energéticos (EC) —fluido operativo y divisa universal de *Stellaris*— y fondos de intendencia.
+- **Split Transaccional del 2% (Canónico SSOT):** Sobre el monto total de cada transacción se aplica una deducción del **2.0%**:
+  - **1.0%** se quema de forma permanente como sumidero deflacionario (*Sink*).
+  - **1.0%** se liquida como regalía soberana a la tesorería de la corporación que ostenta la soberanía sobre el territorio donde radica el nodo de mercado.
+- **Bandas de Precio Dinámicas (VWAP Collar $\pm 25\%$):** El precio unitario de cualquier orden queda acotado dentro de un intervalo estricto de $\pm 25\%$ respecto al Precio Medio Ponderado por Volumen (VWAP) de las últimas 24 horas, bloqueando manipulaciones especulativas o traspaso ilícito de activos entre cuentas secundarias.
+- **Prohibición Terminante de Tropas Terminadas:** Queda prohibida la venta de unidades militares terminadas (tanques, cazas, artillería armada). Toda unidad debe forjarse físicamente en los hangares y fábricas territoriales (0% Pay-to-Win).
 - **Banco Central de Intendencia Militar (NPC Liquidity Stabilizer):**
-  A través de la función de backend `fulfill_stale_p2p_orders`, cualquier orden de venta en el mercado que permanezca sin comprador durante más de **6 horas** dentro del rango del PMM es adquirida de forma autónoma por intendencia militar NPC al precio medio de mercado, garantizando liquidez permanente a los comandantes.
-- **Requisitos de Acceso:** Nivel de Cuenta 8 mínimo y al menos 15 partidas clasificatorias disputadas.
+  A través de la función de backend `fulfill_stale_p2p_orders`, cualquier orden de venta en el mercado que permanezca sin comprador durante más de **6 horas** dentro del rango VWAP es absorbida de forma autónoma por intendencia militar NPC al precio medio de mercado, garantizando liquidez permanente.
+- **Requisitos de Acceso:** Nivel de Cuenta 8 mínimo y al menos 15 partidas disputadas.
 
 ---
 
-# 4. SISTEMA DE SUBIDA DE NIVEL DE CARTAS Y ESCALADO ASIMÉTRICO (CALIBRACIÓN V2.1 - HITO DÍA 100)
+# 4. SISTEMA DE HANGAR FÍSICO, TIERS T1-T5 Y PATENTES TECNOLÓGICAS (CANON 2.0)
 
-$$\text{Stat Final} = \text{Stat Base} \times \left(1 + (\text{Nivel} - 1) \times 0.020\right)$$
+La progresión de combate se desacopla de colecciones pasivas de cartas y se traslada a la calidad de forja industrial:
 
-| Nivel de Carta | Planos Requeridos | Créditos ($G$) | Acero Procesado | Microchips | Hormigón Armado | Ámbito de Aplicación |
-|:---:|:---:|:---:|:---:|:---:|:---:|:---|
-| **Nivel 1** | Base (0) | 0 | 0 | 0 | 0 | Inicial / Duelo Espejo |
-| **Nivel 2** | 5 | 50 | 0 | 0 | 0 | Teatros Iniciales |
-| **Nivel 3** | 10 | 100 | 0 | 0 | 0 | Teatros Iniciales |
-| **Nivel 4** | 20 | 200 | 5 | 0 | 0 | Teatros Medios |
-| **Nivel 5** | 45 | 450 | 10 | 0 | 0 | Teatros Medios |
-| **Nivel 6** | 75 | 900 | 15 | 0 | 0 | Teatros Medios |
-| **Nivel 7** | 110 | 1,600 | 25 | 4 | 0 | Teatros Avanzados |
-| **Nivel 8** | 150 | 2,600 | 35 | 8 | 0 | Teatros Avanzados |
-| **Nivel 9** | 200 | 3,800 | 50 | 12 | 5 | Teatros Avanzados |
-| **Nivel 10** | 350 | 7,500 | 75 | 20 | 10 | Umbral Pre-Esports |
-| **Nivel 11** | **600** | **14,000** | **100** | **26** | **20** | **CAP MÁXIMO ESPORTS / TORNEOS** |
-| **Nivel 12** | 1,000 | 22,000 | 140 | 32 | 25 | Ladder Clasificatorio Diario |
-| **Nivel 13** | 1,600 | 35,000 | 195 | 40 | 35 | Ladder Clasificatorio Diario |
-| **Nivel 14** | 2,300 | 50,000 | 260 | 50 | 45 | Alta Competición Ladder |
-| **Nivel 15** | **3,200** | **75,000** | **340** | **68** | **60** | **PRESTIGIO MÁXIMO / SUMIDERO FINAL** |
+$$\text{BonoEfectividad}(N) = (N - 1) \times 2.0\% \quad \text{para } N \in \{1, 2, 3, 4, 5\}$$
 
-### 4.1 Sistema de Reciclaje de Planos (`scrap_blueprints`)
-- **Desguace:** 1 plano común $\to$ 1 Chatarra (`tech_scrap`) + 2G; 1 plano raro $\to$ 6 Chatarra + 15G; 1 plano épico $\to$ 35 Chatarra + 100G.
-- **Transmutación en Sala Limpia:** 40 `tech_scrap` + 20 `raw_rare_earth` $\to$ 1 `refined_microchip` en 45 minutos.
+| Tier de Tropa | Bono Balístico | Bono Mitigación | Requisitos de Materiales y Pureza | Ámbito de Despliegue |
+|:---:|:---:|:---:|:---|:---|
+| **Tier 1 (Estándar)** | $+0\%$ | $+0\%$ | Chasis básico fundacional (Mineral Metálico + Carbono) | Inicial / Duelos Espejo Simétricos |
+| **Tier 2 (Reforzado)** | $+2\%$ | $+2\%$ | Aleaciones de Acero Templado + Hidrocarburos | Teatros Provinciales Iniciales |
+| **Tier 3 (Avanzado)** | $+4\%$ | $+4\%$ | Titanio + Micro-Conductores de Alta Densidad | Teatros Fronterizos Medios |
+| **Tier 4 (Pesado)** | $+6\%$ | $+6\%$ | Grafeno + Polímeros + Óptica Cuántica | Campañas de Alta Tensión |
+| **Tier 5 (Élite Exp.)**| **$+10\%$** | **$+10\%$** | Cerámica Blindada + Tierras Raras Purificadas | Asedios a Capitales Nacionales |
+
+### 4.1 Patentes Tecnológicas Permanentes y Desguace de Chatarra
+- **Patentes Permanentes:** El comandante desbloquea la capacidad de forjar arquetipos avanzados quemando lotes de recursos brutos y refinados en el centro tecnológico de su corporación.
+- **Recuperación de Chatarra Balística:** Al destruirse una unidad en combate o ejecutarse una orden de desguace voluntario en el hangar, el taller recupera un **35% del valor base** de sus materiales en forma de chatarra recuperable (`tech_scrap`), minimizando el desecho industrial.
+
+### 4.2 Cola de Producción Física y Tiempos de Ensamblaje ($t_{\text{forja}}$)
+A diferencia de los juegos de cartas con despliegue instantáneo ilimitado, la fabricación de unidades físicas en *Tactical Command* consume tiempo y recursos industriales continuos (`unit_production_queue`):
+
+| Arquetipo de Unidad | Tier | Tiempo de Forja ($t_{\text{forja}}$) | Coste Industrial Base |
+| :--- | :---: | :---: | :--- |
+| **Infantería Ligera (Kit Básico F2P)** | T1 | **0 segundos (Instantáneo)** | Gratuito / Inagotable |
+| **Vehículo de Reconocimiento (Recon F2P)** | T1 | **0 segundos (Instantáneo)** | Gratuito / Inagotable |
+| **Infantería Mecanizada (Mech)** | T1-T2 | **30 - 60 segundos** | 15 Mineral Metálico + 50 EC |
+| **Tanque Ligero / Artillería Obús** | T1-T3 | **90 - 150 segundos** | 30 Mineral + 10 Acero + 120 EC |
+| **Tanque Mediano / B-Copter / Antiaéreo** | T2-T4 | **180 - 240 segundos** | 60 Mineral + 25 Acero + 250 EC |
+| **Neotanque / Caza / Bombardero / Acorazado**| T3-T5 | **300 - 450 segundos** | 100 Mineral + 50 Acero + 20 Chips + 500 EC |
+
+- **Kit Básico F2P Inviolable:** Para evitar que un comandante quede excluido de la guerra por quiebra o pérdida total de flota, el Estado Mayor provee infantería ligera y patrullas de reconocimiento T1 ilimitadas y sin tiempo de espera.
+- **Concurrencia:** Los comandantes disponen de slots concurrentes de forja según el nivel de su taller militar. Una vez completado el tiempo de espera, la unidad terminada se transfiere al hangar del jugador (`user_unit_hangar`) o al hangar compartido de su facción (`faction_unit_hangar`) mediante la RPC atómica `claim_finished_unit`.
+
+### 4.3 Arsenal Compartido de Facción (`faction_unit_hangar`)
+Los clanes y corporaciones militares operan un arsenal logístico centralizado que permite a los miembros cooperar militarmente al estilo de las alianzas de *Stellaris* y *Albion Online*:
+- **Aportaciones de Miembros:** Cualquier miembro puede forjar unidades asignando el destino `'faction'` para donar tropas terminadas al hangar comunitario del clan.
+- **Despliegue y Préstamo de Tropas:** Los miembros del clan pueden seleccionar y desplegar tropas del hangar de facción en asedios provinciales como si fuesen de su propio almacén, siempre que cuenten con la autorización y jerarquía requerida (`role IN ('veteran', 'officer', 'leader')`).
+- **Pérdida en Combate de Tropas de Facción:** Si una unidad prestada de la facción es destruida en el frente territorial, se descuenta de forma irreversible del stock de la facción, y el 35% de chatarra recuperada (`tech_scrap`) se deposita en la Bóveda del Clan para reconstrucción.
 
 ---
 
@@ -266,6 +282,6 @@ $$\text{Multiplicador de Botín}(\text{Racha}) = 1.0 + \min(5, \max(0, \text{Rac
 
 ### 6.2 Ofertas Flash de Emergencia por Tilt (\$0.99)
 - **Activación:** Se dispara tras 2 derrotas consecutivas con turnos precipitados ($PTE < 10\text{s}$).
-- **Presentación:** La pantalla muestra la viñeta del Comandante vendado y en shock ofreciendo un paquete flash del Alto Mando: 100 cartas de la tropa destruida + 30 Vigas de Acero procesado por **\$0.99 (85% OFF)**.
+- **Presentación:** La pantalla muestra la viñeta del Comandante vendado y en shock ofreciendo un paquete flash del Alto Mando: 1 Chasis Reforzado T2 de la tropa destruida + 30 Vigas de Acero procesado por **\$0.99 (85% OFF)**.
 - **Urgencia Temporal:** Cronómetro gigante de **180 segundos**. Si no se adquiere en ese tiempo, la oferta se autodestruye.
 - **Tope de Frecuencia:** Máximo **1 oferta cada 48 horas por cuenta**.

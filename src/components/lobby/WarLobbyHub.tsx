@@ -33,6 +33,10 @@ import {
   Activity,
   Award,
   Radar,
+  Globe,
+  MapPin,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { MatchFormat } from '../../engine/autonomousOrchestrator';
 import { Clan, SafeguardInventory } from '../../engine/clanSystem';
@@ -45,15 +49,28 @@ import {
 } from '../../engine/coSystem';
 import { LobbyBarkIntent } from '../../engine/barkEngine';
 import { audioManager } from '../../engine/audioManager';
+import { supabase } from '../../lib/supabase/client';
+import { DualResourceHeader } from './DualResourceHeader';
+import { CommanderBarkWidget, BarkMessage } from '../comic/CommanderBarkWidget';
+import { ParadoxCommandDrawer } from '../metagame/ParadoxCommandDrawer';
 import { CommandHUD } from './CommandHUD';
 import { CommanderLivingVignette } from './CommanderLivingVignette';
 import { TacticalDock, LobbyStationView } from './TacticalDock';
 import { TacticalGhostBar } from './TacticalGhostBar';
 import { WarRoomModal, PrizeItem } from './WarRoomModal';
+import { WorldMapCanvas } from '../world/WorldMapCanvas';
+import { TacticalWorldMap } from '../world/TacticalWorldMap';
+import { TerritoryInspectorModal } from '../world/TerritoryInspectorModal';
+import { UnitHangarModal } from '../world/UnitHangarModal';
+import { GarrisonManagementDrawer } from '../world/GarrisonManagementDrawer';
+import { MetaCommandConsole } from '../metagame/MetaCommandConsole';
+import { useTerritoryMap } from '../../hooks/useTerritoryMap';
+import { useTerritoryEconomyTicker } from '../../hooks/useTerritoryEconomyTicker';
 
 export interface WarLobbyHubProps {
-  onDeployCombat?: (format: MatchFormat) => void;
-  onStartMatch?: (format: MatchFormat) => void;
+  userId?: string;
+  onDeployCombat?: (format: MatchFormat, context?: any) => void;
+  onStartMatch?: (format: MatchFormat, context?: any) => void;
   onNavigateToView?: (view: LobbyStationView) => void;
   onOpenShop?: () => void;
   onOpenArmory?: () => void;
@@ -63,6 +80,7 @@ export interface WarLobbyHubProps {
   onOpenDocs?: () => void;
   onOpenEditor?: () => void;
   onOpenProfile?: () => void;
+  onOpenLoadingScreen?: () => void;
   userGold: number;
   userGems: number;
   userSteel?: number;
@@ -88,12 +106,13 @@ export interface WarLobbyHubProps {
   onSelectCommander?: (coId: COId) => void;
   commanderBondLevel?: number;
   lastMatchResult?: 'victory' | 'defeat' | null;
-  activeDeckCount?: number;
   // Extensiones para el Shell Diegético Persistente (Zero-Unmount)
   activeStation?: LobbyStationView | null;
   onCloseStation?: () => void;
   onGainGold?: (deltaGold: number) => void;
   onGainSteel?: (deltaSteel: number) => void;
+  isGuestMode?: boolean;
+  onOpenAuthModal?: (customNotice?: string) => void;
   children?: React.ReactNode;
 }
 
@@ -117,6 +136,7 @@ const WHEEL_PRIZES: PrizeItem[] = [
 ];
 
 export const WarLobbyHub: React.FC<WarLobbyHubProps> = ({
+  userId,
   onDeployCombat,
   onStartMatch,
   onNavigateToView,
@@ -128,6 +148,7 @@ export const WarLobbyHub: React.FC<WarLobbyHubProps> = ({
   onOpenDocs,
   onOpenEditor,
   onOpenProfile,
+  onOpenLoadingScreen,
   userGold,
   userGems,
   userSteel = 25,
@@ -151,11 +172,12 @@ export const WarLobbyHub: React.FC<WarLobbyHubProps> = ({
   onSelectCommander,
   commanderBondLevel = 8,
   lastMatchResult = null,
-  activeDeckCount = 10,
   activeStation = null,
   onCloseStation,
   onGainGold,
   onGainSteel,
+  isGuestMode = false,
+  onOpenAuthModal,
   children,
 }) => {
   // Estados Locales de Recursos Dinámicos & Cosecha
@@ -166,10 +188,8 @@ export const WarLobbyHub: React.FC<WarLobbyHubProps> = ({
   const [energyTimerSeconds, setEnergyTimerSeconds] = useState(312);
   const [offerTimerSeconds, setOfferTimerSeconds] = useState(899);
 
-  // Estado sincronizado del Comandante Activo y Hover Contextual del Bark Engine
-  const [selectedCOId, setSelectedCOId] = useState<COId>(() =>
-    resolveCanonicalCOId(activeCommanderId)
-  );
+  // Estado sincronizado del Comandante Activo y Hover Contextual del Bark Engine (CAPA 3 MVP: Sujeto único 'stella')
+  const [selectedCOId, setSelectedCOId] = useState<COId>('stella');
   const [hoverIntent, setHoverIntent] = useState<LobbyBarkIntent | null>(null);
 
   // Estados de Interfaz, Accesibilidad & Modales
@@ -189,6 +209,79 @@ export const WarLobbyHub: React.FC<WarLobbyHubProps> = ({
   const [wheelResultText, setWheelResultText] = useState<string | null>(null);
   const [wonPrize, setWonPrize] = useState<PrizeItem | null>(null);
 
+  // Estados del Metajuego V2 (Global Sovereignty, Hangar Físico y Guarniciones)
+  // En el MVP de Capa 1 (Implicación Política en Mapa Venezuela), el mapa se abre como experiencia principal
+  const [isWorldMapExpanded, setIsWorldMapExpanded] = useState(true);
+  const [mapRenderer, setMapRenderer] = useState<'webgl' | 'canvas2d'>('canvas2d');
+  const [inspectedProvinceId, setInspectedProvinceId] = useState<string | null>(null);
+  const [isHangarModalOpen, setIsHangarModalOpen] = useState(false);
+  const [isGarrisonDrawerOpen, setIsGarrisonDrawerOpen] = useState(false);
+  const [isMetaConsoleOpen, setIsMetaConsoleOpen] = useState(true);
+  const [isVignetteCollapsed, setIsVignetteCollapsed] = useState(false);
+  const [selectedProvinceId, setSelectedProvinceId] = useState<string | null>('REG_VE_01');
+  const [userEc, setUserEc] = useState(4850);
+  const [userRareEarth, setUserRareEarth] = useState(140);
+  const [userComposites, setUserComposites] = useState(95);
+
+  // Estados Fase 2: Consola Paradox y Bark Widget Interactivo
+  const [isParadoxDrawerOpen, setIsParadoxDrawerOpen] = useState(false);
+  const [barkWidgetMessage, setBarkWidgetMessage] = useState<BarkMessage | null>(null);
+
+  // Datos Soberanos del Metajuego Territorial en Vivo (Supabase SSOT - 0% mock data)
+  const {
+    countries,
+    provinces,
+    nodes,
+    adjacencies,
+    controlMap,
+    clansMap,
+    isLoading: isTerritoryLoading,
+    declareAttack,
+    syncTerritoryData,
+  } = useTerritoryMap(clan?.id ?? 'clan-ferro');
+
+  const selectedProvince =
+    (selectedProvinceId ? provinces.find((p) => p.id === selectedProvinceId) : null) ||
+    provinces[0] ||
+    null;
+  const selectedProvinceNodes = selectedProvince
+    ? nodes.filter((n) => n.provinceId === selectedProvince.id)
+    : [];
+  const selectedProvinceControl = selectedProvince
+    ? controlMap[selectedProvince.id]
+    : null;
+
+  const addGoldReward = useCallback(
+    (amount: number) => {
+      setLocalGold((g) => g + amount);
+      onGainGold?.(amount);
+    },
+    [onGainGold]
+  );
+
+  const addSteelReward = useCallback(
+    (amount: number) => {
+      setLocalSteel((s) => s + amount);
+      onGainSteel?.(amount);
+    },
+    [onGainSteel]
+  );
+
+  // Ticker de Generación Continua Wplace & Upkeep Territorial (Victoria 3 Pipeline)
+  const territoryTicker = useTerritoryEconomyTicker({
+    clanId: clan?.id ?? 'clan-ferro',
+    provinces,
+    nodes,
+    controlMap,
+    onHarvestResources: ({ ec, steel }) => {
+      setUserEc((prev) => prev + ec);
+      addSteelReward(steel);
+    },
+    onDeductUpkeep: (upkeep) => {
+      setUserEc((prev) => Math.max(0, prev - upkeep));
+    },
+  });
+
   const currentArena = RankedLadderEngine.getArenaForTrophies(userTrophies);
   const resolvedClanName = clan?.name ?? clanName ?? 'Legión de Hierro';
   const resolvedClanTag = clan?.tag ?? clanTag ?? '[FERRO]';
@@ -206,7 +299,7 @@ export const WarLobbyHub: React.FC<WarLobbyHubProps> = ({
   const pendingSiloSteel = Math.max(0, Math.round(elapsedSiloHours * 6));
 
   useEffect(() => {
-    setSelectedCOId(resolveCanonicalCOId(activeCommanderId));
+    setSelectedCOId('stella');
   }, [activeCommanderId]);
 
   useEffect(() => {
@@ -218,27 +311,12 @@ export const WarLobbyHub: React.FC<WarLobbyHubProps> = ({
   }, [userSteel]);
 
   const handleCommanderChange = useCallback(
-    (nextCoId: COId) => {
-      setSelectedCOId(nextCoId);
-      onSelectCommander?.(nextCoId);
+    (_nextCoId: COId) => {
+      // CAPA 3 MVP: Sujeto de prueba único bloqueado en Mayor Stella ('stella')
+      setSelectedCOId('stella');
+      onSelectCommander?.('stella');
     },
     [onSelectCommander]
-  );
-
-  const addGoldReward = useCallback(
-    (amount: number) => {
-      setLocalGold((g) => g + amount);
-      onGainGold?.(amount);
-    },
-    [onGainGold]
-  );
-
-  const addSteelReward = useCallback(
-    (amount: number) => {
-      setLocalSteel((s) => s + amount);
-      onGainSteel?.(amount);
-    },
-    [onGainSteel]
   );
 
   // Temporizadores militares de energía y oferta
@@ -266,18 +344,28 @@ export const WarLobbyHub: React.FC<WarLobbyHubProps> = ({
   };
 
   const handleDeploy = useCallback(
-    (format: MatchFormat) => {
-      audioManager.playSFX('cannon');
+    (_format: MatchFormat, targetProvId?: string) => {
+      // CAPA 2 (Combate Táctico Advance Wars) deshabilitada en este MVP:
+      // Redirige cualquier intento de batalla hacia la Operación Geopolítica en el Mapa de Venezuela (Capa 1).
+      audioManager.playDeployHorn();
       setActiveModal(null);
-      if (onDeployCombat) onDeployCombat(format);
-      else if (onStartMatch) onStartMatch(format);
+      setIsWorldMapExpanded(true);
+      setIsMetaConsoleOpen(true);
+
+      const targetId = targetProvId || selectedProvince?.id || 'REG_VE_20';
+      setSelectedProvinceId(targetId);
+      declareAttack(selectedProvince?.id || 'REG_VE_01', targetId, clan?.id ?? 'clan-ferro');
     },
-    [onDeployCombat, onStartMatch]
+    [clan?.id, declareAttack, selectedProvince]
   );
 
   const handleNavigate = useCallback(
     (view: LobbyStationView) => {
       audioManager.playSFX('button_click');
+      if (isGuestMode && view !== 'docs') {
+        onOpenAuthModal?.('Esta terminal militar está reservada a personal en activo. Identifícate para ingresar.');
+        return;
+      }
       if (onNavigateToView) {
         onNavigateToView(view);
         return;
@@ -368,6 +456,11 @@ export const WarLobbyHub: React.FC<WarLobbyHubProps> = ({
           onCloseStation();
           return;
         }
+        if (isWorldMapExpanded) {
+          audioManager.playCue('ui_cancel_rollback');
+          setIsWorldMapExpanded(false);
+          return;
+        }
       }
 
       if (activeModal) return;
@@ -390,6 +483,14 @@ export const WarLobbyHub: React.FC<WarLobbyHubProps> = ({
           break;
         case '6':
           handleNavigate('docs');
+          break;
+        case 'm':
+        case 'M':
+          if (!e.ctrlKey && !e.metaKey && !activeStation) {
+            e.preventDefault();
+            audioManager.playSFX('button_click');
+            setIsWorldMapExpanded(prev => !prev);
+          }
           break;
         case ' ':
           if (!activeStation) {
@@ -481,647 +582,924 @@ export const WarLobbyHub: React.FC<WarLobbyHubProps> = ({
     }
   }, [activeModal, drawWheel]);
 
-  const spinWheel = () => {
+  const spinWheel = async () => {
     if (isWheelSpinning) return;
     setIsWheelSpinning(true);
     setWonPrize(null);
     audioManager.playSFX('button_click');
-    setWheelResultText('TIEMPO 1 // ACELERANDO ROTOR C4ISR...');
+    setWheelResultText('TIEMPO 1 // SOLICITANDO SUMINISTRO AL SERVIDOR C4ISR...');
 
-    const extraRounds = 5 + Math.floor(Math.random() * 4);
-    const randomSegment = Math.floor(Math.random() * WHEEL_PRIZES.length);
-    const segmentAngle = 360 / WHEEL_PRIZES.length;
-    const targetDeg =
-      extraRounds * 360 + (360 - (randomSegment * segmentAngle + segmentAngle / 2) - 90);
-
-    const nextAngle = wheelAngle + targetDeg;
-    setWheelAngle(nextAngle);
-
-    const tickDelays = [180, 380, 620, 900, 1250, 1650, 2150, 2750, 3450];
-    tickDelays.forEach((delay, idx) => {
-      setTimeout(() => {
-        audioManager.playGoldTick(idx);
-      }, delay);
-    });
-
-    setTimeout(() => {
+    if (!userId || isGuestMode) {
       setIsWheelSpinning(false);
-      const won = WHEEL_PRIZES[randomSegment];
-      setWonPrize(won);
-      audioManager.playComboAction(8);
-      setWheelResultText(`¡SUMINISTRO ASEGURADO: ${won.text}!`);
+      onOpenAuthModal?.('Debes iniciar sesión para girar la ruleta y recibir suministros del Alto Mando.');
+      setWheelResultText('FALLO // AUTORIZACIÓN MILITAR REQUERIDA');
+      return;
+    }
 
-      if (won.type === 'gold') addGoldReward(won.amount);
-      if (won.type === 'steel') addSteelReward(won.amount);
-      if (won.type === 'energy') setLocalEnergy((e) => Math.min(maxEnergy, e + won.amount));
-    }, 4050);
+    try {
+      const { data, error } = await supabase.rpc('rpc_spin_daily_wheel', {
+        p_user_id: userId,
+      });
+
+      if (error || !data || !(data as any).success) {
+        setIsWheelSpinning(false);
+        const errMsg = error?.message || (data as any)?.error || 'NO AUTORIZADO';
+        setWheelResultText(`RECHAZO // ${errMsg.toUpperCase()}`);
+        return;
+      }
+
+      const res = data as {
+        success: boolean;
+        reward_type: string;
+        reward_amount: number;
+        reward_label: string;
+        wallet_balance?: number;
+      };
+
+      // Mapear segmento del rotor según el tipo de recompensa del servidor
+      let targetIndex = 0;
+      if (res.reward_type === 'credits') {
+        targetIndex = res.reward_amount >= 1200 ? 3 : 0;
+      } else if (res.reward_type === 'gems') {
+        targetIndex = res.reward_amount >= 100 ? 4 : 4;
+      } else if (res.reward_type === 'steel') {
+        targetIndex = res.reward_amount >= 100 ? 5 : 1;
+      }
+
+      const extraRounds = 5;
+      const segmentAngle = 360 / WHEEL_PRIZES.length;
+      const targetDeg =
+        extraRounds * 360 + (360 - (targetIndex * segmentAngle + segmentAngle / 2) - 90);
+
+      const nextAngle = wheelAngle + targetDeg;
+      setWheelAngle(nextAngle);
+
+      const tickDelays = [180, 380, 620, 900, 1250, 1650, 2150, 2750, 3450];
+      tickDelays.forEach((delay, idx) => {
+        setTimeout(() => {
+          audioManager.playGoldTick(idx);
+        }, delay);
+      });
+
+      setTimeout(() => {
+        setIsWheelSpinning(false);
+        const won = WHEEL_PRIZES[targetIndex];
+        setWonPrize(won);
+        audioManager.playComboAction(8);
+        setWheelResultText(`¡SUMINISTRO ASEGURADO: ${res.reward_label.toUpperCase()}!`);
+
+        if (res.reward_type === 'credits') {
+          addGoldReward(res.reward_amount);
+        } else if (res.reward_type === 'steel') {
+          addSteelReward(res.reward_amount);
+        }
+      }, 4050);
+    } catch (err: any) {
+      setIsWheelSpinning(false);
+      setWheelResultText(`FALLO DE ENLACE // ${err?.message?.toUpperCase() || 'ERROR DESCONOCIDO'}`);
+    }
   };
 
   return (
     <div className="h-screen max-h-screen w-full overflow-hidden flex flex-col justify-between bg-[#161712] text-[#F2E8D5] font-sans select-none relative">
-      {/* 1. ZONA SUPERIOR: COMMAND HUD (CAPA 4 NO-DIEGÉTICA) */}
-      <CommandHUD
-        resolvedLevel={resolvedLevel}
+      {/* 1. ZONA SUPERIOR: DUAL RESOURCE HEADER (RECURSOS INDIVIDUALES Y DE FACCIÓN) */}
+      <DualResourceHeader
+        userGold={localGold}
+        userEnergyEc={userEc}
+        maxEnergyEc={8000}
+        userTechScrap={industrialInventory?.techScrap ?? 350}
+        userLevel={resolvedLevel}
         userXp={userXp}
         nextLevelXp={nextLevelXp}
-        resolvedClanTag={resolvedClanTag}
-        arenaName={currentArena.name}
         userTrophies={userTrophies}
-        shieldCharges={shieldCharges}
-        isTournamentMode={isTournamentMode}
-        onToggleTournament={toggleTournament}
-        localGold={localGold}
-        userGems={userGems}
-        localSteel={localSteel}
-        localEnergy={localEnergy}
-        maxEnergy={maxEnergy}
-        energyTimerFormatted={formatTime(energyTimerSeconds)}
-        isAudioMuted={isAudioMuted}
-        onToggleAudio={toggleAudio}
-        isCrtActive={isCrtActive}
-        onToggleCrt={() => setIsCrtActive((prev) => !prev)}
-        isReducedMotion={isReducedMotion}
-        onToggleReducedMotion={() => setIsReducedMotion((prev) => !prev)}
+        activeStreak={streak}
+        clanTag={resolvedClanTag}
+        clanName={resolvedClanName}
+        clanColor={clan?.color ?? '#3B82F6'}
+        clanVaultEc={48500}
+        clanSharedStockCount={14}
+        factionTcpControl={7200}
+        isGuestMode={isGuestMode}
+        onOpenAuthModal={onOpenAuthModal}
         onOpenProfile={onOpenProfile}
-        onNavigate={handleNavigate}
-        activeCommanderId={selectedCOId}
-        onHoverIntent={setHoverIntent}
+        onToggleDrawer={() => setIsParadoxDrawerOpen((prev) => !prev)}
+        isDrawerOpen={isParadoxDrawerOpen}
       />
 
-      {/* 2. ESCENARIO COMPETITIVO PRINCIPAL: THE LIVING COMIC CANVAS + MATRIZ DIEGÉTICA */}
-      <main className="relative flex-1 min-h-0 w-full overflow-y-auto lg:overflow-hidden bg-[#161712] ben-day-dark p-2.5 sm:p-3.5">
-        <div className="max-w-[1600px] mx-auto w-full h-full grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch">
-          {/* ==================================================================
-              CUADRANTE IZQUIERDO/CENTRAL (7/12 ~58%): THE LIVING COMIC CANVAS
-             ================================================================== */}
-          <div className="lg:col-span-7 h-full min-h-[420px] flex flex-col">
-            <CommanderLivingVignette
-              activeCommanderId={selectedCOId}
-              onSelectCommander={handleCommanderChange}
-              commanderBondLevel={commanderBondLevel}
-              hoverIntent={hoverIntent}
-              lastMatchResult={lastMatchResult}
-              streak={streak}
-              streakMultiplier={streakMultiplier}
-              resolvedClanTag={resolvedClanTag}
-              isReducedMotion={isReducedMotion}
-              isCrtActive={isCrtActive}
-              onOpenCommanderDossier={() => {
-                audioManager.playSFX('button_click');
-                setActiveModal('modal-commander-dossier');
-              }}
-              onClaimSupplyGift={() =>
-                openGenericModal(
-                  'DEPÓSITO DE SUMINISTROS DE ALIANZA',
-                  <div className="p-3.5 rounded-[10px_2px_10px_2px] bg-[#161712] border-2 border-[#0A0B08] space-y-3">
-                    <p className="text-xs text-[#F2E8D5] leading-relaxed">
-                      Cargamento logístico recibido del Cuartel General de{' '}
-                      <strong className="text-amber-400">{resolvedClanName}</strong> (
-                      {resolvedClanTag}).
-                    </p>
-                    <button
-                      type="button"
-                      onMouseEnter={() => audioManager.playHoverTick()}
-                      onClick={() => {
-                        audioManager.playComboAction(4);
-                        addSteelReward(50);
-                        setActiveModal(null);
-                      }}
-                      className="tactical-btn-heavy w-full py-2 text-xs"
-                    >
-                      Reclamar Suministro (+50t Acero)
-                    </button>
-                  </div>
-                )
-              }
-              onOpenEncryptedMail={() =>
-                openGenericModal(
-                  'TRANSMISIONES ENCRIPTADAS C4ISR',
-                  <div className="p-3.5 rounded-[10px_2px_10px_2px] bg-[#161712] border-2 border-[#0A0B08] space-y-2">
-                    <p className="text-xs text-[#F2E8D5]">
-                      Frecuencia segura de Estado Mayor activa. Todas las directivas de{' '}
-                      <strong className="text-amber-400">{resolvedClanTag}</strong> y el oficial{' '}
-                      <strong className="text-amber-300">{activeCO.name}</strong> están sincronizadas.
-                    </p>
-                  </div>
-                )
-              }
-            />
-          </div>
+      {/* 2. ESCENARIO COMPETITIVO PRINCIPAL: VISTA DUAL (LIVING COMIC COMMAND HUB vs TEATRO SOBERANO MAPA MUNDIAL) */}
+      <main className="relative flex-1 min-h-0 w-full overflow-y-auto lg:overflow-hidden bg-[#161712] ben-day-dark">
+        {isWorldMapExpanded ? (
+          /* ==================================================================
+             MODO SOBERANÍA TERRITORIAL EXPANDIDO: WORLD MAP CANVAS + METAMANDO
+             ================================================================== */
+          <div className="absolute inset-0 w-full h-full z-0 overflow-hidden">
+            {mapRenderer === 'webgl' ? (
+              <TacticalWorldMap
+                className="w-full h-full"
+                activeProvinceId={selectedProvince?.id}
+                onSelectProvince={(provId) => {
+                  setSelectedProvinceId(provId);
+                  setIsMetaConsoleOpen(true);
+                  if (provId.startsWith('BUF_')) {
+                    setBarkWidgetMessage({
+                      id: `buf_${Date.now()}`,
+                      text: 'SECTOR FUERA DEL TEATRO OPERACIONAL DE FASE 1 (ACTIVO: REPÚBLICA DE VENEZUELA)',
+                      balloonType: 'panic',
+                      stamp: 'ZONA RESTRINGIDA',
+                      durationMs: 5000,
+                    });
+                  } else {
+                    const prov = provinces.find((p) => p.id === provId);
+                    setBarkWidgetMessage({
+                      id: `sel_${Date.now()}`,
+                      text: `Fijando telemetría en ${prov?.name || provId}. Búnker y defensas en pantalla.`,
+                      balloonType: 'radio',
+                      stamp: 'SECTOR FIJADO',
+                      durationMs: 4500,
+                    });
+                  }
+                }}
+                userClanId={clan?.id ?? 'clan-ferro'}
+              />
+            ) : (
+              <WorldMapCanvas
+                className="w-full h-full"
+                activeProvinceId={selectedProvince?.id}
+                onSelectProvince={(provId) => {
+                  setSelectedProvinceId(provId);
+                  setIsMetaConsoleOpen(true);
+                  if (provId.startsWith('BUF_')) {
+                    setBarkWidgetMessage({
+                      id: `buf_${Date.now()}`,
+                      text: 'SECTOR FUERA DEL TEATRO OPERACIONAL DE FASE 1 (ACTIVO: REPÚBLICA DE VENEZUELA)',
+                      balloonType: 'panic',
+                      stamp: 'ZONA RESTRINGIDA',
+                      durationMs: 5000,
+                    });
+                  } else {
+                    const prov = provinces.find((p) => p.id === provId);
+                    setBarkWidgetMessage({
+                      id: `sel_${Date.now()}`,
+                      text: `Fijando telemetría en ${prov?.name || provId}. Búnker y defensas en pantalla.`,
+                      balloonType: 'radio',
+                      stamp: 'SECTOR FIJADO',
+                      durationMs: 4500,
+                    });
+                  }
+                }}
+                onJoinActiveBattle={(provId) => handleDeploy('blitz_skirmish')}
+                userClanId={clan?.id ?? 'clan-ferro'}
+              />
+            )}
 
-          {/* ==================================================================
-              CUADRANTE DERECHO (5/12 ~42%): MATRIZ DE NAVEGACIÓN DIEGÉTICA
-             ================================================================== */}
-          <aside
-            aria-label="Terminales Operativas de Mando"
-            className="lg:col-span-5 h-full flex flex-col justify-between gap-2.5 overflow-y-auto pr-0.5"
-          >
-            {/* BLOQUE 1: TERMINAL TITÁN DE DESPLIEGUE INMEDIATO A COMBATE */}
-            <div
-              onMouseEnter={() => setHoverIntent('hover_deploy')}
-              onMouseLeave={() => setHoverIntent(null)}
-              className="tactical-comic-card p-3 sm:p-3.5 bg-[#2B2C24] border-3 border-[#0A0B08] shadow-[6px_6px_0px_#0A0B08] flex flex-col gap-2.5 relative overflow-hidden shrink-0"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-[4px_1px_4px_1px] bg-[#E65100] text-[#F2E8D5] font-display font-extrabold text-[10px] uppercase border border-[#0A0B08]">
-                    DEFCON-1 // FRENTE ACTIVO
-                  </span>
-                  <span className="text-[11px] font-mono font-extrabold text-amber-400 tabular-nums">
-                    {currentArena.name.toUpperCase()} ({userTrophies} 🏆)
-                  </span>
-                </div>
-
+            {/* C4ISR THEATER STRIP (BARRA DIEGÉTICA SUPERIOR FLOTANTE DEL MAPA) */}
+            <div className="absolute top-2.5 left-3 right-3 z-20 pointer-events-none flex items-center justify-between gap-2">
+              <div className="pointer-events-auto flex items-center gap-2 px-3 py-1.5 bg-[#2B2C24]/90 backdrop-blur border-2 border-[#0A0B08] rounded-[6px_2px_6px_2px] shadow-[4px_4px_0px_#0A0B08]">
                 <button
                   type="button"
                   onMouseEnter={() => audioManager.playHoverTick()}
-                  onClick={() => setActiveModal('modal-radar-map')}
-                  className="px-2 py-0.5 rounded-[6px_2px_6px_2px] bg-[#161712] border border-[#00FF66]/60 text-[10px] font-mono font-extrabold text-[#00FF66] flex items-center gap-1 cursor-pointer hover:bg-[#1F201A]"
-                  title="Inspeccionar Radar Polar de Sectores"
+                  onClick={() => {
+                    audioManager.playCue('ui_cancel_rollback');
+                    setIsWorldMapExpanded(false);
+                  }}
+                  className="px-2.5 py-1 bg-[#46521F] hover:bg-[#586827] text-amber-300 border border-[#0A0B08] font-mono font-bold text-xs uppercase rounded flex items-center gap-1 shadow cursor-pointer"
                 >
-                  <Radar className="w-3 h-3" />
-                  <span>RADAR</span>
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>VOLVER AL MANDO [ESC]</span>
+                </button>
+                <span className="text-xs font-mono text-amber-300 font-bold hidden sm:inline ml-1">
+                  MAPA TERRITORIAL GLOBAL • SOBERANÍA Y CAPITALES
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMapRenderer((prev) => (prev === 'webgl' ? 'canvas2d' : 'webgl'));
+                    audioManager.playSFX('button_click');
+                  }}
+                  className="px-2 py-0.5 bg-[#161712] hover:bg-[#23241C] text-emerald-400 border border-[#46521F] font-mono font-bold text-[10px] uppercase rounded ml-2 cursor-pointer shadow"
+                >
+                  {mapRenderer === 'webgl' ? '⚡ WEBGL 2.0 (MAPLIBRE)' : '🎨 CANVAS 2D'}
                 </button>
               </div>
 
-              {/* Botón Titán Principal con Squash & Stretch */}
-              <button
-                type="button"
-                onMouseEnter={() => {
-                  audioManager.playHoverTick();
-                  setHoverIntent('hover_deploy');
-                }}
-                onClick={() => {
-                  audioManager.playSFX('button_click');
-                  setActiveModal('modal-battle-hq');
-                }}
-                className="tactical-btn-heavy w-full px-4 py-3 flex items-center justify-between gap-3 group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-[10px_3px_10px_3px] bg-[#161712] border-2 border-[#0A0B08] flex items-center justify-center shrink-0 group-hover:rotate-12 transition-transform shadow-[3px_3px_0px_#0A0B08]">
-                    <Swords className="w-6 h-6 text-amber-300" />
-                  </div>
-                  <div className="text-left">
-                    <div className="text-base sm:text-xl font-display font-black uppercase tracking-wider text-[#F2E8D5] leading-none">
-                      ¡DESPLEGAR A COMBATE!
-                    </div>
-                    <div className="text-[10px] font-mono font-bold text-[#F2E8D5]/90 uppercase tracking-widest mt-1">
-                      COMANDANTE ACTIVO: {activeCO.name.toUpperCase()} •{' '}
-                      {isTournamentMode ? 'CAP SIMÉTRICO N11' : 'LADDER ASIMÉTRICO'}
-                    </div>
-                  </div>
-                </div>
-
-                <span className="px-2 py-1 rounded-[6px_2px_6px_2px] bg-[#0A0B08] text-amber-300 text-[10px] font-mono font-extrabold shrink-0">
-                  [SPACE]
-                </span>
-              </button>
-
-              {/* Selector Rápido de Modalidades de Combate Real (1 Clic) */}
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="pointer-events-auto flex items-center gap-1.5">
                 <button
                   type="button"
                   onMouseEnter={() => audioManager.playHoverTick()}
-                  onClick={() => handleDeploy('mirror_duel')}
-                  className="tactical-juice-btn px-2 py-1.5 bg-[#161712] hover:bg-[#1F201A] border-2 border-[#E65100] text-left flex flex-col justify-between"
-                  title="Entrar directo a Duelo Espejo 1v1 Simétrico (15s)"
-                >
-                  <span className="text-[9px] font-mono font-extrabold text-[#E65100] uppercase">
-                    1V1 ESPEJO • 15S
-                  </span>
-                  <span className="font-display font-extrabold text-xs text-[#F2E8D5] uppercase">
-                    ⚔️ Duelo Justo
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onMouseEnter={() => {
-                    audioManager.playHoverTick();
-                    setHoverIntent('hover_blitz');
+                  onClick={() => {
+                    audioManager.playSFX('button_click');
+                    setActiveModal('modal-battle-hq');
                   }}
-                  onClick={() => handleDeploy('blitz_skirmish')}
-                  className="tactical-juice-btn px-2 py-1.5 bg-[#46521F] hover:bg-[#586827] border-2 border-[#0A0B08] text-left flex flex-col justify-between"
-                  title="Despliegue Inmediato a Escaramuza Blitz 30s [Atajo F]"
+                  className="px-3 py-1.5 bg-[#E65100] hover:bg-amber-400 text-black border-2 border-[#0A0B08] text-xs font-display font-black uppercase rounded shadow-[3px_3px_0px_#0A0B08] cursor-pointer flex items-center gap-1.5 transition-transform active:translate-y-0.5"
                 >
-                  <span className="text-[9px] font-mono font-extrabold text-amber-300 uppercase flex items-center justify-between">
-                    <span>BLITZ 2.0X</span>
-                    <span>[F]</span>
-                  </span>
-                  <span className="font-display font-extrabold text-xs text-[#F2E8D5] uppercase flex items-center gap-1">
-                    <Zap className="w-3 h-3 text-amber-300 shrink-0" />
-                    <span>Blitz 30s</span>
-                  </span>
+                  <Swords className="w-3.5 h-3.5" />
+                  <span>¡COMBATE INMEDIATO!</span>
                 </button>
 
                 <button
                   type="button"
                   onMouseEnter={() => audioManager.playHoverTick()}
-                  onClick={() => handleDeploy('grand_campaign')}
-                  className="tactical-juice-btn px-2 py-1.5 bg-[#161712] hover:bg-[#1F201A] border-2 border-[#1D4ED8] text-left flex flex-col justify-between"
-                  title="Iniciar Gran Campaña Táctica con Niebla de Guerra (60s)"
+                  onClick={() => {
+                    audioManager.playSFX('button_click');
+                    setIsHangarModalOpen(true);
+                  }}
+                  className="px-2.5 py-1.5 bg-[#161712]/90 hover:bg-[#2B2C24] text-amber-300 border-2 border-[#0A0B08] text-xs font-mono font-bold uppercase rounded shadow-[3px_3px_0px_#0A0B08] cursor-pointer flex items-center gap-1"
                 >
-                  <span className="text-[9px] font-mono font-extrabold text-sky-400 uppercase">
-                    GUERRA TOTAL • 60S
-                  </span>
-                  <span className="font-display font-extrabold text-xs text-[#F2E8D5] uppercase">
-                    🎖️ Campaña
-                  </span>
+                  <Palette className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline">Hangar</span>
+                </button>
+
+                <button
+                  type="button"
+                  onMouseEnter={() => audioManager.playHoverTick()}
+                  onClick={() => {
+                    audioManager.playSFX('button_click');
+                    handleNavigate('marketplace');
+                  }}
+                  className="px-2.5 py-1.5 bg-[#161712]/90 hover:bg-[#2B2C24] text-amber-300 border-2 border-[#0A0B08] text-xs font-mono font-bold uppercase rounded shadow-[3px_3px_0px_#0A0B08] cursor-pointer flex items-center gap-1"
+                >
+                  <Scale className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline">Bolsa P2P</span>
+                </button>
+
+                <button
+                  type="button"
+                  onMouseEnter={() => audioManager.playHoverTick()}
+                  onClick={() => {
+                    audioManager.playSFX('button_click');
+                    setIsMetaConsoleOpen((prev) => !prev);
+                  }}
+                  className={`px-3 py-1.5 border-2 border-[#0A0B08] text-xs font-display font-black uppercase rounded shadow-[3px_3px_0px_#0A0B08] cursor-pointer flex items-center gap-1.5 transition-colors ${
+                    isMetaConsoleOpen
+                      ? 'bg-amber-400 text-black'
+                      : 'bg-[#2B2C24] text-[#F2E8D5] hover:bg-[#3A3B30]'
+                  }`}
+                >
+                  <Crosshair className="w-3.5 h-3.5" />
+                  <span>{isMetaConsoleOpen ? 'PLEGAR CONSOLA' : 'METAMANDO'}</span>
                 </button>
               </div>
             </div>
 
-            {/* BLOQUE 2: MATRIZ DE 6 TERMINALES OPERATIVAS REALES */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 flex-1">
-              {/* 1. HANGAR DE TROPAS / ARMERÍA (user_cards) */}
-              <button
-                type="button"
-                onMouseEnter={() => {
-                  audioManager.playHoverTick();
-                  setHoverIntent('hover_armory');
-                }}
-                onMouseLeave={() => setHoverIntent(null)}
-                onClick={() => handleNavigate('armory')}
-                className="tactical-comic-card-interactive p-3 bg-[#2B2C24] border-2 border-[#0A0B08] hover:border-sky-400 text-left flex flex-col justify-between"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="w-8 h-8 rounded-[8px_2px_8px_2px] bg-[#161712] border border-sky-400/60 flex items-center justify-center text-sky-400">
-                    <Palette className="w-4 h-4" />
-                  </div>
-                  <span className="px-1.5 py-0.5 rounded bg-[#161712] border border-[#7B8A4A]/60 text-[10px] font-mono font-extrabold text-sky-300">
-                    [3] MAZO {activeDeckCount}/10
-                  </span>
-                </div>
-                <div className="mt-2">
-                  <h3 className="font-display font-extrabold text-sm text-[#F2E8D5] uppercase tracking-wider">
-                    Hangar & Armería
-                  </h3>
-                  <p className="text-[11px] text-[#A9B87A] font-sans leading-tight mt-0.5">
-                    Mazo Táctico de 10 Cartas y camuflaje de unidades.
-                  </p>
-                </div>
-              </button>
+            {/* VIÑETA DIEGÉTICA FLOTANTE DEL COMANDANTE (CUADRANTE INFERIOR IZQUIERDO DEL MAPA) */}
+            <div className="absolute left-3 bottom-3 z-30 pointer-events-auto">
+              <AnimatePresence mode="wait">
+                {isVignetteCollapsed ? (
+                  <motion.button
+                    key="vignette-pill"
+                    initial={{ opacity: 0, x: -30, scale: 0.9 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: -30, scale: 0.9 }}
+                    transition={{ duration: 0.2 }}
+                    onClick={() => {
+                      audioManager.playSFX('button_click');
+                      setIsVignetteCollapsed(false);
+                    }}
+                    className="tactical-comic-card p-2 bg-[#2B2C24]/95 border-2 border-[#0A0B08] shadow-[4px_4px_0px_#0A0B08] flex items-center gap-2.5 cursor-pointer hover:bg-[#3A3B30] text-[#F2E8D5]"
+                    title="Desplegar Viñeta del Comandante"
+                  >
+                    <div className="w-9 h-9 rounded-[6px_2px_6px_2px] bg-[#161712] border border-amber-400 flex items-center justify-center font-display font-black text-amber-300 uppercase">
+                      {activeCO.name[0]}
+                    </div>
+                    <div className="text-left font-mono text-xs">
+                      <div className="font-extrabold text-amber-300 uppercase flex items-center gap-1.5">
+                        <span>{activeCO.name}</span>
+                        <span className="text-[10px] px-1 rounded bg-[#E65100] text-black">
+                          BOND {commanderBondLevel}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-[#A2A790] truncate max-w-[180px]">
+                        {resolvedClanTag} • C4ISR Activo
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-amber-400 ml-1" />
+                  </motion.button>
+                ) : (
+                  <motion.div
+                    key="vignette-full"
+                    initial={{ opacity: 0, x: -40, scale: 0.95 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: -40, scale: 0.95 }}
+                    transition={{ type: 'spring', stiffness: 380, damping: 26 }}
+                    className="w-[340px] sm:w-[380px] lg:w-[420px] max-h-[calc(100vh-140px)] flex flex-col"
+                  >
+                    <div className="flex items-center justify-between pb-1 px-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="text-[10px] font-mono text-[#F2E8D5] uppercase font-bold tracking-widest">
+                          OFICIAL AL MANDO // {activeCO.name}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          audioManager.playHoverTick();
+                          setIsVignetteCollapsed(true);
+                        }}
+                        className="px-2 py-0.5 rounded bg-[#2B2C24] hover:bg-[#E65100] hover:text-black text-[#F2E8D5] border border-[#0A0B08] font-mono text-[9px] uppercase font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-[2px_2px_0px_#0A0B08]"
+                      >
+                        <span>OCULTAR VIÑETA</span>
+                        <ChevronLeft className="w-3 h-3" />
+                      </button>
+                    </div>
 
-              {/* 2. CUARTEL DE OFICIALES / WAR ROOM (commanders_catalog / user_commanders) */}
-              <button
-                type="button"
-                onMouseEnter={() => {
-                  audioManager.playHoverTick();
-                  setHoverIntent('hover_war_room');
+                    <div className="flex-1 min-h-[380px] max-h-[560px] overflow-hidden rounded-[10px_2px_10px_2px] border-2 border-[#0A0B08] shadow-[6px_6px_0px_#0A0B08]">
+                      <CommanderLivingVignette
+                        activeCommanderId={selectedCOId}
+                        onSelectCommander={handleCommanderChange}
+                        commanderBondLevel={commanderBondLevel}
+                        hoverIntent={hoverIntent}
+                        lastMatchResult={lastMatchResult}
+                        streak={streak}
+                        streakMultiplier={streakMultiplier}
+                        resolvedClanTag={resolvedClanTag}
+                        isReducedMotion={isReducedMotion}
+                        isCrtActive={isCrtActive}
+                        onOpenCommanderDossier={() => {
+                          audioManager.playSFX('button_click');
+                          setActiveModal('modal-commander-dossier');
+                        }}
+                        onClaimSupplyGift={() => {
+                          openGenericModal(
+                            'DEPÓSITO DE SUMINISTROS DE ALIANZA',
+                            <div className="p-3.5 rounded-[10px_2px_10px_2px] bg-[#161712] border-2 border-[#0A0B08] space-y-3">
+                              <p className="text-xs text-[#F2E8D5] leading-relaxed">
+                                Cargamento logístico recibido del Cuartel General de{' '}
+                                <strong className="text-amber-400">{resolvedClanName}</strong> (
+                                {resolvedClanTag}).
+                              </p>
+                              <button
+                                type="button"
+                                onMouseEnter={() => audioManager.playHoverTick()}
+                                onClick={() => {
+                                  audioManager.playComboAction(4);
+                                  addSteelReward(50);
+                                  setActiveModal(null);
+                                }}
+                                className="tactical-btn-heavy w-full py-2 text-xs"
+                              >
+                                Reclamar Suministro (+50t Acero)
+                              </button>
+                            </div>
+                          );
+                        }}
+                        onOpenEncryptedMail={() => {
+                          openGenericModal(
+                            'TRANSMISIONES ENCRIPTADAS C4ISR',
+                            <div className="p-3.5 rounded-[10px_2px_10px_2px] bg-[#161712] border-2 border-[#0A0B08] space-y-2">
+                              <p className="text-xs text-[#F2E8D5]">
+                                Frecuencia segura de Estado Mayor activa. Todas las directivas de{' '}
+                                <strong className="text-amber-400">{resolvedClanTag}</strong> y el oficial{' '}
+                                <strong className="text-amber-300">{activeCO.name}</strong> están sincronizadas.
+                              </p>
+                            </div>
+                          );
+                        }}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* CONSOLA LATERAL DESPLEGABLE DE METAMANDO (BORDE DERECHO) */}
+            <div className="absolute right-0 top-0 bottom-0 pointer-events-auto z-30 flex items-stretch">
+              <MetaCommandConsole
+                isOpen={isMetaConsoleOpen}
+                onToggleOpen={() => setIsMetaConsoleOpen((prev) => !prev)}
+                isGuestMode={isGuestMode}
+                onOpenAuthModal={onOpenAuthModal}
+                selectedProvince={selectedProvince}
+                provinceNodes={selectedProvinceNodes}
+                controlState={selectedProvinceControl}
+                adjacencies={adjacencies}
+                userClanId={clan?.id ?? 'clan-ferro'}
+                userClanTag={resolvedClanTag}
+                userEc={userEc}
+                userSteel={localSteel}
+                ticker={territoryTicker}
+                onDeclareAttack={async (targetProvinceId) => {
+                  if (!selectedProvince) return;
+                  const res = await declareAttack(
+                    selectedProvince.id,
+                    targetProvinceId,
+                    clan?.id ?? 'clan-ferro'
+                  );
+                  if (res.success) {
+                    audioManager.playComboAction(8);
+                    syncTerritoryData();
+                  } else {
+                    audioManager.playSFX('button_click');
+                  }
+                  return res;
                 }}
-                onMouseLeave={() => setHoverIntent(null)}
-                onClick={() => {
+                onJoinActiveBattle={(provId) => handleDeploy('blitz_skirmish', provId)}
+                onOpenFullHangar={() => setIsHangarModalOpen(true)}
+                onRebalanceGarrison={(targetLevel) => {
+                  const upkeep = targetLevel * 150;
+                  setUserEc((prev) => Math.max(0, prev - upkeep));
+                }}
+              />
+            </div>
+          </div>
+        ) : (
+          /* ==================================================================
+             MODO CENTRAL DE MANDO ESTÁNDAR: THE LIVING COMIC CANVAS (CANÓNICO)
+             ================================================================== */
+          <div className="max-w-[1600px] mx-auto w-full h-full grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch p-2.5 sm:p-3.5">
+            {/* CUADRANTE IZQUIERDO/CENTRAL (7/12 ~58%): THE LIVING COMIC CANVAS */}
+            <div className="lg:col-span-7 h-full min-h-[420px] flex flex-col">
+              <CommanderLivingVignette
+                activeCommanderId={selectedCOId}
+                onSelectCommander={handleCommanderChange}
+                commanderBondLevel={commanderBondLevel}
+                hoverIntent={hoverIntent}
+                lastMatchResult={lastMatchResult}
+                streak={streak}
+                streakMultiplier={streakMultiplier}
+                resolvedClanTag={resolvedClanTag}
+                isReducedMotion={isReducedMotion}
+                isCrtActive={isCrtActive}
+                onOpenCommanderDossier={() => {
                   audioManager.playSFX('button_click');
                   setActiveModal('modal-commander-dossier');
                 }}
-                className="tactical-comic-card-interactive p-3 bg-[#2B2C24] border-2 border-[#0A0B08] hover:border-amber-400 text-left flex flex-col justify-between"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="w-8 h-8 rounded-[8px_2px_8px_2px] bg-[#161712] border border-amber-400/60 flex items-center justify-center text-amber-400">
-                    <Users className="w-4 h-4" />
-                  </div>
-                  <span className="px-1.5 py-0.5 rounded bg-[#161712] border border-[#7B8A4A]/60 text-[10px] font-mono font-extrabold text-amber-300">
-                    [C] 28 OFICIALES
-                  </span>
-                </div>
-                <div className="mt-2">
-                  <h3 className="font-display font-extrabold text-sm text-[#F2E8D5] uppercase tracking-wider">
-                    Cuartel de Oficiales
-                  </h3>
-                  <p className="text-[11px] text-[#A9B87A] font-sans leading-tight mt-0.5">
-                    Dossier D2D, COP/SCOP y Vínculo Nv.{commanderBondLevel}/10.
-                  </p>
-                </div>
-              </button>
-
-              {/* 3. COMPLEJO INDUSTRIAL & SILOS (user_industrial_inventory) */}
-              <div
-                onMouseEnter={() => {
-                  audioManager.playHoverTick();
-                  setHoverIntent('hover_industry');
-                }}
-                onMouseLeave={() => setHoverIntent(null)}
-                onClick={() => handleNavigate('industry')}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleNavigate('industry');
-                  }
-                }}
-                className="tactical-comic-card-interactive p-3 bg-[#2B2C24] border-2 border-[#0A0B08] hover:border-[#C46A3A] text-left flex flex-col justify-between"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="w-8 h-8 rounded-[8px_2px_8px_2px] bg-[#161712] border border-[#C46A3A]/60 flex items-center justify-center text-[#C46A3A]">
-                    <Factory className="w-4 h-4" />
-                  </div>
-                  {pendingSiloSteel > 0 ? (
-                    <button
-                      type="button"
-                      onClick={handleCollectSiloSteel}
-                      className="px-2 py-0.5 rounded bg-amber-400 text-[#0A0B08] border border-[#0A0B08] text-[10px] font-mono font-extrabold uppercase animate-pulse cursor-pointer"
-                      title="Extraer producción acumulada de los silos"
-                    >
-                      ¡COSECHAR +{pendingSiloSteel}t!
-                    </button>
-                  ) : (
-                    <span className="px-1.5 py-0.5 rounded bg-[#161712] border border-[#7B8A4A]/60 text-[10px] font-mono font-extrabold text-[#A9B87A]">
-                      [2] RESERVA {localSteel}t
-                    </span>
-                  )}
-                </div>
-                <div className="mt-2">
-                  <h3 className="font-display font-extrabold text-sm text-[#F2E8D5] uppercase tracking-wider">
-                    Complejo Industrial
-                  </h3>
-                  <p className="text-[11px] text-[#A9B87A] font-sans leading-tight mt-0.5">
-                    Refinería de acero, silicio y extracción de silos ({elapsedSiloHours}h).
-                  </p>
-                </div>
-              </div>
-
-              {/* 4. INTENDENCIA MILITAR & BOLSA P2P (user_cosmetics / store_products_catalog) */}
-              <div
-                onMouseEnter={() => {
-                  audioManager.playHoverTick();
-                  setHoverIntent('hover_shop');
-                }}
-                onMouseLeave={() => setHoverIntent(null)}
-                onClick={() => handleNavigate('shop')}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleNavigate('shop');
-                  }
-                }}
-                className="tactical-comic-card-interactive p-3 bg-[#2B2C24] border-2 border-[#0A0B08] hover:border-purple-400 text-left flex flex-col justify-between"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="w-8 h-8 rounded-[8px_2px_8px_2px] bg-[#161712] border border-purple-400/60 flex items-center justify-center text-purple-400">
-                    <ShoppingBag className="w-4 h-4" />
-                  </div>
-                  <button
-                    type="button"
-                    onMouseEnter={(e) => {
-                      e.stopPropagation();
-                      setHoverIntent('hover_marketplace');
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleNavigate('marketplace');
-                    }}
-                    className="px-2 py-0.5 rounded bg-[#161712] hover:border-amber-400 border border-[#7B8A4A] text-[10px] font-mono font-extrabold text-amber-300 flex items-center gap-1 cursor-pointer"
-                    title="Abrir Bolsa Negra P2P [Tecla 4]"
-                  >
-                    <Scale className="w-3 h-3" />
-                    <span>[4] BOLSA P2P</span>
-                  </button>
-                </div>
-                <div className="mt-2">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-display font-extrabold text-sm text-[#F2E8D5] uppercase tracking-wider">
-                      Intendencia [1]
-                    </h3>
-                    <span className="text-[10px] font-mono font-extrabold text-[#C46A3A] tabular-nums">
-                      {formatTime(offerTimerSeconds)}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-[#A9B87A] font-sans leading-tight mt-0.5">
-                    Skins cosméticas, suministros y comercio P2P.
-                  </p>
-                </div>
-              </div>
-
-              {/* 5. CENTRO DE CLANES / CORPORACIÓN (clans / clan_members) */}
-              <button
-                type="button"
-                onMouseEnter={() => {
-                  audioManager.playHoverTick();
-                  setHoverIntent('hover_clans');
-                }}
-                onMouseLeave={() => setHoverIntent(null)}
-                onClick={() => handleNavigate('clans')}
-                className="tactical-comic-card-interactive p-3 bg-[#2B2C24] border-2 border-[#0A0B08] hover:border-emerald-400 text-left flex flex-col justify-between"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="w-8 h-8 rounded-[8px_2px_8px_2px] bg-[#161712] border border-emerald-400/60 flex items-center justify-center text-emerald-400">
-                    <Shield className="w-4 h-4" />
-                  </div>
-                  <span className="px-1.5 py-0.5 rounded bg-[#46521F] border border-[#0A0B08] text-[10px] font-mono font-extrabold text-[#F2E8D5]">
-                    [5] {resolvedClanTag}
-                  </span>
-                </div>
-                <div className="mt-2">
-                  <h3 className="font-display font-extrabold text-sm text-[#F2E8D5] uppercase tracking-wider truncate">
-                    {resolvedClanName}
-                  </h3>
-                  <p className="text-[11px] text-[#A9B87A] font-sans leading-tight mt-0.5">
-                    Alianza militar, donaciones y Salvaguarda ({shieldCharges}/3).
-                  </p>
-                </div>
-              </button>
-
-              {/* 6. PERFIL MILITAR & RÉCORDS (profiles) */}
-              <button
-                type="button"
-                onMouseEnter={() => {
-                  audioManager.playHoverTick();
-                  setHoverIntent('hover_profile');
-                }}
-                onMouseLeave={() => setHoverIntent(null)}
-                onClick={() => {
-                  audioManager.playSFX('button_click');
-                  onOpenProfile?.();
-                }}
-                className="tactical-comic-card-interactive p-3 bg-[#2B2C24] border-2 border-[#0A0B08] hover:border-amber-400 text-left flex flex-col justify-between"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="w-8 h-8 rounded-[8px_2px_8px_2px] bg-[#161712] border border-amber-400/60 flex items-center justify-center text-amber-400">
-                    <Trophy className="w-4 h-4" />
-                  </div>
-                  <span className="px-1.5 py-0.5 rounded bg-[#161712] border border-[#7B8A4A]/60 text-[10px] font-mono font-extrabold text-amber-300 tabular-nums">
-                    [P] {userTrophies} 🏆
-                  </span>
-                </div>
-                <div className="mt-2">
-                  <h3 className="font-display font-extrabold text-sm text-[#F2E8D5] uppercase tracking-wider">
-                    Expediente & Récords
-                  </h3>
-                  <p className="text-[11px] text-[#A9B87A] font-sans leading-tight mt-0.5">
-                    Hoja de servicio, medallas fijas y rango competitivo.
-                  </p>
-                </div>
-              </button>
-            </div>
-
-            {/* BLOQUE 3: OPERACIONES DIARIAS, DOSSIER DE MISIÓN Y ROTOR C4ISR */}
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 shrink-0">
-              {/* Dossier de Misión en Papel Crema */}
-              <div
-                role="button"
-                tabIndex={0}
-                onMouseEnter={() => audioManager.playHoverTick()}
-                onClick={() =>
+                onClaimSupplyGift={() =>
                   openGenericModal(
-                    'DOSSIER TÁCTICO // DEFENSA COSTERA',
-                    <div className="tactical-dossier-card p-3.5 space-y-3">
-                      <h4 className="font-display font-extrabold text-xs text-[#0A0B08] uppercase">
-                        Sector Alpha // Baterías Costeras
-                      </h4>
-                      <p className="text-xs text-[#2B2C24] font-bold">
-                        Completa 2 escaramuzas mecanizadas con {activeCO.name} para asegurar la bahía.
+                    'DEPÓSITO DE SUMINISTROS DE ALIANZA',
+                    <div className="p-3.5 rounded-[10px_2px_10px_2px] bg-[#161712] border-2 border-[#0A0B08] space-y-3">
+                      <p className="text-xs text-[#F2E8D5] leading-relaxed">
+                        Cargamento logístico recibido del Cuartel General de{' '}
+                        <strong className="text-amber-400">{resolvedClanName}</strong> ({resolvedClanTag}).
                       </p>
-                      <div className="pt-2 flex items-center justify-between border-t border-[#0A0B08]/20">
-                        <span className="text-xs font-mono font-extrabold text-[#0A0B08]">
-                          Progreso: 1/2
-                        </span>
-                        <button
-                          type="button"
-                          onMouseEnter={() => audioManager.playHoverTick()}
-                          onClick={() => {
-                            audioManager.playComboAction(5);
-                            addGoldReward(500);
-                            setActiveModal(null);
-                          }}
-                          className="tactical-btn-heavy px-4 py-1.5 text-xs"
-                        >
-                          Reclamar Botín (+500G)
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onMouseEnter={() => audioManager.playHoverTick()}
+                        onClick={() => {
+                          audioManager.playComboAction(4);
+                          addSteelReward(50);
+                          setActiveModal(null);
+                        }}
+                        className="tactical-btn-heavy w-full py-2 text-xs"
+                      >
+                        Reclamar Suministro (+50t Acero)
+                      </button>
                     </div>
                   )
                 }
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                  }
-                }}
-                className="sm:col-span-6 tactical-dossier-card p-2.5 cursor-pointer flex flex-col justify-between"
-              >
-                <div className="flex items-center justify-between gap-1.5 mb-1">
-                  <span className="font-display font-extrabold text-xs uppercase tracking-wider text-[#0A0B08] flex items-center gap-1">
-                    <Crosshair className="w-3.5 h-3.5 text-[#C46A3A] shrink-0" />
-                    <span>Misión: Sector Alpha</span>
-                  </span>
-                  <span className="px-1.5 py-0.5 rounded bg-[#0A0B08] text-amber-300 font-mono font-extrabold text-[10px]">
-                    +500G
-                  </span>
-                </div>
-                <TacticalGhostBar
-                  value={1}
-                  max={2}
-                  heightClassName="h-2.5"
-                  fillClassName="bg-[#C46A3A]"
-                  ghostClassName="bg-amber-300"
-                  label="ESCARAMUZAS 1/2"
-                />
-              </div>
+                onOpenEncryptedMail={() =>
+                  openGenericModal(
+                    'TRANSMISIONES ENCRIPTADAS C4ISR',
+                    <div className="p-3.5 rounded-[10px_2px_10px_2px] bg-[#161712] border-2 border-[#0A0B08] space-y-2">
+                      <p className="text-xs text-[#F2E8D5]">
+                        Frecuencia segura de Estado Mayor activa. Todas las directivas de{' '}
+                        <strong className="text-amber-400">{resolvedClanTag}</strong> y el oficial{' '}
+                        <strong className="text-amber-300">{activeCO.name}</strong> están sincronizadas.
+                      </p>
+                    </div>
+                  )
+                }
+              />
+            </div>
 
-              {/* Botones Compactos: Rotor [R], Órdenes Diarias y Condecoraciones */}
-              <div className="sm:col-span-6 flex flex-col gap-1.5">
+            {/* CUADRANTE DERECHO (5/12 ~42%): MATRIZ DE NAVEGACIÓN DIEGÉTICA & DESPLIEGUE */}
+            <aside
+              aria-label="Terminales Operativas de Mando"
+              className="lg:col-span-5 h-full flex flex-col justify-between gap-2.5 overflow-y-auto pr-0.5"
+            >
+              {/* BLOQUE 1: TERMINAL TITÁN DE DESPLIEGUE INMEDIATO A COMBATE */}
+              <div
+                onMouseEnter={() => setHoverIntent('hover_deploy')}
+                onMouseLeave={() => setHoverIntent(null)}
+                className="tactical-comic-card p-3 sm:p-3.5 bg-[#2B2C24] border-3 border-[#0A0B08] shadow-[6px_6px_0px_#0A0B08] flex flex-col gap-2.5 relative overflow-hidden shrink-0"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-[4px_1px_4px_1px] bg-[#E65100] text-[#F2E8D5] font-display font-extrabold text-[10px] uppercase border border-[#0A0B08]">
+                      DEFCON-1 // FRENTE ACTIVO
+                    </span>
+                    <span className="text-[11px] font-mono font-extrabold text-amber-400 tabular-nums">
+                      {currentArena.name.toUpperCase()} ({userTrophies} 🏆)
+                    </span>
+                  </div>
+
+                  {/* Botón Switch a Teatro Soberano Mapa Mundial */}
+                  <button
+                    type="button"
+                    onMouseEnter={() => audioManager.playHoverTick()}
+                    onClick={() => {
+                      audioManager.playDeployHorn();
+                      setIsWorldMapExpanded(true);
+                    }}
+                    className="px-2.5 py-0.5 rounded-[6px_2px_6px_2px] bg-[#161712] border-2 border-amber-400 text-[10px] font-mono font-extrabold text-amber-300 flex items-center gap-1.5 cursor-pointer hover:bg-amber-400 hover:text-black transition-colors shadow-[2px_2px_0px_#0A0B08]"
+                    title="Abrir Teatro Soberano Global (Victoria 3 × Wplace) [M]"
+                  >
+                    <Globe className="w-3.5 h-3.5" />
+                    <span>MAPA MUNDIAL [M]</span>
+                  </button>
+                </div>
+
+                {/* Botón Titán Principal: ¡DESPLEGAR A COMBATE! */}
                 <button
                   type="button"
                   onMouseEnter={() => {
                     audioManager.playHoverTick();
-                    setHoverIntent('hover_rotor');
+                    setHoverIntent('hover_deploy');
+                  }}
+                  onClick={() => {
+                    audioManager.playSFX('button_click');
+                    setActiveModal('modal-battle-hq');
+                  }}
+                  className="tactical-btn-heavy w-full px-4 py-3 flex items-center justify-between gap-3 group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-[10px_3px_10px_3px] bg-[#161712] border-2 border-[#0A0B08] flex items-center justify-center shrink-0 group-hover:rotate-12 transition-transform shadow-[3px_3px_0px_#0A0B08]">
+                      <Swords className="w-6 h-6 text-amber-300" />
+                    </div>
+                    <div className="text-left">
+                      <div className="text-base sm:text-xl font-display font-black uppercase tracking-wider text-[#F2E8D5] leading-none">
+                        ¡DESPLEGAR A COMBATE!
+                      </div>
+                      <div className="text-[10px] font-mono font-bold text-[#F2E8D5]/90 uppercase tracking-widest mt-1">
+                        COMANDANTE ACTIVO: {activeCO.name.toUpperCase()} •{' '}
+                        {isTournamentMode ? 'CAP SIMÉTRICO N11' : 'LADDER ASIMÉTRICO'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <span className="px-2 py-1 rounded-[6px_2px_6px_2px] bg-[#0A0B08] text-amber-300 text-[10px] font-mono font-extrabold shrink-0">
+                    [SPACE]
+                  </span>
+                </button>
+
+                {/* Selector Rápido de Modalidades de Combate Real (1 Clic) */}
+                <div className="grid grid-cols-3 gap-1.5">
+                  <button
+                    type="button"
+                    onMouseEnter={() => audioManager.playHoverTick()}
+                    onClick={() => handleDeploy('mirror_duel')}
+                    className="tactical-juice-btn px-2 py-1.5 bg-[#161712] hover:bg-[#1F201A] border-2 border-[#E65100] text-left flex flex-col justify-between"
+                    title="Entrar directo a Duelo Espejo 1v1 Simétrico (15s)"
+                  >
+                    <span className="text-[9px] font-mono font-extrabold text-[#E65100] uppercase">
+                      1V1 ESPEJO • 15S
+                    </span>
+                    <span className="font-display font-extrabold text-xs text-[#F2E8D5] uppercase">
+                      ⚔️ Duelo Justo
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onMouseEnter={() => {
+                      audioManager.playHoverTick();
+                      setHoverIntent('hover_blitz');
+                    }}
+                    onClick={() => handleDeploy('blitz_skirmish')}
+                    className="tactical-juice-btn px-2 py-1.5 bg-[#46521F] hover:bg-[#586827] border-2 border-[#0A0B08] text-left flex flex-col justify-between"
+                    title="Despliegue Inmediato a Escaramuza Blitz 30s [Atajo F]"
+                  >
+                    <span className="text-[9px] font-mono font-extrabold text-amber-300 uppercase flex items-center justify-between">
+                      <span>BLITZ 2.0X</span>
+                      <span>[F]</span>
+                    </span>
+                    <span className="font-display font-extrabold text-xs text-[#F2E8D5] uppercase flex items-center gap-1">
+                      <Zap className="w-3 h-3 text-amber-300 shrink-0" />
+                      <span>Blitz 30s</span>
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onMouseEnter={() => audioManager.playHoverTick()}
+                    onClick={() => handleDeploy('grand_campaign')}
+                    className="tactical-juice-btn px-2 py-1.5 bg-[#161712] hover:bg-[#1F201A] border-2 border-[#1D4ED8] text-left flex flex-col justify-between"
+                    title="Iniciar Gran Campaña Táctica con Niebla de Guerra (60s)"
+                  >
+                    <span className="text-[9px] font-mono font-extrabold text-sky-400 uppercase">
+                      GUERRA TOTAL • 60S
+                    </span>
+                    <span className="font-display font-extrabold text-xs text-[#F2E8D5] uppercase">
+                      🎖️ Campaña
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* BLOQUE 2: MATRIZ DE 6 TERMINALES OPERATIVAS REALES */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 flex-1">
+                {/* 1. HANGAR DE TROPAS / ARMERÍA */}
+                <button
+                  type="button"
+                  onMouseEnter={() => {
+                    audioManager.playHoverTick();
+                    setHoverIntent('hover_armory');
                   }}
                   onMouseLeave={() => setHoverIntent(null)}
                   onClick={() => {
                     audioManager.playSFX('button_click');
-                    setActiveModal('modal-ruleta');
+                    setIsHangarModalOpen(true);
                   }}
-                  className="tactical-btn-heavy w-full px-3 py-1.5 flex items-center justify-between text-xs"
+                  className="tactical-comic-card-interactive p-3 bg-[#2B2C24] border-2 border-[#0A0B08] hover:border-sky-400 text-left flex flex-col justify-between"
                 >
-                  <span className="flex items-center gap-1.5 font-display font-extrabold">
-                    <span>🎡</span>
-                    <span>ROTOR SUMINISTROS</span>
-                  </span>
-                  <span className="bg-[#0A0B08] text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-mono font-extrabold">
-                    [R]
-                  </span>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="w-8 h-8 rounded-[8px_2px_8px_2px] bg-[#161712] border border-sky-400/60 flex items-center justify-center text-sky-400">
+                      <Palette className="w-4 h-4" />
+                    </div>
+                    <span className="px-1.5 py-0.5 rounded bg-[#161712] border border-[#7B8A4A]/60 text-[10px] font-mono font-extrabold text-sky-400">
+                      [1] HANGAR
+                    </span>
+                  </div>
+                  <div className="mt-2">
+                    <h3 className="font-display font-extrabold text-sm text-[#F2E8D5] uppercase tracking-wider">
+                      Hangar & Patentes
+                    </h3>
+                    <p className="text-[11px] text-[#A9B87A] font-sans leading-tight mt-0.5">
+                      Forja de unidades T1-T5 y stock físico de reserva.
+                    </p>
+                  </div>
                 </button>
 
-                <div className="grid grid-cols-2 gap-1.5">
+                {/* 2. GUARNICIONES IA & ESTADO MAYOR */}
+                <button
+                  type="button"
+                  onMouseEnter={() => {
+                    audioManager.playHoverTick();
+                    setHoverIntent('hover_war_room');
+                  }}
+                  onMouseLeave={() => setHoverIntent(null)}
+                  onClick={() => {
+                    audioManager.playSFX('button_click');
+                    setIsGarrisonDrawerOpen(true);
+                  }}
+                  className="tactical-comic-card-interactive p-3 bg-[#2B2C24] border-2 border-[#0A0B08] hover:border-amber-400 text-left flex flex-col justify-between"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="w-8 h-8 rounded-[8px_2px_8px_2px] bg-[#161712] border border-amber-400/60 flex items-center justify-center text-amber-400">
+                      <Users className="w-4 h-4" />
+                    </div>
+                    <span className="px-1.5 py-0.5 rounded bg-[#161712] border border-[#7B8A4A]/60 text-[10px] font-mono font-extrabold text-amber-300">
+                      [2] GUARNICIÓN
+                    </span>
+                  </div>
+                  <div className="mt-2">
+                    <h3 className="font-display font-extrabold text-sm text-[#F2E8D5] uppercase tracking-wider">
+                      Guarnición & IA
+                    </h3>
+                    <p className="text-[11px] text-[#A9B87A] font-sans leading-tight mt-0.5">
+                      Defensa territorial automatizada y rebalanceo en Postgres.
+                    </p>
+                  </div>
+                </button>
+
+                {/* 3. COMPLEJO INDUSTRIAL MILITAR */}
+                <button
+                  type="button"
+                  onMouseEnter={() => {
+                    audioManager.playHoverTick();
+                    setHoverIntent('hover_industry');
+                  }}
+                  onMouseLeave={() => setHoverIntent(null)}
+                  onClick={() => handleNavigate('industry')}
+                  className="tactical-comic-card-interactive p-3 bg-[#2B2C24] border-2 border-[#0A0B08] hover:border-[#7B8A4A] text-left flex flex-col justify-between"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="w-8 h-8 rounded-[8px_2px_8px_2px] bg-[#161712] border border-[#7B8A4A] flex items-center justify-center text-amber-300">
+                      <Factory className="w-4 h-4" />
+                    </div>
+                    <span className="px-1.5 py-0.5 rounded bg-[#161712] border border-[#7B8A4A]/60 text-[10px] font-mono font-extrabold text-amber-300">
+                      [3] {localSteel}t
+                    </span>
+                  </div>
+                  <div className="mt-2">
+                    <h3 className="font-display font-extrabold text-sm text-[#F2E8D5] uppercase tracking-wider">
+                      Industria & Silos
+                    </h3>
+                    <p className="text-[11px] text-[#A9B87A] font-sans leading-tight mt-0.5">
+                      Refinería de acero, microchips y combustible.
+                    </p>
+                  </div>
+                </button>
+
+                {/* 4. BOLSA DE COMERCIO P2P */}
+                <button
+                  type="button"
+                  onMouseEnter={() => {
+                    audioManager.playHoverTick();
+                    setHoverIntent('hover_shop');
+                  }}
+                  onMouseLeave={() => setHoverIntent(null)}
+                  onClick={() => handleNavigate('marketplace')}
+                  className="tactical-comic-card-interactive p-3 bg-[#2B2C24] border-2 border-[#0A0B08] hover:border-[#C46A3A] text-left flex flex-col justify-between"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="w-8 h-8 rounded-[8px_2px_8px_2px] bg-[#161712] border border-[#C46A3A]/60 flex items-center justify-center text-[#C46A3A]">
+                      <Scale className="w-4 h-4" />
+                    </div>
+                    <span className="px-1.5 py-0.5 rounded bg-[#161712] border border-[#7B8A4A]/60 text-[10px] font-mono font-extrabold text-[#C46A3A]">
+                      [4] BOLSA P2P
+                    </span>
+                  </div>
+                  <div className="mt-2">
+                    <h3 className="font-display font-extrabold text-sm text-[#F2E8D5] uppercase tracking-wider">
+                      Mercado Libre P2P
+                    </h3>
+                    <p className="text-[11px] text-[#A9B87A] font-sans leading-tight mt-0.5">
+                      Canon 2% canónico y bandas VWAP Collar ±25%.
+                    </p>
+                  </div>
+                </button>
+
+                {/* 5. CENTRO DE CLANES / CORPORACIÓN */}
+                <button
+                  type="button"
+                  onMouseEnter={() => {
+                    audioManager.playHoverTick();
+                    setHoverIntent('hover_clans');
+                  }}
+                  onMouseLeave={() => setHoverIntent(null)}
+                  onClick={() => handleNavigate('clans')}
+                  className="tactical-comic-card-interactive p-3 bg-[#2B2C24] border-2 border-[#0A0B08] hover:border-emerald-400 text-left flex flex-col justify-between"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="w-8 h-8 rounded-[8px_2px_8px_2px] bg-[#161712] border border-emerald-400/60 flex items-center justify-center text-emerald-400">
+                      <Shield className="w-4 h-4" />
+                    </div>
+                    <span className="px-1.5 py-0.5 rounded bg-[#46521F] border border-[#0A0B08] text-[10px] font-mono font-extrabold text-[#F2E8D5]">
+                      [5] {resolvedClanTag}
+                    </span>
+                  </div>
+                  <div className="mt-2">
+                    <h3 className="font-display font-extrabold text-sm text-[#F2E8D5] uppercase tracking-wider truncate">
+                      {resolvedClanName}
+                    </h3>
+                    <p className="text-[11px] text-[#A9B87A] font-sans leading-tight mt-0.5">
+                      Alianza militar y Salvaguarda ({shieldCharges}/3).
+                    </p>
+                  </div>
+                </button>
+
+                {/* 6. EXPEDIENTE & RÉCORDS */}
+                <button
+                  type="button"
+                  onMouseEnter={() => {
+                    audioManager.playHoverTick();
+                    setHoverIntent('hover_profile');
+                  }}
+                  onMouseLeave={() => setHoverIntent(null)}
+                  onClick={() => {
+                    audioManager.playSFX('button_click');
+                    onOpenProfile?.();
+                  }}
+                  className="tactical-comic-card-interactive p-3 bg-[#2B2C24] border-2 border-[#0A0B08] hover:border-amber-400 text-left flex flex-col justify-between"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="w-8 h-8 rounded-[8px_2px_8px_2px] bg-[#161712] border border-amber-400/60 flex items-center justify-center text-amber-400">
+                      <Trophy className="w-4 h-4" />
+                    </div>
+                    <span className="px-1.5 py-0.5 rounded bg-[#161712] border border-[#7B8A4A]/60 text-[10px] font-mono font-extrabold text-amber-300 tabular-nums">
+                      [6] {userTrophies} 🏆
+                    </span>
+                  </div>
+                  <div className="mt-2">
+                    <h3 className="font-display font-extrabold text-sm text-[#F2E8D5] uppercase tracking-wider">
+                      Expediente & Récords
+                    </h3>
+                    <p className="text-[11px] text-[#A9B87A] font-sans leading-tight mt-0.5">
+                      Hoja de servicio y medallas competitivas.
+                    </p>
+                  </div>
+                </button>
+              </div>
+
+              {/* BLOQUE 3: DOSSIER DE MISIÓN & ROTOR C4ISR */}
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 shrink-0">
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onMouseEnter={() => audioManager.playHoverTick()}
+                  onClick={() =>
+                    openGenericModal(
+                      'DOSSIER TÁCTICO // DEFENSA COSTERA',
+                      <div className="tactical-dossier-card p-3.5 space-y-3">
+                        <h4 className="font-display font-extrabold text-xs text-[#0A0B08] uppercase">
+                          Sector Alpha // Baterías Costeras
+                        </h4>
+                        <p className="text-xs text-[#2B2C24] font-bold">
+                          Completa 2 escaramuzas con {activeCO.name} para asegurar la bahía.
+                        </p>
+                        <div className="pt-2 flex items-center justify-between border-t border-[#0A0B08]/20">
+                          <span className="text-xs font-mono font-extrabold text-[#0A0B08]">
+                            Progreso: 1/2
+                          </span>
+                          <button
+                            type="button"
+                            onMouseEnter={() => audioManager.playHoverTick()}
+                            onClick={() => {
+                              audioManager.playComboAction(5);
+                              addGoldReward(500);
+                              setActiveModal(null);
+                            }}
+                            className="tactical-btn-heavy px-4 py-1.5 text-xs"
+                          >
+                            Reclamar Botín (+500G)
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  }
+                  className="sm:col-span-6 tactical-dossier-card p-2.5 cursor-pointer flex flex-col justify-between"
+                >
+                  <div className="flex items-center justify-between gap-1.5 mb-1">
+                    <span className="font-display font-extrabold text-xs uppercase tracking-wider text-[#0A0B08] flex items-center gap-1">
+                      <Crosshair className="w-3.5 h-3.5 text-[#C46A3A] shrink-0" />
+                      <span>Misión: Sector Alpha</span>
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded bg-[#0A0B08] text-amber-300 font-mono font-extrabold text-[10px]">
+                      +500G
+                    </span>
+                  </div>
+                  <TacticalGhostBar
+                    value={1}
+                    max={2}
+                    heightClassName="h-2.5"
+                    fillClassName="bg-[#C46A3A]"
+                    ghostClassName="bg-amber-300"
+                    label="ESCARAMUZAS 1/2"
+                  />
+                </div>
+
+                <div className="sm:col-span-6 flex flex-col gap-1.5">
                   <button
                     type="button"
                     onMouseEnter={() => audioManager.playHoverTick()}
-                    onClick={() =>
-                      openGenericModal(
-                        'ÓRDENES OPERATIVAS DIARIAS',
-                        <div className="p-3 rounded-[8px_2px_8px_2px] bg-[#161712] border-2 border-[#0A0B08] space-y-2 text-xs font-mono">
-                          <p className="text-amber-400 font-bold">
-                            ✓ 1. Desplegar 1 tanque ligero (1/1) — COMPLETADO
-                          </p>
-                          <p className="text-[#F2E8D5]">
-                            ○ 2. Capturar 2 ciudades en Duelo Espejo (0/2)
-                          </p>
-                          <p className="text-[#A9B87A]">
-                            ○ 3. Ganar 1 Escaramuza Blitz sin perder artillería (0/1)
-                          </p>
-                        </div>
-                      )
-                    }
-                    className="tactical-juice-btn px-2 py-1 bg-[#2B2C24] border border-[#0A0B08] text-[10px] font-mono font-bold text-[#F2E8D5] flex items-center justify-between"
+                    onClick={() => {
+                      audioManager.playSFX('button_click');
+                      setActiveModal('modal-ruleta');
+                    }}
+                    className="tactical-btn-heavy w-full px-3 py-1.5 flex items-center justify-between text-xs"
                   >
-                    <span className="flex items-center gap-1">
-                      <Activity className="w-3 h-3 text-amber-400" />
-                      <span>Órdenes</span>
+                    <span className="flex items-center gap-1.5 font-display font-extrabold">
+                      <span>🎡</span>
+                      <span>ROTOR SUMINISTROS</span>
                     </span>
-                    <span className="text-amber-300">1/3</span>
+                    <span className="bg-[#0A0B08] text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-mono font-extrabold">
+                      [R]
+                    </span>
                   </button>
 
-                  <button
-                    type="button"
-                    onMouseEnter={() => audioManager.playHoverTick()}
-                    onClick={() =>
-                      openGenericModal(
-                        'CONDECORACIONES Y COMPENDIO MILITAR',
-                        <div className="space-y-2.5">
-                          <div className="p-3 rounded-[8px_2px_8px_2px] bg-[#161712] border-2 border-amber-400 flex items-center justify-between">
-                            <div>
-                              <span className="font-display font-extrabold text-xs text-amber-400 block">
-                                ★ VETERANO DE ACERO
-                              </span>
-                              <span className="text-[11px] text-[#A9B87A]">
-                                Acumula reservas estratégicas en la fundición.
-                              </span>
-                            </div>
-                            <span className="px-2 py-0.5 bg-amber-400 text-[#0A0B08] font-mono font-extrabold text-[10px] rounded">
-                              DOMINADO
-                            </span>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      type="button"
+                      onMouseEnter={() => audioManager.playHoverTick()}
+                      onClick={() =>
+                        openGenericModal(
+                          'ÓRDENES OPERATIVAS DIARIAS',
+                          <div className="p-3 rounded-[8px_2px_8px_2px] bg-[#161712] border-2 border-[#0A0B08] space-y-2 text-xs font-mono">
+                            <p className="text-amber-400 font-bold">✓ 1. Desplegar 1 división (1/1)</p>
+                            <p className="text-[#F2E8D5]">○ 2. Vencer en Duelo Espejo (0/1)</p>
+                            <p className="text-[#A9B87A]">○ 3. Ganar 1 Blitz 30s (0/1)</p>
                           </div>
-                          <div className="p-3 rounded-[8px_2px_8px_2px] bg-[#161712]/70 border border-dashed border-[#7B8A4A] flex items-center justify-between opacity-85">
+                        )
+                      }
+                      className="tactical-juice-btn px-2 py-1 bg-[#2B2C24] border border-[#0A0B08] text-[10px] font-mono font-bold text-[#F2E8D5] flex items-center justify-between"
+                    >
+                      <span className="flex items-center gap-1">
+                        <Activity className="w-3 h-3 text-amber-400" />
+                        <span>Órdenes</span>
+                      </span>
+                      <span className="text-amber-300">1/3</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onMouseEnter={() => audioManager.playHoverTick()}
+                      onClick={() =>
+                        openGenericModal(
+                          'CONDECORACIONES MILITARES',
+                          <div className="p-3 rounded-[8px_2px_8px_2px] bg-[#161712] border-2 border-amber-400 flex items-center justify-between text-xs">
                             <div>
-                              <span className="font-display font-extrabold text-xs text-[#F2E8D5] block">
-                                🔒 ??? // PROTOCOLO RELÁMPAGO
-                              </span>
-                              <span className="text-[11px] text-[#A9B87A]">
-                                Pista: Vence un Duelo Espejo en menos de 6 turnos sin perder tanques.
-                              </span>
+                              <span className="font-display font-extrabold text-amber-400 block">★ VETERANO DE ACERO</span>
+                              <span className="text-[11px] text-[#A9B87A]">Reserva de intendencia activa.</span>
                             </div>
-                            <span className="text-xs font-mono font-extrabold text-amber-400">
-                              +1,000G
-                            </span>
+                            <span className="px-2 py-0.5 bg-amber-400 text-[#0A0B08] font-mono font-bold text-[10px] rounded">DOMINADO</span>
                           </div>
-                        </div>
-                      )
-                    }
-                    className="tactical-juice-btn px-2 py-1 bg-[#2B2C24] border border-[#0A0B08] text-[10px] font-mono font-bold text-[#F2E8D5] flex items-center justify-between"
-                  >
-                    <span className="flex items-center gap-1">
-                      <Award className="w-3 h-3 text-amber-400" />
-                      <span>Logros</span>
-                    </span>
-                    <span className="text-amber-300">★</span>
-                  </button>
+                        )
+                      }
+                      className="tactical-juice-btn px-2 py-1 bg-[#2B2C24] border border-[#0A0B08] text-[10px] font-mono font-bold text-[#F2E8D5] flex items-center justify-between"
+                    >
+                      <span className="flex items-center gap-1">
+                        <Award className="w-3 h-3 text-amber-400" />
+                        <span>Logros</span>
+                      </span>
+                      <span className="text-amber-300">★</span>
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </aside>
-        </div>
+            </aside>
+          </div>
+        )}
 
         {/* ====================================================================
             SHELL DIEGÉTICO SUPERPUESTO PARA SUB-VISTAS (ZERO-UNMOUNT HQ)
@@ -1200,7 +1578,13 @@ export const WarLobbyHub: React.FC<WarLobbyHubProps> = ({
           handleNavigate(view);
         }}
         onOpenEditor={onOpenEditor}
-        onOpenBattleHQ={() => setActiveModal('modal-battle-hq')}
+        onOpenBattleHQ={() => {
+          if (isGuestMode) {
+            onOpenAuthModal?.('Debes iniciar sesión para acceder al Estado Mayor de Batalla.');
+            return;
+          }
+          setActiveModal('modal-battle-hq');
+        }}
         onQuickDeployBlitz={() => handleDeploy('blitz_skirmish')}
         onInspectAlly={(allyName, sector) =>
           openGenericModal(
@@ -1251,7 +1635,13 @@ export const WarLobbyHub: React.FC<WarLobbyHubProps> = ({
         activeModal={activeModal}
         onClose={() => setActiveModal(null)}
         onDeploy={handleDeploy}
-        onOpenBattleHQ={() => setActiveModal('modal-battle-hq')}
+        onOpenBattleHQ={() => {
+          if (isGuestMode) {
+            onOpenAuthModal?.('Debes iniciar sesión para acceder al Estado Mayor de Batalla.');
+            return;
+          }
+          setActiveModal('modal-battle-hq');
+        }}
         wheelCanvasRef={wheelCanvasRef}
         isWheelSpinning={isWheelSpinning}
         wheelAngle={wheelAngle}
@@ -1262,6 +1652,108 @@ export const WarLobbyHub: React.FC<WarLobbyHubProps> = ({
         activeCommanderId={selectedCOId}
         onSelectCommander={handleCommanderChange}
         commanderBondLevel={commanderBondLevel}
+      />
+
+      {/* 5. MODALES DEL METAJUEGO V2 (SOBERANÍA TERRITORIAL, HANGAR FÍSICO & GUARNICIÓN IA) */}
+      <TerritoryInspectorModal
+        isOpen={Boolean(inspectedProvinceId)}
+        onClose={() => setInspectedProvinceId(null)}
+        province={
+          inspectedProvinceId
+            ? (() => {
+                const p = provinces.find(pr => pr.id === inspectedProvinceId);
+                if (!p) return null;
+                const ctrl = controlMap[p.id];
+                const cl = ctrl?.controllingClanId ? clansMap[ctrl.controllingClanId] : null;
+                return {
+                  id: p.id,
+                  name: p.name,
+                  countryIso: p.countryIso,
+                  isCapital: p.isCapital,
+                  biome: p.baseTerrain,
+                  x: p.posX,
+                  y: p.posY,
+                  width: p.width,
+                  height: p.height,
+                  ownerTag: cl?.tag || 'ESTADO',
+                  ownerColor: cl?.color || '#7B8A4A',
+                  tcp: ctrl?.currentTcp ?? 10000,
+                  tcpMax: ctrl?.tcpThreshold ?? 10000,
+                  status: ctrl?.status || 'stable',
+                  resourcePerMin: `${Math.round(p.resourceMultiplier * 100)} EC/h`,
+                };
+              })()
+            : null
+        }
+        userClanTag={resolvedClanTag}
+        onInitiateAssault={(provId) => {
+          setInspectedProvinceId(null);
+          handleDeploy('grand_campaign', provId);
+        }}
+        onDeployReinforcements={(provId) => {
+          setInspectedProvinceId(null);
+          handleDeploy('blitz_skirmish', provId);
+        }}
+      />
+
+      <UnitHangarModal
+        isOpen={isHangarModalOpen}
+        onClose={() => setIsHangarModalOpen(false)}
+        userEc={userEc}
+        userSteel={localSteel}
+        userRareEarth={userRareEarth}
+        userComposites={userComposites}
+        onUpdateResources={(delta) => {
+          if (delta.ec) setUserEc((e) => Math.max(0, e + delta.ec!));
+          if (delta.steel) addSteelReward(delta.steel);
+          if (delta.rareEarth) setUserRareEarth((r) => Math.max(0, r + delta.rareEarth!));
+          if (delta.composites) setUserComposites((c) => Math.max(0, c + delta.composites!));
+        }}
+      />
+
+      <GarrisonManagementDrawer
+        isOpen={isGarrisonDrawerOpen}
+        onClose={() => setIsGarrisonDrawerOpen(false)}
+        userEc={userEc}
+        clanTag={resolvedClanTag}
+        controlledProvinces={[
+          { id: 'REG_VE_01', name: 'Distrito Capital - Caracas (Hegemonía)' },
+          { id: 'REG_VE_05', name: 'Carabobo - Valencia/Pto. Cabello' },
+          { id: 'REG_VE_06', name: 'Miranda - Valles del Tuy' },
+          { id: 'REG_VE_08', name: 'Aragua - Maracay' },
+          { id: 'REG_VE_17', name: 'Guárico - Calabozo/San Juan' },
+        ]}
+        onSpendEc={(amount) => setUserEc((e) => Math.max(0, e - amount))}
+      />
+
+      {/* 3. COMANDANTE REACTIVO (BARK ENGINE - ESQUINA INFERIOR IZQUIERDA) */}
+      <CommanderBarkWidget
+        commanderId={selectedCOId}
+        externalMessage={barkWidgetMessage}
+        onClearExternalMessage={() => setBarkWidgetMessage(null)}
+        selectedSectorName={selectedProvince?.name}
+      />
+
+      {/* 4. CONSOLA DE MACROGESTIÓN Y FORJA (ESTILO PARADOX - LATERAL DERECHO) */}
+      <ParadoxCommandDrawer
+        isOpen={isParadoxDrawerOpen}
+        onClose={() => setIsParadoxDrawerOpen(false)}
+        userRank={resolvedLevel >= 8 ? 'veteran' : resolvedLevel >= 4 ? 'sergeant' : resolvedLevel >= 2 ? 'corporal' : 'recruit'}
+        userGold={localGold}
+        userEnergyEc={userEc}
+        clanTag={resolvedClanTag}
+        onTriggerBark={(text, balloonType) =>
+          setBarkWidgetMessage({
+            id: `drawer_${Date.now()}`,
+            text,
+            balloonType: balloonType ?? 'radio',
+            durationMs: 5000,
+          })
+        }
+        onSelectRegion={(regId) => {
+          setSelectedProvinceId(regId);
+          setIsMetaConsoleOpen(true);
+        }}
       />
     </div>
   );

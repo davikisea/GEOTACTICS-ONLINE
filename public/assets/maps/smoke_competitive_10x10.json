@@ -1,0 +1,33 @@
+﻿{
+    "width":  10,
+    "height":  10,
+    "id":  "smoke_competitive_10x10",
+    "createdAt":  "2026-11-04T22:09:57.0309356-04:00",
+    "rawAWBW":  "1,1,3,1,1,2,1,1,44,43\r\n1,1,1,1,1,1,1,1,47,1\r\n3,1,2,1,34,1,1,2,1,1\r\n1,1,1,4,4,26,4,1,1,1\r\n1,34,1,4,116,1,4,1,35,1\r\n1,35,1,4,1,116,4,1,34,1\r\n1,1,1,4,26,4,4,1,1,1\r\n1,1,2,1,1,34,1,2,1,3\r\n1,42,1,1,1,1,1,1,1,1\r\n38,39,1,1,2,1,1,3,1,1",
+    "numberOfPlayers":  2,
+    "description":  "Mapa competitivo de torneo 1v1 con simetrÃ­a rotacional 180Â° perfecta y balance econÃ³mico simÃ©trico.",
+    "author":  "Tactical Studio Engine",
+    "symmetry":  {
+                     "verified":  true,
+                     "violationsCount":  0,
+                     "type":  "rotational_180"
+                 },
+    "name":  "Crossfire Crucible (10x10 Tournament)",
+    "headquarters":  {
+                         "p2":  {
+                                    "y":  1,
+                                    "x":  8
+                                },
+                         "p1":  {
+                                    "y":  8,
+                                    "x":  1
+                                }
+                     },
+    "propertyStats":  {
+                          "commTowers":  2,
+                          "neutralProperties":  8,
+                          "p2Properties":  3,
+                          "factories":  4,
+                          "p1Properties":  3
+                      }
+}

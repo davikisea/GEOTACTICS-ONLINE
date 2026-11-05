@@ -27,7 +27,7 @@ import { COPowerType, PlayerCOState, CANONICAL_CO_REGISTRY } from '../../engine/
 import { COCommandBar } from './COCommandBar';
 import { BotDifficulty } from '../../engine/aiBot';
 import { MatchFormat } from '../../engine/autonomousOrchestrator';
-import { DeckManager } from '../../engine/deckManager';
+import { TurnEconomyEngine } from '../../engine/turnEconomy';
 import { TacticalLoadingFallback } from '../../App';
 import { AvailableSubAction, evaluateAvailableSubActions } from '../../engine/subActions';
 import { CanonicalCombatEngine } from '../../engine/canonicalCombat';
@@ -57,14 +57,14 @@ export interface CombatTheaterViewProps {
   isBotThinking: boolean;
   botActionLog: string | null;
   handleEndTurn: () => void;
-  units: TacticalUnit[];
+  units: any[];
   matchTiles: TerrainTile[][];
   convertedTiles: any[];
   convertedUnits: any[];
-  selectedUnit: TacticalUnit | null;
-  setSelectedUnitId: (id: string | null) => void;
-  targetEnemy: TacticalUnit | null;
-  setTargetEnemyId: (id: string | null) => void;
+  selectedUnit: any | null;
+  setSelectedUnitId: (id: any) => void;
+  targetEnemy: any | null;
+  setTargetEnemyId: (id: any) => void;
   reachableCells: { x: number; y: number }[];
   handleMoveUnit: (coord: { x: number; y: number }, path?: { x: number; y: number }[]) => void;
   combatResult: any;
@@ -82,7 +82,7 @@ export interface CombatTheaterViewProps {
   selectedMapId: string;
   setSelectedMapId: (id: string) => void;
   predefinedMapsMeta: PredefinedMapMeta[];
-  customMaps: PredefinedMapMeta[];
+  customMaps: any[];
   activeMap: any;
   setIsImportModalOpen: (open: boolean) => void;
   coInspectorView: 'p1' | 'p2';
@@ -104,7 +104,7 @@ export interface CombatTheaterViewProps {
   setSonjaSensorActive: React.Dispatch<React.SetStateAction<boolean>>;
   currentVision: any;
   ambushAlert: AmbushAlert | null;
-  airDrops: any[];
+  airDrops?: any[];
   setSelectedFactoryCoord: (coord: { x: number; y: number } | null) => void;
   setIsProductionModalOpen: (open: boolean) => void;
   isTacticalDrawerOpen: boolean;
@@ -185,7 +185,12 @@ export const CombatTheaterView: React.FC<CombatTheaterViewProps> = ({
   onOpenProceduralModal,
 }) => {
   const p1Count = units.filter(u => u.owner === 'p1').length;
-  const supply = DeckManager.calculateSupplyStatus(p1Count);
+  const supplyUpkeep = TurnEconomyEngine.calculateSupplyUpkeep('p1', Array(p1Count).fill({ ownerId: 'p1' }) as any);
+  const supply = {
+    unitCount: supplyUpkeep.totalUnits,
+    isOverCapacity: supplyUpkeep.isOverCapacity,
+    totalUpkeepG: supplyUpkeep.totalUpkeepG,
+  };
   const [isOutlinerOpen, setIsOutlinerOpen] = React.useState<boolean>(true);
 
   // Auras de edificios territoriales activas
@@ -245,7 +250,7 @@ export const CombatTheaterView: React.FC<CombatTheaterViewProps> = ({
             triggerHaptic('selection');
             tileContextMenu.onSelectAction(waitAction);
           }
-        } else if (selectedUnit && selectedUnit.owner === turn && !selectedUnit.hasActed) {
+        } else if (selectedUnit && selectedUnit.ownerId === turn && !selectedUnit.hasActed) {
           triggerHaptic('movement');
           handleMoveUnit({ x: selectedUnit.x, y: selectedUnit.y });
         }
@@ -621,11 +626,11 @@ export const CombatTheaterView: React.FC<CombatTheaterViewProps> = ({
                       );
                       setInSituTargetBadge({
                         coord,
-                        attackerName: selectedUnit.name,
-                        defenderName: targetUnit.name,
-                        estimatedDamage: res.estimatedDamage,
-                        counterDamage: res.counterDamage,
-                        canCounter: res.canCounter,
+                        attackerName: selectedUnit.name || selectedUnit.displayName,
+                        defenderName: targetUnit.name || targetUnit.displayName,
+                        estimatedDamage: res.attackerDamageDealt,
+                        counterDamage: res.counterDamageDealt,
+                        canCounter: res.canCounterAttack,
                         defenderHp: targetUnit.hp,
                         terrainStars: defTile.defenseStars,
                       });
@@ -921,7 +926,7 @@ export const CombatTheaterView: React.FC<CombatTheaterViewProps> = ({
                     [coInspectorView]: { ...prev[coInspectorView], coId },
                   }));
                 }}
-                onActivatePower={handleActivateCOPower}
+                onActivatePower={(powerType) => handleActivateCOPower(coInspectorView, powerType)}
               />
             </div>
 

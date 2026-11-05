@@ -16,6 +16,40 @@ export interface DocItem {
 
 export const GAME_DOCUMENTS: DocItem[] = [
   {
+    id: '00_arbol_canonico',
+    filename: 'docs/00_ARBOL_CANONICO_DE_SISTEMAS_Y_DESARROLLO.md',
+    title: 'Árbol Canónico de Desarrollo (SSOT)',
+    badge: 'SSOT Supremo',
+    summary: 'Única Fuente de Verdad (SSOT) de Tactical Command. Taxonomía de los 4 Estados (Listo, Desplegado, Desarrollado, En Desarrollo) y 5 Ramas de Arquitectura.',
+    sections: [
+      {
+        heading: '1. Los 7 Pilares Inmutables del Canon Sancionado',
+        content: `1. **CERO CARTAS:** Almacén Físico de Unidades (Fleet Hangar) con stock real de los 16 arquetipos. Las tropas se forjan en refinerías y se despliegan en fábricas pagando fondos $G.
+2. **ESCALA 1-100 HP:** Vida continua y daño balístico de 1 a 100 HP en Canvas y motor.
+3. **0 TROPAS = DERROTA INMEDIATA:** Si un ejército pierde su última unidad sobre el grid, pierde la partida en el acto.
+4. **TIERS T1 A T5 (+2% por Tier):** Cero niveles de carta 1-15. La calidad de manufactura es la única bonificación balística (Tier 1 en torneos esports).
+5. **CAPITALES CONQUISTABLES + BUFF REGIONAL:** Las 195 Capitales son disputables y dominarlas proyecta +15% EC, +10% forja y -20% aranceles a todo el país.
+6. **PÉRDIDA FÍSICA + 35% CHATARRA + KIT F2P:** Tropas destruidas se descuentan del almacén y recuperan 35% chatarra; Infantería y Recon T1 gratuitos ilimitados para no quedar bloqueado jamás.
+7. **HANDSHAKE HUMANO DE 120 SEGUNDOS:** Ventana de 2 minutos para saltar a defender una guarnición IA en PvP directo.`
+      },
+      {
+        heading: '2. Taxonomía de los 4 Estados de Desarrollo',
+        content: `• 🟢 **[LISTO]:** Producción certificada, contratos cerrados y suite de pruebas verdes sin deuda técnica.
+• 🔵 **[DESPLEGADO]:** Activo en PostgreSQL (22 migraciones), RLS o vistas frontend montadas en la aplicación.
+• 🟡 **[DESARROLLADO]:** Lógica de motor o componente implementado en TypeScript pero pendiente de cierre de tests o integración.
+• 🟠 **[EN DESARROLLO]:** Refactor o especificación activa para alineación con el nuevo canon unificado.`
+      },
+      {
+        heading: '3. Las 5 Ramas del Árbol de Sistemas',
+        content: `• **Rama 1 (Tablero Táctico):** Motor balístico 1-100 HP, reloj Fischer (15s/30s), niebla de guerra TRAP!, catálogo de 16 unidades, 28 COs y condiciones de victoria.
+• **Rama 2 (Industria y Almacén):** Almacén físico con stock real T1-T5, refinerías de 10 parcelas, ciclo circadiano de 16h y Mercado P2P al 2% split.
+• **Rama 3 (Geopolítica Continental):** Mapa mundial de 195 países y 3,000 regiones, asedios por TCP, escudo anti-steamroll (4h) y guarniciones IA.
+• **Rama 4 (Atompunk Experience):** UI retro-futurista Space-Age 1950s/1960s, Bark Engine cómico, War-Room viva y ergonomía háptica.
+• **Rama 5 (Infraestructura y QA):** 22 migraciones PostgreSQL, RLS multi-tenant, matchmaking queue y arnés de pruebas automatizadas.`
+      }
+    ]
+  },
+  {
     id: '01_gdd',
     filename: 'docs/01_GAME_DESIGN_DOCUMENT.md',
     title: 'Game Design Document (GDD)',
@@ -26,7 +60,7 @@ export const GAME_DOCUMENTS: DocItem[] = [
         heading: '1. Resumen Ejecutivo y los Tres Pilares Fundacionales',
         content: `**Tactical Command: Wars of Legacy** es un TBS sobre cuadrícula ejecutado en navegador web que fusiona:
 - **Pilar 1 (Advance Wars GBA):** Determinismo táctico total, cero azar (RNG = 0) en combate, estrellas defensivas proporcionales al HP, niebla de guerra estricta con emboscada TRAP y captura de 20 HP.
-- **Pilar 2 (Progresión Asimétrica):** Mazo de 10 cartas disponible en fábricas con Libertad Orgánica (0 cooldowns), Soft Cap de suministros (14 tropas), escalado contenido (+2.0%/lvl) y Cap de Torneo forzoso en Nivel 11.
+- **Pilar 2 (Hangar Físico e Industria Soberana):** Hangares físicos de chasis en Tiers T1 a T5 (munición descartable sin regeneración mágica), patentes tecnológicas permanentes quemando insumos, mercado P2P al 2% de split y soberanía territorial continua (0% inexpugnable).
 - **Pilar 3 (Bark Engine en Cómic):** Narrativa contextual estilo Hades 100% visual en viñetas de historieta (sin voces), con bocadillos dinámicos y sellos de onomatopeyas Pop-Art (¡BOOM!, ¡ALERT!, ¡CLUTCH!, ¡SINK!, ¡CRASH!).`
       },
       {
@@ -34,7 +68,7 @@ export const GAME_DOCUMENTS: DocItem[] = [
         content: `1. **Duelo Táctico Espejo (Mirror Duel):** Mapas 10x10 simétricos, 15s por turno estricto, economía acelerada 1.5x ($1500G/propiedad), bono de apertura $3000G, límite 12 turnos, revancha exprés 5s.
 2. **Escaramuza Rápida (Blitz Skirmish):** Mapas 12x12 a 16x16, 30s por turno, economía acelerada x2 ($2000G/propiedad), libertad orgánica de fábrica, límite de 15 turnos.
 3. **Campaña Táctica (Grand Campaign):** Mapas 24x24 a 32x32, 60s por turno, economía estándar ($1000G/propiedad), partidas de hasta 40 turnos.
-4. **Mazo de 10 Cartas y Suministros:** 2 obligatorias (Infantería Ligera y Mecanizada) + 8 flexibles categorizadas (mín 2 directas, mín 1 antiaéreo, máx 2 super-pesadas). Sostenimiento logístico con Soft Cap en 14 tropas ($200G de mantenimiento por unidad excedente).`
+4. **Hangar Físico T1-T5 y Suministros:** Despliegue de tropas crafteadas como munición descartable sin mazo cerrado. Sostenimiento logístico con Soft Cap en 14 tropas ($200G de mantenimiento por unidad excedente). Escala balística de 1 a 100 HP.`
       },
       {
         heading: '3. Terreno, Cobertura y Regla de Emboscada TRAP',
@@ -127,13 +161,13 @@ export const GAME_DOCUMENTS: DocItem[] = [
       {
         heading: '1. Arquitectura de Tablas y Relaciones',
         content: `El esquema se apoya en tablas normalizadas y seguras en PostgreSQL / Supabase:
-1. **profiles:** Cuenta global, nivel (1-100), XP, Créditos, Gemas, Trofeos, PTE (Promedio de Tiempo de Espera) y mazo de 10 cartas equipado.
-2. **user_cards:** Colección de cartas, niveles de unidad (1-15 con escalado +2.5%/lvl) y cartas duplicadas acumuladas.
-3. **user_chest_slots:** Gestión de las 4 ranuras de cofres (Madera 3h, Hierro 8h, Blindado 12h) con reloj de desbloqueo.
-4. **clans & clan_members:** Sistema de Clanes, donaciones de cartas y Guerras de Clanes.
-5. **active_matches & match_state:** Sesiones en curso con modos de juego (Blitz Skirmish, Grand Campaign, 2v2), temporizadores (30s/60s) y tablero serializado.
-6. **chat_messages:** Chat Global (Menú), Chat de Clan, Chat de Alianza (2v2) y Mensajería DM en partida con Quick Chat y filtro de toxicidad.
-7. **match_history & user_unlocks:** Historial inmutable y registro de propiedad de comandantes y skins cosméticas.`
+1. **profiles:** Cuenta global, nivel (1-100), XP, Fondos $G, Créditos Energéticos (EC), Trofeos y Hangar Militar.
+2. **user_unit_hangar:** Inventario físico de chasis de unidades (Escala continua 1-100 HP, Tiers 1-5 con +2%/tier).
+3. **user_patents:** Registro de patentes y tecnologías militares desbloqueadas.
+4. **clans & corporate_subsidiaries:** Corporaciones Militares, sedes de clanes (máx 10 por corporación) y Guerras de Soberanía.
+5. **active_matches & match_state:** Sesiones tácticas con tablero serializado y combate determinista 1-100 HP.
+6. **chat_messages:** Consola C4ISR de comunicaciones encriptadas de clan y combate con Quick Chat.
+7. **match_history & user_unlocks:** Historial inmutable y registro de propiedad de comandantes y camuflajes cosméticos.`
       },
       {
         heading: '2. Script SQL Completo de Tablas (DDL)',
@@ -397,8 +431,8 @@ XP = floor((120 + (Ciudades * 45) + (Bajas * 35) + min(Turnos, 30) * 6) * Multip
         heading: '1. Cronograma de Fases Actualizado',
         content: `- **Fase 1 (COMPLETADA):** Núcleo Táctico Canónico & Rescate WarsWorld (Sprites 16-bit, A*, Daños, Niebla, AWBW, Economía, Comandantes y 45 tests QA).
 - **Fase 2 (EN CURSO):** Inteligencia Artificial Táctica PvE (Bot autónomo con heurística Utility Score y 3 dificultades: Cadete, Comandante y General).
-- **Fase 3 (SIGUIENTE):** Modos Duales (Blitz Skirmish 10-20 min vs Grand Campaign 40-60 min) y Mazo de 10 Cartas con Cooldowns de Fabricación.
-- **Fase 4:** Backend Supabase & Progresión de Cofres (Auth, 4 slots de cofres, user_cards con duplicados y escalado +2.5%/lvl, Cap Nivel 11 de Torneo).
+- **Fase 3 (SIGUIENTE):** Hangar Militar & Doble Llave Material (Fondos $G + Stock físico, Infantería y Recon F2P ilimitados).
+- **Fase 4:** Backend Supabase & Soberanía Territorial (user_unit_hangar, Tiers 1-5, Asedios 10,000 TCP y Handshake 120s).
 - **Fase 5:** Multijugador Realtime, Modo 2v2 & Capa Social (WebSockets, Matchmaking PTE, Anti-AFK, Chat global y DM en partida con Mute).
 - **Fase 6:** Despliegue en Vercel, Monetización Stripe y Auditoría Final de Producción.`
       },
@@ -652,8 +686,8 @@ Oro (Gold) = floor((60 + (Ciudades * 20) + (Bajas * 15)) * Multiplicador)`
         heading: '1. Cronograma Maestro de 6 Sprints (12 Semanas)',
         content: `- **Sprint 1 (COMPLETADO):** Núcleo Táctico Canónico & Rescate WarsWorld (Sprites 16-bit, Canvas/Matriz 60 FPS, Combate canónico, A*, Niebla, AWBW, Economía y 6 COs con 45 tests QA).
 - **Sprint 2 (EN CURSO):** Motor de Inteligencia Artificial Táctica PvE (TacticalBotAI con Utility Score y 3 dificultades: Cadete, Comandante y General).
-- **Sprint 3 (SIGUIENTE):** Modos Duales (Escaramuza Rápida 10-20m vs Campaña Táctica 40-60m) y Mazo de 10 Cartas con Cooldowns y tope de 15 tropas.
-- **Sprint 4:** Backend Supabase, Auth & Sistema de Cofres (4 ranuras, user_cards con duplicados y escalado +2.5%/lvl, Cap Nivel 11 de Torneo).
+- **Sprint 3 (SIGUIENTE):** Hangar Militar & Doble Llave de Producción (Fondos $G + Stock de Chasis, Soft Cap 14 unidades).
+- **Sprint 4:** Backend Supabase, Auth & Soberanía Territorial (user_unit_hangar 1-100 HP, Tiers 1-5, Asedios 10,000 TCP).
 - **Sprint 5:** Multijugador Realtime, Matchmaking PTE, Modo 2v2 & Capa Social (WebSockets, Reloj Anti-AFK, turnos cruzados, Chat global y DM en partida con Mute).
 - **Sprint 6:** Auditoría RLS, Optimización de Assets WebP en Vercel CDN, Stripe Checkout y Release 1.0 en Producción.`
       },
@@ -833,10 +867,11 @@ El Comandante proyecta viñetas de historieta interactivas sobre la UI (barkEngi
 - **Sprint 2 (IA PvE y Orquestador):** 100% Implementado (Árbol heurístico Cadete/Comandante/General en aiBot.ts).
 - **Sprint 3 (Bark Engine Cómic & AirDrops/15s):** 100% Implementado (Viñetas Pop-Art sin audio, baliza equidistante y Duelo Espejo).
 - **Sprint 4 (Tactical Studio Editor):** 100% Implementado como herramienta interna Dev (Map Builder 180° simétrico, Sprite Studio y CO Bark Studio).
-- **Sprint 5 (Complejo Industrial & Mercado P2P):** 100% Implementado (Silos con merma de 10h, hornos de refinado y mercado con tasa del 12% a quema).
+- **Sprint 5 (Complejo Industrial & Mercado P2P):** 100% Implementado (Silos con merma, hornos de refinado y mercado libre P2P con split transaccional del 2% y bandas VWAP Collar ±25%).
 - **Sprint 6 (Corporaciones Militares & Salvaguarda):** 100% Implementado (Bóveda T1-T3, embargo a parásitos de 24h, reparto Top 3 y blindaje de racha).
 - **Sprint 7 (Ladder Asimétrico, Near-Miss & Tilt):** 100% Implementado (Tournament Cap N11 vs Ladder N1-N15, filtro APL <= 1.5, autopsia Near-Miss y oferta flash en 180s por $0.99).
-- **Estado Actual:** v0.8.5-PRODUCTION-READY-CORE (~87.5% del sistema global).`
+- **Sprint 8 & Metajuego Territorial Soberano:** 100% Implementado (Lienzo interactivo Wplace a pantalla completa, Hangares T1-T5, Guarniciones IA con MCTS, Ticker EC y 22 migraciones maestras de PostgreSQL).
+- **Estado Actual:** v0.1.0-GLOBAL-SOVEREIGNTY (Lanzamiento Alfa Canónico).`
       },
       {
         heading: '2. Hoja de Ruta Secuencial hacia Producción y Despliegue',

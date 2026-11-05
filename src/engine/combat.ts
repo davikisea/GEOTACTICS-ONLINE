@@ -236,8 +236,9 @@ export class CombatEngine {
     }
 
     const previousCaptureHp = propertyTile.captureHp ?? 20;
-    // La reducción de puntos de captura es exactamente igual al HP actual de la unidad
-    const capturePointsDeducted = Math.min(previousCaptureHp, unit.hp);
+    // La reducción de puntos de captura es proporcional al HP actual (escala 100 HP: 10 pts por turno a 100 HP, escala 10 HP: unit.hp)
+    const pointsPerTurn = (unit.maxHp === 100 || unit.hp > 10) ? Math.max(1, Math.ceil(unit.hp / 10)) : unit.hp;
+    const capturePointsDeducted = Math.min(previousCaptureHp, pointsPerTurn);
     const remainingCaptureHp = Math.max(0, previousCaptureHp - capturePointsDeducted);
 
     const isCompleted = remainingCaptureHp === 0;

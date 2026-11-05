@@ -1,0 +1,39 @@
+﻿{
+    "frames":  {
+                   "smoke_beacon_idle_0.png":  {
+                                                   "trimmed":  false,
+                                                   "spriteSourceSize":  {
+                                                                            "y":  0,
+                                                                            "w":  16,
+                                                                            "h":  16,
+                                                                            "x":  0
+                                                                        },
+                                                   "sourceSize":  {
+                                                                      "h":  16,
+                                                                      "w":  16
+                                                                  },
+                                                   "rotated":  false,
+                                                   "frame":  {
+                                                                 "y":  0,
+                                                                 "w":  16,
+                                                                 "h":  16,
+                                                                 "x":  0
+                                                             }
+                                               }
+               },
+    "meta":  {
+                 "image":  "smoke_beacon_idle_orange-star.png",
+                 "unitCode":  "smoke_beacon",
+                 "size":  {
+                              "h":  16,
+                              "w":  16
+                          },
+                 "version":  "1.0.0",
+                 "timestamp":  "2026-11-04T22:04:02.6407511-04:00",
+                 "format":  "RGBA8888",
+                 "scale":  "1",
+                 "app":  "Tactical Studio Atlas Engine",
+                 "faction":  "orange-star",
+                 "animation":  "idle"
+             }
+}

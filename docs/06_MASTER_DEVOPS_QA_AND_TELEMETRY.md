@@ -69,14 +69,13 @@ Verifican que las fórmulas matemáticas, reglas de cuadrícula y subsistemas de
   * `coSystem.test.ts` & `expandedCOs.test.ts`: Los 28 COs canónicos, cálculo de carga estelar ($9,000G/estrella), bonos COP/SCOP y efectos instantáneos.
   * `barkEngine.test.ts`: Selección estocástica ponderada de diálogos, buffer anti-repetición de 5 turnos, interpolación de camaradería y sellos Pop-Art.
 - **Economía, Suministros y Metajuego:**
-  * `airdropSystem.test.ts`: Equidistancia Manhattan estricta ($|D_1 - D_2| \le 1$), tabla de botín ponderada y reclamación atómica.
-  * `turnEconomy.test.ts`: Generación de fondos por propiedades, costes de reparación de 10%/HP y reabastecimiento gratuito.
-  * `deckAndSupply.test.ts`: Validación de mazo de 10 cartas (ranuras 1 y 2 obligatorias) y Soft Cap logístico en 14 tropas ($200G/t exceso).
+  * `hangarAndSupply.test.ts`: Validación de la Doble Llave ($G in-match + stock Hangar), Kit F2P inagotable (infantry/recon) y Soft Cap logístico en 14 tropas ($200G/t exceso).
+  * `turnEconomy.test.ts`: Generación de fondos por propiedades, costes de reparación a 1% de coste por HP y reabastecimiento en ciudades.
   * `industrialEngine.test.ts`: Cuadrícula de 10 parcelas territoriales, ciclo circadiano de 16h, merma suave (1.5%/h) y 70% a Cargamento Varado.
   * `clanSystem.test.ts`: Bóveda corporativa T1-T3, embargo por deshonor con reparto 50/30/20 y Salvaguarda Táctica con seguro de racha.
+  * `metagame.test.ts`: Topología territorial, asedios de 10,000 TCP, curva superlineal de sobre-expansión, relevo por guarniciones IA e impuestos P2P del 2%.
 - **Competición, Arenas y Redes:**
   * `rankedLadderEngine.test.ts`: 10 Arenas + 3 Ligas Legendarias, Factor K dinámico, Escudo de Descenso con 3 cargas y Season Reset cada 28 días.
-  * `asymmetricLadderEngine.test.ts`: Cap de Torneo en Nivel 11, escalado $+2.0\%$/nivel en ladder, APL ponderado Boltzmann Softmax ($\gamma=0.35$), informe Near-Miss y ofertas flash de tilt (\$0.99 en 180s).
   * `aiBot.test.ts`: Heurísticas de toma de decisiones para IA en dificultades Fácil, Normal y Difícil.
   * `autonomousOrchestrator.test.ts`: Flujo completo de turnos para Duelo Espejo (15s), Blitz (30s) y Campaña (60s).
   * `mapImporter.test.ts` & `src/editor/mapBuilder.test.ts`: Importador AWBW y verificación de simetría rotacional de 180°.

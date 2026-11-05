@@ -9,8 +9,15 @@ import {
 } from '../../engine/coSystem';
 import { audioManager } from '../../engine/audioManager';
 import { triggerHaptic } from '../../engine/hapticFeedback';
-import { Zap, Flame, ShieldAlert, Sparkles, ChevronDown } from 'lucide-react';
+import { Zap, Flame, ShieldAlert, Sparkles, ChevronDown, Radio, Clock, ShieldCheck } from 'lucide-react';
 import { TacticalGhostBar } from '../lobby/TacticalGhostBar';
+
+export interface ReinforcementStatusInfo {
+  requested: boolean;
+  arrivalTurn?: number;
+  isDelivered?: boolean;
+  currentTurn?: number;
+}
 
 interface COCommandBarProps {
   player: 'p1' | 'p2';
@@ -19,6 +26,8 @@ interface COCommandBarProps {
   onSelectCO: (coId: COId) => void;
   onActivatePower: (powerType: COPowerType) => void;
   compact?: boolean;
+  onCallReinforcements?: () => void;
+  reinforcementStatus?: ReinforcementStatusInfo;
 }
 
 export const COCommandBar: React.FC<COCommandBarProps> = ({
@@ -28,13 +37,15 @@ export const COCommandBar: React.FC<COCommandBarProps> = ({
   onSelectCO,
   onActivatePower,
   compact = false,
+  onCallReinforcements,
+  reinforcementStatus,
 }) => {
   const co = COEngine.getCO(coState.coId);
   const copThreshold = COEngine.getPowerChargeThreshold(coState.coId, 'cop');
   const scopThreshold = COEngine.getPowerChargeThreshold(coState.coId, 'scop');
 
   const totalStars = co.powers.scop.stars;
-  const copStars = co.powers.cop.stars;
+  const copStars = co.powers.cop?.stars ?? 0;
 
   const currentMeter = coState.powerMeter;
   const maxMeter = scopThreshold;
@@ -101,7 +112,7 @@ export const COCommandBar: React.FC<COCommandBarProps> = ({
               ? 'bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-[0_0_8px_rgba(251,191,36,0.6)] animate-pulse cursor-pointer'
               : 'bg-[#2B2C24] text-slate-600 border border-slate-800 cursor-not-allowed opacity-50'
           }`}
-          title={`Activar Poder Menor: ${co.powers.cop.name} (${copStars}★) - Atajo: [P]`}
+          title={`Activar Poder Menor: ${co.powers.cop?.name ?? 'Sin COP'} (${copStars}★) - Atajo: [P]`}
         >
           <Zap className="w-2.5 h-2.5" />
           <span>COP</span>
@@ -127,6 +138,36 @@ export const COCommandBar: React.FC<COCommandBarProps> = ({
           <span>SCOP</span>
           <span className="text-[8px] opacity-75 font-mono">(O)</span>
         </button>
+
+        {/* Widget de Refuerzos Tácticos V2 */}
+        {reinforcementStatus && (
+          <div className="flex items-center ml-1">
+            {!reinforcementStatus.requested && onCallReinforcements && isCurrentTurn ? (
+              <button
+                onClick={() => {
+                  triggerHaptic('unit_order');
+                  audioManager.playAirdropImpact();
+                  onCallReinforcements();
+                }}
+                className="px-1.5 py-0.5 rounded-[4px_1px_4px_1px] text-[9px] font-black uppercase bg-[#46521F] hover:bg-[#586827] text-amber-300 border border-[#0A0B08] flex items-center gap-1 shadow-[2px_2px_0px_#0A0B08] cursor-pointer"
+                title="Pedir Refuerzos (1x por partida, llegada en Ronda T+4, -15% score)"
+              >
+                <Radio className="w-2.5 h-2.5 text-amber-300" />
+                <span>REFUERZOS</span>
+              </button>
+            ) : reinforcementStatus.requested && !reinforcementStatus.isDelivered ? (
+              <span className="px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 text-[8px] font-bold border border-amber-500 animate-pulse flex items-center gap-1">
+                <Clock className="w-2.5 h-2.5" />
+                T+{Math.max(0, (reinforcementStatus.arrivalTurn ?? 4) - (reinforcementStatus.currentTurn ?? 1))}
+              </span>
+            ) : reinforcementStatus.isDelivered ? (
+              <span className="px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 text-[8px] font-bold border border-emerald-500 flex items-center gap-0.5">
+                <ShieldCheck className="w-2.5 h-2.5" />
+                DESPLEGADO
+              </span>
+            ) : null}
+          </div>
+        )}
       </div>
     );
   }
@@ -210,10 +251,10 @@ export const COCommandBar: React.FC<COCommandBarProps> = ({
                 ? 'bg-[#F2B705] hover:bg-amber-300 text-[#0A0B08] border-2 border-[#0A0B08] shadow-[3px_3px_0px_#0A0B08] animate-bounce'
                 : 'bg-[#181914] text-[#D8D1C5]/40 border border-[#0A0B08] cursor-not-allowed'
             }`}
-            title={`${co.powers.cop.description} - Atajo: [P]`}
+            title={`${co.powers.cop?.description ?? 'Sin poder menor'} - Atajo: [P]`}
           >
             <Zap className="w-3.5 h-3.5" />
-            <span>COP: {co.powers.cop.name} ({copStars}★)</span>
+            <span>COP: {co.powers.cop?.name ?? 'N/A'} ({copStars}★)</span>
             <span className="text-[9px] px-1 py-0.5 rounded bg-[#0A0B08]/20 text-[#0A0B08] font-black">[P]</span>
           </button>
 
@@ -236,6 +277,37 @@ export const COCommandBar: React.FC<COCommandBarProps> = ({
             <span>SCOP: {co.powers.scop.name} ({totalStars}★)</span>
             <span className="text-[9px] px-1 py-0.5 rounded bg-[#0A0B08]/20 text-[#0A0B08] font-black">[O]</span>
           </button>
+
+          {/* Botón Refuerzos Metajuego V2 */}
+          {reinforcementStatus && (
+            <div className="flex items-center">
+              {!reinforcementStatus.requested && onCallReinforcements && isCurrentTurn ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('unit_order');
+                    audioManager.playAirdropImpact();
+                    onCallReinforcements();
+                  }}
+                  className="px-2.5 py-1.5 rounded-[10px_2px_10px_2px] text-xs font-mono font-bold flex items-center gap-1.5 bg-[#46521F] hover:bg-[#586827] text-amber-300 border-2 border-[#0A0B08] shadow-[3px_3px_0px_#0A0B08] cursor-pointer"
+                  title="Pedir Refuerzos del Hangar (Llegada en 4 rondas, penalización -15% score)"
+                >
+                  <Radio className="w-3.5 h-3.5 text-amber-300" />
+                  <span>REFUERZOS (T+4)</span>
+                </button>
+              ) : reinforcementStatus.requested && !reinforcementStatus.isDelivered ? (
+                <span className="px-2.5 py-1 rounded-[6px_2px_6px_2px] bg-amber-950 text-amber-300 text-xs font-mono font-extrabold border border-amber-500 animate-pulse flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-amber-400" />
+                  <span>REFUERZOS EN CAMINO (LLEGAN EN RONDA {reinforcementStatus.arrivalTurn})</span>
+                </span>
+              ) : reinforcementStatus.isDelivered ? (
+                <span className="px-2.5 py-1 rounded-[6px_2px_6px_2px] bg-emerald-950 text-emerald-300 text-xs font-mono font-bold border border-emerald-500 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>REFUERZOS DESPLEGADOS (-15% SCORE)</span>
+                </span>
+              ) : null}
+            </div>
+          )}
         </div>
       </div>
 

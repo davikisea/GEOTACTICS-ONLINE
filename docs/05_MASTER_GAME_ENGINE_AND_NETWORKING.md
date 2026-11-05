@@ -1,13 +1,14 @@
 # VOLUMEN 5: ARQUITECTURA TÉCNICA DEL MOTOR, RED Y FRONTEND CANVAS
 **Documento Canónico Unificado:** `05_MASTER_GAME_ENGINE_AND_NETWORKING.md`  
 **Proyecto:** *Tactical Command: Wars of Legacy*  
-**Versión:** 4.0.0-DEFINITIVE-MASTER-SPEC  
+**Versión:** 5.0.0-DEFINITIVE-MASTER-SPEC  
 **Estado:** Documento de Verdad Absoluta (SSOT - Single Source of Truth)  
 **Archivos Consolidados y Reemplazados:**  
 - `03_GAME_ENGINE_ARCHITECTURE.md` (Completo)  
 - `04_NETWORKING_AND_BOTS.md` (Completo)  
 - `09_FRONTEND_ENGINE_AND_AI_ARCHITECTURE.md` (Completo)  
 - Secciones de motor y renderizado de `15_HYPER_ENGAGEMENT_AIRDROP_SYSTEM.md` y `16_HYPER_ENGAGEMENT_MIRROR_TACTICAL_DUEL.md`  
+- Motores de integración de GEOTACTICS (`territorialExpansionEngine`, `strategicAndProductionEngine`, `tacticalCombatSeamlessIntegration`).  
 
 ---
 
@@ -31,21 +32,19 @@ El núcleo del motor de juego (*Game Engine Core*) está escrito en **TypeScript
 
 # 2. SUBSISTEMAS DEL MOTOR TÁCTICO (TYPESCRIPT CORE)
 
-### 2.1 Gestor de Turnos y Tiempos (`autonomousOrchestrator.ts` & `airdropSystem.ts`)
+### 2.1 Gestor de Turnos y Tiempos (`autonomousOrchestrator.ts`)
 **[ESTADO: 100% IMPLEMENTADO Y OPERATIVO EN MOTOR Y CANVAS]**
 Controla la máquina de estados de las fases de turno y temporizadores en tiempo real:
 1. **`START_TURN`:**
    - Calcula ingresos netos por propiedades capturadas (multiplicador 1.5x en Duelo Espejo, 2.0x en Blitz, 1.0x en Campaña).
    - Aplica deducción de combustible por turno a la aviación (si llega a 0, la unidad se autodestruye).
    - Aplica la penalización de Soft Cap ($-\$200$G por unidad viva a partir de 14).
-   - Evalúa si el turno califica para generar un **AirDrop** en una celda de disputa equidistante mediante `AirDropEngine.calculateEquidistantDrop()`.
 2. **`ACTION_PHASE`:**
    - Temporizador de turno activo en tiempo real: **15 segundos** (Duelo Espejo), **30 segundos** (Blitz) o **60 segundos** (Campaña).
    - Árbitro Anti-AFK que cede el turno automáticamente al llegar a 0s.
-   - Procesa comandos de movimiento, ataque, captura, producción en fábricas y reclamación de AirDrops (`AirDropEngine.claimAirDrop()`).
+   - Procesa comandos de movimiento, ataque, captura y producción en fábricas con Doble Llave ($G in-match + stock en Hangar).
 3. **`END_TURN`:**
    - Limpia marcas de acción (`hasActed = false`).
-   - Purga cajas de suministros expiradas tras 2 turnos (`purgeExpiredDrops()`).
    - Concede el turno al oponente y reinicia el cronómetro del HUD.
 
 ### 2.2 Calculadora Determinista de Combate (`canonicalCombat.ts` & `combat.ts`)
@@ -142,6 +141,21 @@ Para proporcionar asistencia táctica visual y suministrar heurísticas al bot d
 2. **Mapa de Calor Convolucional (`heatMap`):**
    Se inicializa una matriz 2D $[H \times W]$ con ceros. Por cada unidad enemiga, se incrementan los valores de las celdas bajo su rango de ataque. La superposición indica zonas de fuego cruzado crítico ($\ge 2$ unidades enemigas convergiendo en la celda), visualizables en el canvas como gradientes de peligro para evitar errores de posicionamiento.
 
+### 2.6 Motores de Integración Territorial y Escalado Alice
+*Implementación de Referencia:* `src/engine/territorialExpansionEngine.ts`, `src/engine/strategicAndProductionEngine.ts`, `src/engine/tacticalCombatSeamlessIntegration.ts`.
+
+1. **Motor de Ondas Celulares Territorial.io (`territorialExpansionEngine.ts`):**
+   - Resuelve la expansión territorial mediante frentes continuos de celdas Voronoi/H3 alimentados por presupuesto de tropas/energía.
+   - Cada pulso de expansión (`executeTerritorialExpansion`) consume $\approx 150\text{ tropas/coste}$ por celda, propagando ondas outward concéntricas hacia baldosas adyacentes no reclamadas o neutrales.
+   - Detección automática de captura de Nodos Estratégicos (`checkStrategicNodeCaptureOnCell`) cuando una oleada alcanza la coordenada geográfica de un activo clave.
+2. **Motor de Nodos y Rendimiento Económico (`strategicAndProductionEngine.ts`):**
+   - Computa la agregación acumulativa de bonificaciones soberanas de los 7 nodos canónicos de Venezuela (Caracas, Maracaibo, Amuay, Paria, Guri, Margarita, Maracay).
+   - Genera los multiplicadores multiplicativos para extracción de Créditos Energéticos (`energyExtractionMult`), velocidad de forja (`forgeSpeedMult`) y bonos de recon/área.
+3. **Integración Táctica Sin Costuras (`tacticalCombatSeamlessIntegration.ts`):**
+   - Transiciona de forma continua entre el mapa macro de teatro y el tablero de asedio táctico (Semantic LOD 1 $\to$ 2 $\to$ 3).
+   - Valida la regla de Doble Llave ($G in-match + stock en hangar) en tiempo de instanciación.
+   - Liquida pérdidas definitivas descontando del hangar del usuario o facción y calculando el retorno del 35% de chatarra recuperable (`tech_scrap`).
+
 ---
 
 # 3. SINCRONIZACIÓN DE RED Y REALTIME WEBSOCKETS
@@ -196,16 +210,36 @@ Se establece una estricta taxonomía económica de 3 niveles:
 
 ---
 
-# 4. RENDERIZADO FRONTEND EN CANVAS 2D / WEBGL Y AUDIO PROCEDURAL
+# 4. RENDERIZADO FRONTEND: MAPLIBRE GL WEBGL, CANVAS 2D Y AUDIO PROCEDURAL
 
-### 4.1 Bucle de Renderizado a 60 FPS
-- **Capas de Dibujo:**
-  1. *Capa 0 (Terreno Base):* Malla de celdas estáticas dibujada en un OffscreenCanvas para evitar redibujados innecesarios.
-  2. *Capa 1 (Propiedades y Fábricas):* Sprites de ciudades con animación de bandera según el bando capturador.
-  3. *Capa 2 (AirDrops):* Sprite de baliza de suministros con gradiente radial oscilante mediante $\sin(\text{time} \times 4)$.
-  4. *Capa 3 (Unidades):* Sprites pixelados escalados por pixel art nítido (`imageSmoothingEnabled = false`), con barras de HP proporcionales.
-  5. *Capa 4 (Niebla de Guerra):* Máscara semitransparente con recorte radial (*globalCompositeOperation = 'destination-out'*).
-  6. *Capa 5 (VFX y Onomatopeyas):* Sellos de cómic Pop-Art, explosiones de partículas y trazos de proyectiles.
+### 4.1 Arquitectura Híbrida de Renderizado y Semantic LOD
+El cliente de *Tactical Command* combina dos motores de renderizado optimizados para soportar la experiencia sin costuras desde la perspectiva planetaria hasta la escaramuza de baldosas:
+
+1. **Motor Cartográfico Macro (MapLibre GL / OpenPlace WebGL 2.0):**
+   - Renderiza el globo terráqueo en modo oscuro estilo C4ISR (*dark mode militar*).
+   - El resto de continentes y países no jugables permanecen atenuados con opacidad al 25% y shader de desaturación.
+   - Proyecta los polígonos vectoriales GeoJSON de las 24 regiones de Venezuela y las 7 zonas limítrofes con coloreado dinámico según la facción soberana.
+   - Pinta en tiempo real las olas de celdas celulares Voronoi/H3 conquistadas por clanes estilo *Territorial.io*.
+
+2. **Niveles de Detalle Semántico (Semantic LOD 1 / 2 / 3):**
+   - **LOD 1 (Continental / Estratégico, $z < 6.0$):**
+     * Vista de mapa satelital simplificado.
+     * Fronteras nacionales consolidadas, niebla macro estática y marcas heráldicas de las alianzas dominantes.
+   - **LOD 2 (Operacional de Teatro, $6.0 \le z < 13.0$):**
+     * Desglose provincial en micro-regiones.
+     * Capa activa de celdas de avance territorial, flechas de vector de marcha y marcadores tridimensionales de los 7 Nodos Estratégicos (Amuay, Paria, Guri, etc.).
+     * Proyección de asedios en curso con barras de Puntos de Control Territorial (TCP) y cuentas regresivas de Handshake (120s).
+   - **LOD 3 (Táctico Local / Batalla, $z \ge 13.0$):**
+     * Transición sin pantallas de carga al tablero de asedio Advance Wars sobre cuadrícula ortogonal $24 \times 24$.
+     * Bucle de dibujo a 60 FPS con micro-terrenos, niebla de guerra con raycasting radial y sprites de combate.
+
+3. **Bucle de Dibujo en Canvas Táctico a 60 FPS:**
+   - *Capa 0 (Terreno Base):* Malla de celdas estáticas dibujada en un OffscreenCanvas para evitar redibujados innecesarios.
+   - *Capa 1 (Propiedades y Fábricas):* Sprites de ciudades con animación de bandera según el bando capturador.
+   - *Capa 2 (AirDrops):* Sprite de baliza de suministros con gradiente radial oscilante mediante $\sin(\text{time} \times 4)$.
+   - *Capa 3 (Unidades):* Sprites pixelados escalados por pixel art nítido (`imageSmoothingEnabled = false`), con barras de HP proporcionales de 1 a 100.
+   - *Capa 4 (Niebla de Guerra):* Máscara semitransparente con recorte radial (*globalCompositeOperation = 'destination-out'*).
+   - *Capa 5 (VFX y Onomatopeyas):* Sellos de cómic Pop-Art, explosiones de partículas y trazos de proyectiles.
 
 ### 4.2 Motor de Audio Procedural Web Audio API
 El juego **no descarga archivos de sonido externos** (.mp3 o .wav). Todos los efectos son sintetizados al vuelo mediante nodos de osciladores senoidales, ruido blanco y filtros biquad:

@@ -61,7 +61,14 @@ export type BarkTriggerContext =
   | 'airdrop_spawn'
   | 'airdrop_claimed'
   | 'tilt_streak'
-  | 'idle_funds';
+  | 'idle_funds'
+  | 'region_claimed'
+  | 'siege_declared'
+  | 'capital_hegemony'
+  | 'overexpansion_warning'
+  | 'chokepoint_toll'
+  | 'buffer_zone_blocked'
+  | 'edict_enacted';
 
 export type BubbleShape = 'speech' | 'shout' | 'thought' | 'whisper' | 'radio' | 'panic';
 
@@ -270,6 +277,90 @@ export const CANONICAL_BARK_TEMPLATES: BarkTemplate[] = [
     priorityWeight: 20,
     cooldownTurns: 3,
     text: '¡Suministros aéreos detectados! ¡Aseguren esa caja antes de que esos buitres la toquen!',
+  },
+  {
+    id: 'stella_geo_region_claimed_01',
+    commanderId: 'stella',
+    triggerContext: 'region_claimed',
+    bubbleShape: 'shout',
+    onomatopoeia: '¡CLUTCH!',
+    mood: 'proud',
+    minBondingLevel: 1,
+    priorityWeight: 32,
+    cooldownTurns: 2,
+    text: '¡Bandera izada en {unit_name}! La soberanía de este sector ahora responde a nuestro mando, {player_name}.',
+  },
+  {
+    id: 'stella_geo_siege_declared_01',
+    commanderId: 'stella',
+    triggerContext: 'siege_declared',
+    bubbleShape: 'radio',
+    onomatopoeia: '¡TACTICAL!',
+    mood: 'tactical_focus',
+    minBondingLevel: 1,
+    priorityWeight: 28,
+    cooldownTurns: 2,
+    text: '¡Operación geopolítica en marcha sobre {unit_name}! Erosión de TCP confirmada desde nuestra frontera aliada.',
+  },
+  {
+    id: 'stella_geo_capital_hegemony_01',
+    commanderId: 'stella',
+    triggerContext: 'capital_hegemony',
+    bubbleShape: 'shout',
+    onomatopoeia: '¡CALCULATED!',
+    mood: 'proud',
+    minBondingLevel: 1,
+    priorityWeight: 35,
+    cooldownTurns: 4,
+    text: '¡Distrito Capital Caracas bajo control hegemónico! +15% de rendimiento energético y aranceles preferenciales activos.',
+  },
+  {
+    id: 'stella_geo_overexpansion_01',
+    commanderId: 'stella',
+    triggerContext: 'overexpansion_warning',
+    bubbleShape: 'thought',
+    onomatopoeia: '¡ALERT!',
+    mood: 'alarmed',
+    minBondingLevel: 1,
+    priorityWeight: 30,
+    cooldownTurns: 3,
+    text: '¡Atención {player_name}! Hemos superado el límite imperial de 6 regiones. El exponente 1.8 está drenando nuestras Células de Energía.',
+  },
+  {
+    id: 'stella_geo_chokepoint_01',
+    commanderId: 'stella',
+    triggerContext: 'chokepoint_toll',
+    bubbleShape: 'speech',
+    onomatopoeia: '¡HOLD!',
+    mood: 'tactical_focus',
+    minBondingLevel: 1,
+    priorityWeight: 24,
+    cooldownTurns: 2,
+    text: 'Aduana marítima recalibrada en {unit_name}. Ningún convoy cruzará el estrecho sin pagar peaje a nuestra tesorería.',
+  },
+  {
+    id: 'stella_geo_buffer_blocked_01',
+    commanderId: 'stella',
+    triggerContext: 'buffer_zone_blocked',
+    bubbleShape: 'radio',
+    onomatopoeia: '¡HOLD!',
+    mood: 'stern',
+    minBondingLevel: 1,
+    priorityWeight: 26,
+    cooldownTurns: 2,
+    text: 'Alto ahí, {player_name}. {unit_name} es una Zona de Amortiguación internacional fuera del Teatro Venezuela de Fase 1.',
+  },
+  {
+    id: 'stella_geo_edict_01',
+    commanderId: 'stella',
+    triggerContext: 'edict_enacted',
+    bubbleShape: 'speech',
+    onomatopoeia: '¡CALCULATED!',
+    mood: 'proud',
+    minBondingLevel: 1,
+    priorityWeight: 28,
+    cooldownTurns: 2,
+    text: 'Directiva de Estado Mayor promulgada: «{unit_name}». Los gobernadores regionales ya ejecutan el nuevo protocolo.',
   },
 
   // ========================== VOLKOV ==========================
@@ -560,6 +651,20 @@ export interface BarkContextPayload {
   bondingLevel?: number;
 }
 
+export interface BarkSelfOptimizationMetrics {
+  testSubjectCommanderId: 'stella';
+  totalTriggersEvaluated: number;
+  totalBarksEmitted: number;
+  repetitionSuppressionsCount: number;
+  userPokeCount: number;
+  adaptiveScorePercent: number;
+  contextFrequencyMap: Record<string, number>;
+  dynamicWeightMultipliers: Record<string, number>;
+  lastOptimizedAt: string;
+}
+
+const BARK_OPTIMIZATION_STORAGE_KEY = 'geotactics_bark_self_opt_stella_v1';
+
 type BarkListener = (bark: ActiveBarkDisplay) => void;
 
 class ProceduralBarkEngine {
@@ -569,8 +674,59 @@ class ProceduralBarkEngine {
   private currentTurnCooldowns: Map<string, number> = new Map();
   private activeBark: ActiveBarkDisplay | null = null;
   private activeTimeoutId: number | null = null;
+  private singleSubjectLock: boolean = true; // CAPA 3 MVP: Sujeto de Prueba Único ('stella')
+  private optMetrics: BarkSelfOptimizationMetrics;
 
-  private constructor() {}
+  private constructor() {
+    this.optMetrics = this.loadOptimizationMetrics();
+  }
+
+  private loadOptimizationMetrics(): BarkSelfOptimizationMetrics {
+    try {
+      const raw = localStorage.getItem(BARK_OPTIMIZATION_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as BarkSelfOptimizationMetrics;
+        if (parsed && parsed.testSubjectCommanderId === 'stella') {
+          return parsed;
+        }
+      }
+    } catch {
+      // Fallback
+    }
+    return {
+      testSubjectCommanderId: 'stella',
+      totalTriggersEvaluated: 0,
+      totalBarksEmitted: 0,
+      repetitionSuppressionsCount: 0,
+      userPokeCount: 0,
+      adaptiveScorePercent: 92,
+      contextFrequencyMap: {},
+      dynamicWeightMultipliers: {},
+      lastOptimizedAt: new Date().toLocaleTimeString(),
+    };
+  }
+
+  private saveOptimizationMetrics(): void {
+    try {
+      localStorage.setItem(BARK_OPTIMIZATION_STORAGE_KEY, JSON.stringify(this.optMetrics));
+    } catch {}
+  }
+
+  public getSelfOptimizationMetrics(): BarkSelfOptimizationMetrics {
+    return { ...this.optMetrics };
+  }
+
+  public recordUserPokeOptimization(): BarkSelfOptimizationMetrics {
+    this.optMetrics.userPokeCount += 1;
+    this.optMetrics.totalTriggersEvaluated += 1;
+    this.optMetrics.adaptiveScorePercent = Math.min(
+      99,
+      Math.round(88 + Math.log2(this.optMetrics.totalTriggersEvaluated + 2) * 2.1)
+    );
+    this.optMetrics.lastOptimizedAt = new Date().toLocaleTimeString();
+    this.saveOptimizationMetrics();
+    return this.getSelfOptimizationMetrics();
+  }
 
   public static getInstance(): ProceduralBarkEngine {
     if (!ProceduralBarkEngine.instance) {
@@ -586,10 +742,17 @@ class ProceduralBarkEngine {
 
   /**
    * Detona un diálogo reactivo del comandante según el contexto táctico actual.
+   * En el MVP de 3 Capas, el motor fuerza al sujeto de prueba único ('stella') y
+   * auto-optimiza los pesos de muestreo para evitar fatiga cognitiva.
    */
   public async triggerBark(context: BarkContextPayload): Promise<ActiveBarkDisplay | null> {
-    const bondingLevel = context.bondingLevel ?? 1;
+    const effectiveCommanderId = this.singleSubjectLock ? 'stella' : context.commanderId;
+    const bondingLevel = context.bondingLevel ?? 3;
     const playerName = context.playerName || 'Comandante';
+
+    this.optMetrics.totalTriggersEvaluated += 1;
+    this.optMetrics.contextFrequencyMap[context.triggerContext] =
+      (this.optMetrics.contextFrequencyMap[context.triggerContext] || 0) + 1;
 
     // 1. Intentar consultar RPC en Supabase si está disponible en línea
     let selectedTemplate: BarkTemplate | null = null;
@@ -600,14 +763,14 @@ class ProceduralBarkEngine {
         args: Record<string, unknown>
       ) => Promise<{ data: Record<string, unknown> | null; error: unknown }>;
       const { data, error } = await rpcFn('rpc_get_contextual_bark', {
-        p_commander_id: context.commanderId,
+        p_commander_id: effectiveCommanderId,
         p_trigger_context: context.triggerContext,
       });
 
       if (!error && data && data.has_bark) {
         selectedTemplate = {
           id: String(data.bark_id),
-          commanderId: String(data.commander_id),
+          commanderId: 'stella',
           triggerContext: context.triggerContext,
           bubbleShape: data.speaker_shape as BubbleShape,
           onomatopoeia: data.onomatopoeia as OnomatopoeiaStamp,
@@ -622,14 +785,41 @@ class ProceduralBarkEngine {
       // Modo offline o simulación local: continúa al fallback local sin interrupción
     }
 
-    // 2. Si no hubo RPC o estamos offline, usar el catálogo canónico local con muestreo O(1)
+    // 2. Si no hubo RPC o estamos offline, usar el catálogo canónico local con muestreo O(1) auto-optimizado
     if (!selectedTemplate) {
-      selectedTemplate = this.sampleLocalTemplate(context.commanderId, context.triggerContext, bondingLevel);
+      selectedTemplate = this.sampleLocalTemplate(effectiveCommanderId, context.triggerContext, bondingLevel);
     }
 
     if (!selectedTemplate) {
       return null;
     }
+
+    // 3. Auto-optimización de pesos (Reduce peso de plantillas recién emitidas e incrementa variedad)
+    this.optMetrics.totalBarksEmitted += 1;
+    const prevMult = this.optMetrics.dynamicWeightMultipliers[selectedTemplate.id] ?? 1.0;
+    this.optMetrics.dynamicWeightMultipliers[selectedTemplate.id] = Number(
+      Math.max(0.35, prevMult * 0.82).toFixed(2)
+    );
+    // Recuperar gradualmente el peso de plantillas no usadas recientemente
+    for (const key of Object.keys(this.optMetrics.dynamicWeightMultipliers)) {
+      if (key !== selectedTemplate.id) {
+        this.optMetrics.dynamicWeightMultipliers[key] = Number(
+          Math.min(1.5, this.optMetrics.dynamicWeightMultipliers[key] * 1.06).toFixed(2)
+        );
+      }
+    }
+    this.optMetrics.adaptiveScorePercent = Math.min(
+      99,
+      Math.round(
+        85 +
+          Math.min(
+            14,
+            (this.optMetrics.repetitionSuppressionsCount + this.optMetrics.totalBarksEmitted) * 0.45
+          )
+      )
+    );
+    this.optMetrics.lastOptimizedAt = new Date().toLocaleTimeString();
+    this.saveOptimizationMetrics();
 
     // 3. Interpolación de tokens dinámicos
     let interpolatedText = selectedTemplate.text;
@@ -742,23 +932,32 @@ class ProceduralBarkEngine {
       return null;
     }
 
-    // Muestreo estocástico ponderado por priorityWeight
-    const totalWeight = candidates.reduce((sum, c) => sum + c.priorityWeight, 0);
+    // Muestreo estocástico ponderado por priorityWeight * multiplicador auto-optimizado
+    const getAdjustedWeight = (cand: BarkTemplate) => {
+      const mult = this.optMetrics.dynamicWeightMultipliers[cand.id] ?? 1.0;
+      return Math.max(1, cand.priorityWeight * mult);
+    };
+
+    const totalWeight = candidates.reduce((sum, c) => sum + getAdjustedWeight(c), 0);
     let rand = Math.random() * totalWeight;
 
     for (const cand of candidates) {
-      if (rand < cand.priorityWeight) {
+      const w = getAdjustedWeight(cand);
+      if (rand < w) {
         return cand;
       }
-      rand -= cand.priorityWeight;
+      rand -= w;
     }
 
     return candidates[0];
   }
 
   private recordBarkActivation(barkId: string): void {
+    if (this.recentBarkIds.includes(barkId)) {
+      this.optMetrics.repetitionSuppressionsCount += 1;
+    }
     this.recentBarkIds.push(barkId);
-    if (this.recentBarkIds.length > 5) {
+    if (this.recentBarkIds.length > 6) {
       this.recentBarkIds.shift();
     }
   }
@@ -766,6 +965,7 @@ class ProceduralBarkEngine {
   /**
    * Genera un Bark contextual inmediato para la Gran Viñeta Viva ("The Living Comic Canvas")
    * en función de la hora del día, resultado reciente, clic directo o hover sobre terminales.
+   * En el MVP de 3 Capas está bloqueado al sujeto de prueba único ('stella').
    */
   public getLobbyContextualBark(params: {
     commanderId: string;
@@ -775,7 +975,8 @@ class ProceduralBarkEngine {
     bondingLevel?: number;
     hourOfDay?: number;
   }): LobbyContextualBark {
-    const canonicalId = resolveCanonicalCOId(params.commanderId);
+    const effectiveCoId = this.singleSubjectLock ? 'stella' : params.commanderId;
+    const canonicalId = resolveCanonicalCOId(effectiveCoId);
     const co = CANONICAL_CO_REGISTRY[canonicalId];
     const hour = params.hourOfDay ?? new Date().getHours();
     const player = (params.bondingLevel ?? 1) >= 3 ? (params.playerName || 'Comandante') : 'Cadete';

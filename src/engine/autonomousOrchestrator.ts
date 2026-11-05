@@ -4,6 +4,8 @@ import { CombatEngine } from './combat';
 import { CaptureEngine } from './captureSystem';
 import { TurnEconomyEngine, CANONICAL_UNIT_PRODUCTION_CATALOG } from './turnEconomy';
 import { COEngine, COPowerType, PlayerCOState } from './coSystem';
+import { TacticalReinforcementEngine, ReinforcementState } from './reinforcementEngine';
+import { MASTER_METAGAME_CONSTANTS } from '../types/metagame';
 
 export type GameMode = 'hotseat_2p' | 'vs_bot' | 'bot_vs_bot';
 export type MatchFormat = 'blitz_skirmish' | 'grand_campaign' | 'mirror_duel';
@@ -136,6 +138,9 @@ export class AutonomousTurnOrchestrator {
 
   private matchStartTime: number = Date.now();
   private turnStartTime: number = Date.now();
+  private matchId: string = `match-${Date.now()}`;
+  private p1ReinforcementState: ReinforcementState = TacticalReinforcementEngine.createInitialState();
+  private p2ReinforcementState: ReinforcementState = TacticalReinforcementEngine.createInitialState();
   private telemetry: MatchTelemetry = {
     p1DamageDealt: 0,
     p2DamageDealt: 0,
@@ -215,6 +220,87 @@ export class AutonomousTurnOrchestrator {
   public getIsProcessingBot(): boolean { return this.isProcessingBotTurn; }
   public getTelemetry(): MatchTelemetry { return { ...this.telemetry }; }
 
+  public requestReinforcements(
+    player: 'p1' | 'p2',
+    units: Array<{ unitCode: string; tier: number; level: number; hp: number }>
+  ): { success: boolean; arrivalTurn?: number; reason?: string } {
+    const state = player === 'p1' ? this.p1ReinforcementState : this.p2ReinforcementState;
+    const res = TacticalReinforcementEngine.queueReinforcement(state, {
+      matchId: this.matchId,
+      playerId: player,
+      currentTurn: this.turnNumber,
+      units,
+    });
+    if (res.success) {
+      if (player === 'p1') this.p1ReinforcementState = res.updatedState;
+      else this.p2ReinforcementState = res.updatedState;
+      this.notify({ type: 'STATE_CHANGED' });
+      return { success: true, arrivalTurn: res.updatedState.arrivalTurn };
+    }
+    return { success: false, reason: res.error };
+  }
+
+  public getReinforcementStatus(player: 'p1' | 'p2') {
+    const state = player === 'p1' ? this.p1ReinforcementState : this.p2ReinforcementState;
+    return {
+      requested: state.hasRequested,
+      arrivalTurn: state.arrivalTurn,
+      isDelivered: state.isDelivered,
+      currentTurn: this.turnNumber,
+    };
+  }
+
+  private deployArrivingReinforcements(
+    player: 'p1' | 'p2',
+    units: Array<{ unitCode: string; tier: number; level: number; hp: number }>
+  ): void {
+    const hqTile = this.tiles.flat().find(t => t.type === 'hq' && t.ownerId === player);
+    const factoryTiles = this.tiles.flat().filter(t => t.type === 'factory' && t.ownerId === player);
+    const candidateTiles = [hqTile, ...factoryTiles].filter((t): t is TerrainTile => t !== undefined);
+
+    let unitIndex = 0;
+    for (const tile of candidateTiles) {
+      if (unitIndex >= units.length) break;
+      const isOccupied = this.units.some(u => u.x === tile.x && u.y === tile.y);
+      if (!isOccupied) {
+        const u = units[unitIndex];
+        const newTacticalUnit: TacticalUnit = {
+          id: `reinf-${Date.now()}-${unitIndex}`,
+          name: u.unitCode,
+          unitCode: u.unitCode,
+          displayName: u.unitCode,
+          ownerId: player,
+          x: tile.x,
+          y: tile.y,
+          hp: u.hp > 10 ? u.hp : u.hp * 10,
+          maxHp: MASTER_METAGAME_CONSTANTS.CANONICAL_MAX_HP,
+          movePoints: 4,
+          moveType: 'treads',
+          rangeMin: 1,
+          rangeMax: 1,
+          minRange: 1,
+          maxRange: 1,
+          ammo: 6,
+          maxAmmo: 6,
+          fuel: 60,
+          maxFuel: 60,
+          vision: 3,
+          productionCost: 3000,
+          hasMoved: false,
+          hasActed: false,
+          canCapture: false,
+          isDiving: false,
+          baseAttack: 70,
+          armorType: 'vehicle',
+          weaponType: 'cannon',
+        };
+        this.units.push(newTacticalUnit);
+        unitIndex++;
+      }
+    }
+    this.notify({ type: 'STATE_CHANGED' });
+  }
+
   // ==========================================================================
   // CICLO PRINCIPAL DE TURNOS
   // ==========================================================================
@@ -269,6 +355,15 @@ export class AutonomousTurnOrchestrator {
     );
     this.units = repairResult.updatedUnits;
     this.playerFunds[nextPlayer] = repairResult.updatedFunds;
+
+    // 3.5 Verificar llegada de refuerzos tácticos del metajuego (T + 4)
+    const state = nextPlayer === 'p1' ? this.p1ReinforcementState : this.p2ReinforcementState;
+    const arrivalCheck = TacticalReinforcementEngine.checkReinforcementArrival(state, this.turnNumber);
+    if (arrivalCheck.shouldDeploy) {
+      this.deployArrivingReinforcements(nextPlayer, arrivalCheck.unitsToDeploy);
+      if (nextPlayer === 'p1') this.p1ReinforcementState.isDelivered = true;
+      else this.p2ReinforcementState.isDelivered = true;
+    }
 
     // 4. Resetear estado de acción de todas las tropas del jugador entrante
     this.units = this.units.map(u => {
@@ -399,19 +494,20 @@ export class AutonomousTurnOrchestrator {
         const newUnit: TacticalUnit = {
           id: `bot_spawn_${action.spawnUnitCode}_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
           unitCode: action.spawnUnitCode,
-          displayName: catalogEntry.name,
+          displayName: catalogEntry.displayName,
           ownerId: botPlayerId,
           x: action.factoryPosition.x,
           y: action.factoryPosition.y,
-          hp: 10,
-          maxHp: 10,
+          hp: 100,
+          maxHp: 100,
+          tier: 1,
           ammo: catalogEntry.ammo,
           fuel: catalogEntry.fuel,
           movementPoints: catalogEntry.movementPoints,
           movementType: catalogEntry.movementType,
           minRange: catalogEntry.minRange,
           maxRange: catalogEntry.maxRange,
-          visionRange: catalogEntry.visionRange,
+          visionRange: catalogEntry.visionRange ?? 3,
           baseAttack: catalogEntry.baseAttack,
           productionCost: cost,
           hasMoved: true,
@@ -471,7 +567,7 @@ export class AutonomousTurnOrchestrator {
         const combat = CombatEngine.calculateDamage(attacker, defender, attackerTile, defenderTile);
 
         // Aplicar daño al defensor
-        defender.hp = combat.defenderHpRemaining;
+        defender.hp = combat.defenderHpAfter;
         const dmgDealtKey = botPlayerId === 'p1' ? 'p1DamageDealt' : 'p2DamageDealt';
         this.telemetry[dmgDealtKey] += combat.attackerDamageDealt;
 
@@ -481,7 +577,7 @@ export class AutonomousTurnOrchestrator {
           this.units = this.units.filter(u => u.id !== defender.id);
         } else if (combat.canCounterAttack && combat.counterDamageDealt > 0) {
           // Contraataque sobre el atacante
-          attacker.hp = combat.attackerHpRemaining;
+          attacker.hp = combat.attackerHpAfter;
           const counterKey = defender.ownerId === 'p1' ? 'p1DamageDealt' : 'p2DamageDealt';
           this.telemetry[counterKey] += combat.counterDamageDealt;
 
@@ -587,6 +683,16 @@ export class AutonomousTurnOrchestrator {
     const creditsEarned = isOffline
       ? Math.max(10, Math.floor(baseOnlineCredits * offlineMultiplier * diffMult))
       : baseOnlineCredits;
+
+    // Penalización Canónica de Victoria Pírrica (-15% si se solicitaron refuerzos tácticos)
+    const hasCalledReinf = this.p1ReinforcementState.hasRequested;
+    const finalXp = hasCalledReinf
+      ? TacticalReinforcementEngine.applyPyrrhicVictoryPenalty(xpEarned)
+      : xpEarned;
+    const finalCredits = hasCalledReinf
+      ? TacticalReinforcementEngine.applyPyrrhicVictoryPenalty(creditsEarned)
+      : creditsEarned;
+
     const trophiesDelta = isOffline ? 0 : (winner === 'p1' ? 30 : winner === 'p2' ? -18 : 0);
 
     return {
@@ -609,8 +715,8 @@ export class AutonomousTurnOrchestrator {
         fundsSpent: this.telemetry.p2FundsSpent,
         propertiesControlled: p2Props,
       },
-      xpEarned,
-      creditsEarned,
+      xpEarned: finalXp,
+      creditsEarned: finalCredits,
       trophiesDelta,
     };
   }

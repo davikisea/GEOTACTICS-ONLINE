@@ -124,36 +124,26 @@ Textos tipográficos rotados con sombra dura y reborde negro implementados en `s
 
 ---
 
-# 3. DIAGNÓSTICO BALÍSTICO POST-COMBATE: PROTOCOLO "NEAR-MISS"
-**[ESTADO: 100% IMPLEMENTADO Y CERTIFICADO EN MOTOR, FRONTEND Y TESTS]**  
-*Implementación de Referencia:* `src/engine/asymmetricLadderEngine.ts`, `src/components/battle/NearMissAnalysisModal.tsx`, `src/components/shop/TiltEmergencyOfferModal.tsx`, `src/engine/asymmetricLadderEngine.test.ts`.
-
-Cuando un jugador resulta derrotado en el Ladder Clasificatorio Diario ante un oponente cuyas tropas supervivientes quedaron con un margen estrecho ($\le 2$ HP):
+# 3. DIAGNÓSTICO BALÍSTICO POST-COMBATE Y LIQUIDACIÓN TERRITORIAL
+**[ESTADO: ACTUALIZADO AL CANON GEOTACTICS: ONLINE (v0.0.1-alfa)]**  
+*Nota Arquitectónica:* El antiguo modelo de ofertas flash Tilt ($0.99) y niveles de carta 1-15 (`asymmetricLadderEngine.ts`, `TiltEmergencyOfferModal.tsx`) ha sido **deprecado y archivado** en `docs/archive_legacy/code_v0_ccg/`. En su lugar, el reporte post-combate en batallas provinciales opera mediante el RPC transaccional `settle_territorial_combat_losses`, acreditando el **35% de chatarra tecnológica (`tech_scrap`)** sobre los chasis destruidos para su refundición en lingotes de acero.
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│  🔍 ANÁLISIS DE TELEMETRÍA DEL ALTO MANDO: CASI-VICTORIA       │
+│  🔍 INFORME DE DAÑOS Y PÉRDIDAS DEL ALTO MANDO MILITAR         │
 │                                                                │
-│  [TU TANQUE LIGERO (NIVEL 9)]   vs   [TANQUE RIVAL (NIVEL 12)] │
-│  HP Final Defensor Rival:       [■□□□□□□□□□] (1 HP RESTANTE)   │
+│  BATALLA TERRITORIAL: REG_VE_01 (Caracas Central)              │
+│  ESTADO DE OPERACIÓN:  DERROTA TÁCTICA (-1,500 TCP)            │
 │                                                                │
-│  ┌──────────────┐                                              │
-│  │  [VIÑETA     │  /~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\ │
-│  │   STELLA     │ |  ¡MALDITA SEA! Tuviste la estrategia      | │
-│  │   ANALÍTICA  │ <  correcta, pero su blindaje de Nivel 12   | │
-│  │   CON PLANO] │ |  absorbió el impacto con solo 1 HP.       | │
-│  │              │  \___________________  ____________________/ │
-│  └──────────────┘                      \/                      │
+│  BAJAS REGISTRADAS EN HANGAR:                                  │
+│  • 1x Tanque Medio T1 (Destruido) -> Sumidero Real             │
+│  • 1x Artillería T1 (Destruida)   -> Sumidero Real             │
 │                                                                │
-│  INFORME DE BALÍSTICA:                                         │
-│  Si tu Tanque Ligero hubiese estado a Nivel 11, este disparo   │
-│  habría infligido +1.8 de daño, DESTRUYENDO la unidad rival.   │
+│  RECUPERACIÓN DE MATERIAL BÉLICO (35% TECH SCRAP):             │
+│  • Chatarra Tecnológica Acreditada: +455 Scrap                 │
+│  • Tasa de Conversión en Fundición: 2 Scrap -> 1 Acero         │
 │                                                                │
-│  ESTADO DE RECURSOS PARA MEJORA A NIVEL 10:                   │
-│  • Planos: [ 250 / 200 ] (¡COMPLETO!)                          │
-│  • Vigas de Acero: [ 35 / 50 ] (Faltan 15 Vigas)               │
-│                                                                │
-│   [ 🏭 COMPRAR ACERO EN MERCADO P2P ]   [ 🔧 IR AL HANGAR ]    │
+│   [ 🏭 FORJAR CHASIS EN PARCELAS ]   [ 🛡️ SALVAGUARDA F2P ]    │
 └────────────────────────────────────────────────────────────────┘
 ```
 
