@@ -16,8 +16,9 @@
  * 5. Cola de Refinado Multi-Batch (hasta 3 ciclos consecutivos de producción autónoma).
  * 6. Escalado de Mejora de Cartas calibrado (N1-N11 Cap de Torneo con 20 chips por carta;
  *    N12-N15 curva exponencial suavizada O(n^1.6)).
- * 7. Mercado P2P con Tasa Municipal del 12%, bandas dinámicas ±35% del PMM y
- *    Banco Central de Intendencia Militar (NPC) que absorbe órdenes tras 6 horas.
+ * 7. Mercado P2P con Tasa Municipal del 12%, bandas dinámicas ±35% del PMM,
+ *    economía Player-Driven estricta (purga del bot NPC): cargamento varado (strandedCargo)
+ *    y decay comercial real si no hay compradores locales.
  */
 
 export type CorporateSpecialization = 'none' | 'vulcan' | 'aegis' | 'titan';
@@ -86,6 +87,9 @@ export interface StrandedCargo {
   strandedStone: number;
   strandedRareEarth: number;
   strandedFuel: number;
+  strandedSteel?: number;
+  strandedConcrete?: number;
+  strandedMicrochip?: number;
 }
 
 export interface RefiningRecipe {
@@ -195,8 +199,11 @@ export interface P2PMarketListing {
   totalPriceGold: number;
   taxDeductedGold: number; // 12%
   netSellerRevenueGold: number; // 88%
-  status: 'active' | 'sold' | 'cancelled';
+  status: 'active' | 'sold' | 'cancelled' | 'stranded';
   createdAt: number;
+  isStranded?: boolean;
+  strandedAt?: number;
+  decayPenaltyPercent?: number;
 }
 
 export interface TerritoryHarvestResult {
@@ -600,17 +607,34 @@ export class IndustrialEngine {
 
   /**
    * Reclama el cargamento militar varado tras obtener una victoria en combate.
+   * Ahora soporta también la recuperación de bienes refinados varados por fricción comercial.
    */
   public static recoverStrandedCargo(
     inventory: IndustrialInventory,
     stranded: StrandedCargo
-  ): { updatedInventory: IndustrialInventory; recoveredIron: number; recoveredStone: number; recoveredRare: number } {
+  ): {
+    updatedInventory: IndustrialInventory;
+    recoveredIron: number;
+    recoveredStone: number;
+    recoveredRare: number;
+    recoveredFuel?: number;
+    recoveredSteel?: number;
+    recoveredConcrete?: number;
+    recoveredMicrochip?: number;
+  } {
+    const recoveredSteel = stranded.strandedSteel || 0;
+    const recoveredConcrete = stranded.strandedConcrete || 0;
+    const recoveredMicrochip = stranded.strandedMicrochip || 0;
+
     const updatedInventory: IndustrialInventory = {
       ...inventory,
       rawIron: inventory.rawIron + stranded.strandedIron,
       rawStone: inventory.rawStone + stranded.strandedStone,
       rawRareEarth: inventory.rawRareEarth + stranded.strandedRareEarth,
       campaignFuel: inventory.campaignFuel + stranded.strandedFuel,
+      refinedSteel: inventory.refinedSteel + recoveredSteel,
+      refinedConcrete: inventory.refinedConcrete + recoveredConcrete,
+      refinedMicrochip: inventory.refinedMicrochip + recoveredMicrochip,
     };
 
     return {
@@ -618,12 +642,19 @@ export class IndustrialEngine {
       recoveredIron: stranded.strandedIron,
       recoveredStone: stranded.strandedStone,
       recoveredRare: stranded.strandedRareEarth,
+      recoveredFuel: stranded.strandedFuel,
+      recoveredSteel,
+      recoveredConcrete,
+      recoveredMicrochip,
     };
   }
 
   /**
-   * Simulación del Banco Central de Intendencia Militar (NPC Market Maker):
-   * Absorbe órdenes activas de más de 6 horas en los límites de banda (±35%) para garantizar liquidez perpetua.
+   * Purga del Banco Central de Intendencia Militar (NPC Market Maker):
+   * Conforme a la doctrina económica Player-Driven (CCP / Albion Lens), se retira
+   * la absorción artificial de órdenes por bots NPC tras 6 horas.
+   * Si no hay compradores reales, las órdenes pasan a estado 'stranded' (Cargamento Varado)
+   * sujetas a riesgo logístico o para ser retiradas al silo por el vendedor.
    */
   public static fulfillStaleP2POrders(
     listings: P2PMarketListing[],
@@ -633,17 +664,18 @@ export class IndustrialEngine {
     updatedListings: P2PMarketListing[];
     fulfilledCount: number;
     totalCreditsDisbursed: number;
+    strandedCount: number;
   } {
-    let fulfilledCount = 0;
-    let totalCreditsDisbursed = 0;
+    let strandedCount = 0;
 
     const updatedListings = listings.map(order => {
       if (order.status === 'active' && currentTimeMs - order.createdAt >= maxAgeMs) {
-        fulfilledCount++;
-        totalCreditsDisbursed += order.netSellerRevenueGold;
+        strandedCount++;
         return {
           ...order,
-          status: 'sold' as const,
+          status: 'stranded' as const,
+          isStranded: true,
+          strandedAt: currentTimeMs,
         };
       }
       return order;
@@ -651,8 +683,152 @@ export class IndustrialEngine {
 
     return {
       updatedListings,
-      fulfilledCount,
-      totalCreditsDisbursed,
+      fulfilledCount: 0,
+      totalCreditsDisbursed: 0,
+      strandedCount,
+    };
+  }
+
+  /**
+   * Aplica la mecánica de Cargamento Varado y decay comercial real a órdenes estancadas en el mercado P2P.
+   * Si no hay compradores locales y la orden excede maxAgeMs (6 horas), la mercancía queda varada
+   * y comienza a sufrir merma por deterioro/riesgo logístico (1.5%/h extra, hasta un tope de 40%).
+   * El 70% de la mercancía mermada se transfiere al registro de StrandedCargo recuperable en combate.
+   */
+  public static processStrandedMarketListings(
+    listings: P2PMarketListing[],
+    currentTimeMs: number = Date.now(),
+    maxAgeMs: number = 6 * 3600 * 1000
+  ): {
+    updatedListings: P2PMarketListing[];
+    strandedOrdersCount: number;
+    decayLossMap: Map<string, { resourceType: RefinedResourceType; lostUnits: number; strandedRecoveryUnits: number }>;
+  } {
+    let strandedOrdersCount = 0;
+    const decayLossMap = new Map<string, { resourceType: RefinedResourceType; lostUnits: number; strandedRecoveryUnits: number }>();
+
+    const updatedListings = listings.map(order => {
+      if (order.status !== 'active' && order.status !== 'stranded') {
+        return order;
+      }
+
+      const elapsedMs = Math.max(0, currentTimeMs - order.createdAt);
+      if (elapsedMs < maxAgeMs) {
+        return order;
+      }
+
+      strandedOrdersCount++;
+      const excessHours = (elapsedMs - maxAgeMs) / (1000 * 60 * 60);
+      const decayRate = Math.min(this.CALIBRATED_MAX_DECAY, excessHours * this.CALIBRATED_DECAY_RATE);
+      const decayPenaltyPercent = Math.round(decayRate * 100);
+
+      const lostUnits = Math.floor(order.quantity * decayRate);
+      const strandedRecoveryUnits = Math.floor(lostUnits * this.STRANDED_CARGO_RECOVERY_RATIO);
+
+      decayLossMap.set(order.id, {
+        resourceType: order.resourceType,
+        lostUnits,
+        strandedRecoveryUnits,
+      });
+
+      return {
+        ...order,
+        status: 'stranded' as const,
+        isStranded: true,
+        strandedAt: order.strandedAt || currentTimeMs,
+        decayPenaltyPercent,
+      };
+    });
+
+    return {
+      updatedListings,
+      strandedOrdersCount,
+      decayLossMap,
+    };
+  }
+
+  /**
+   * Retira una orden varada o activa de regreso al silo del vendedor.
+   * Si ha sufrido decay comercial por estancamiento prolongado, se devuelven las unidades
+   * no mermadas y el 70% de la pérdida se añade al registro de cargamento varado recuperable.
+   */
+  public static withdrawListingToSilo(
+    listing: P2PMarketListing,
+    inventory: IndustrialInventory,
+    strandedCargo?: StrandedCargo,
+    currentTimeMs: number = Date.now(),
+    maxAgeMs: number = 6 * 3600 * 1000
+  ): {
+    success: boolean;
+    updatedListing?: P2PMarketListing;
+    updatedInventory?: IndustrialInventory;
+    updatedStrandedCargo?: StrandedCargo;
+    returnedQuantity: number;
+    decayedQuantity: number;
+    errorMessage?: string;
+  } {
+    if (listing.status !== 'active' && listing.status !== 'stranded') {
+      return {
+        success: false,
+        returnedQuantity: 0,
+        decayedQuantity: 0,
+        errorMessage: 'Solo se pueden retirar al silo órdenes activas o varadas.',
+      };
+    }
+
+    const elapsedMs = Math.max(0, currentTimeMs - listing.createdAt);
+    let decayedQuantity = 0;
+    let strandedRecoveryQuantity = 0;
+
+    if (elapsedMs > maxAgeMs) {
+      const excessHours = (elapsedMs - maxAgeMs) / (1000 * 60 * 60);
+      const decayRate = Math.min(this.CALIBRATED_MAX_DECAY, excessHours * this.CALIBRATED_DECAY_RATE);
+      decayedQuantity = Math.floor(listing.quantity * decayRate);
+      strandedRecoveryQuantity = Math.floor(decayedQuantity * this.STRANDED_CARGO_RECOVERY_RATIO);
+    }
+
+    const returnedQuantity = Math.max(0, listing.quantity - decayedQuantity);
+
+    const updatedInv: IndustrialInventory = {
+      ...inventory,
+      refinedSteel: listing.resourceType === 'refined_steel'
+        ? inventory.refinedSteel + returnedQuantity
+        : inventory.refinedSteel,
+      refinedConcrete: listing.resourceType === 'refined_concrete'
+        ? inventory.refinedConcrete + returnedQuantity
+        : inventory.refinedConcrete,
+      refinedMicrochip: listing.resourceType === 'refined_microchip'
+        ? inventory.refinedMicrochip + returnedQuantity
+        : inventory.refinedMicrochip,
+    };
+
+    let updatedStranded: StrandedCargo | undefined = strandedCargo;
+    if (strandedCargo && strandedRecoveryQuantity > 0) {
+      updatedStranded = {
+        ...strandedCargo,
+        strandedSteel: listing.resourceType === 'refined_steel'
+          ? (strandedCargo.strandedSteel || 0) + strandedRecoveryQuantity
+          : strandedCargo.strandedSteel,
+        strandedConcrete: listing.resourceType === 'refined_concrete'
+          ? (strandedCargo.strandedConcrete || 0) + strandedRecoveryQuantity
+          : strandedCargo.strandedConcrete,
+        strandedMicrochip: listing.resourceType === 'refined_microchip'
+          ? (strandedCargo.strandedMicrochip || 0) + strandedRecoveryQuantity
+          : strandedCargo.strandedMicrochip,
+      };
+    }
+
+    return {
+      success: true,
+      updatedListing: {
+        ...listing,
+        status: 'cancelled',
+        isStranded: false,
+      },
+      updatedInventory: updatedInv,
+      updatedStrandedCargo: updatedStranded,
+      returnedQuantity,
+      decayedQuantity,
     };
   }
 

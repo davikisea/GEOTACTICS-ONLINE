@@ -42,6 +42,13 @@ import {
   traceSupplyLine,
   validateSupplyLineConnectivity,
 } from './worldMapEngine';
+import { stateSovereigntyService } from '../services/stateSovereigntyService';
+import type {
+  ProvincialStrataState,
+  SecessionEvaluationResult,
+  StateSovereigntyRecord,
+} from '../types/stateSovereigntyTypes';
+
 
 // ============================================================================
 // 1. CONFIGURACIÓN CANÓNICA DE LAS 3 CAPAS DEL SISTEMA
@@ -372,14 +379,37 @@ export interface PoliticalAliceState {
   cycleCount: number;
   activeEdictIds: PoliticalEdictId[];
   chokepointTolls: {
-    'CHK-MARACAIBO': number; // 0.0% a 10.0% (Controlado por REG_VE_02 Zulia)
-    'CHK-PARIA': number;     // 0.0% a 10.0% (Controlado por REG_VE_13 Sucre)
+    'CHK-MARACAIBO': number; // 0.0% a 30.0% (Controlado por REG_VE_02 Zulia)
+    'CHK-PARIA': number;     // 0.0% a 30.0% (Controlado por REG_VE_13 Sucre)
   };
   sovereigntyMap: Record<string, GeotacticsRegionSovereignty>;
+  provincialStrataMap: Record<string, ProvincialStrataState>;
   operationLogs: PoliticalOperationLogEntry[];
 }
 
-const POLITICAL_STORAGE_KEY = 'geotactics_venezuela_political_state_v1';
+/**
+ * Inicializa los estratos sociales provinciales (POPs) canónicos para el Teatro Venezuela.
+ */
+function buildInitialProvincialStrataMap(): Record<string, ProvincialStrataState> {
+  const map: Record<string, ProvincialStrataState> = {};
+  const nowIso = new Date().toISOString();
+
+  for (const reg of CANONICAL_VENEZUELA_REGIONS) {
+    if (!reg.isPlayable) continue;
+    map[reg.id] = {
+      stateId: reg.id,
+      militaristsLoyalty: reg.isNationalCapital ? 95 : 85,
+      bureaucratsSatisfaction: 90,
+      petroLaborUnrest: 10,
+      oligarchCapitalFlight: 5,
+      secessionRiskPercent: 11,
+      isRebelControlled: false,
+      updatedAt: nowIso,
+    };
+  }
+
+  return map;
+}
 
 /**
  * Distribución geopolítica inicial en el Teatro Venezuela para que el MVP
@@ -492,9 +522,11 @@ export class PoliticalAliceEngine {
   private static instance: PoliticalAliceEngine;
   private state: PoliticalAliceState;
   private listeners: Set<(state: PoliticalAliceState) => void> = new Set();
+  private isSyncingFromService = false;
 
   private constructor() {
-    this.state = this.loadState();
+    this.state = this.createDefaultState();
+    this.initSovereigntySync();
   }
 
   public static getInstance(): PoliticalAliceEngine {
@@ -504,20 +536,44 @@ export class PoliticalAliceEngine {
     return PoliticalAliceEngine.instance;
   }
 
-  private loadState(): PoliticalAliceState {
-    try {
-      const raw = localStorage.getItem(POLITICAL_STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as PoliticalAliceState;
-        if (parsed && parsed.sovereigntyMap && parsed.sovereigntyMap['REG_VE_01']) {
-          return parsed;
-        }
-      }
-    } catch {
-      // Fallback al estado canónico inicial
-    }
+  private initSovereigntySync(): void {
+    // Sincronización inicial hacia stateSovereigntyService
+    this.syncToSovereigntyService();
 
-    return this.createDefaultState();
+    // Suscripción reactiva para recibir mutaciones externas desde stateSovereigntyService
+    stateSovereigntyService.subscribe((updated: StateSovereigntyRecord) => {
+      if (this.isSyncingFromService) return;
+      const sov = this.state.sovereigntyMap[updated.stateId];
+      if (sov) {
+        sov.controlPoints = updated.tcpCurrent;
+        sov.maxControlPoints = updated.tcpMax;
+        sov.bunkerLevel = (updated.defenseLevel as 1 | 2 | 3 | 4 | 5) || sov.bunkerLevel;
+        if (updated.controllingClanId) {
+          sov.controllerClanId = updated.controllingClanId;
+        }
+        if (updated.status === 'under_siege' && sov.status !== 'under_siege') {
+          sov.status = 'under_siege';
+        }
+        this.listeners.forEach(cb => cb(this.state));
+      }
+    });
+  }
+
+  private syncToSovereigntyService(): void {
+    this.isSyncingFromService = true;
+    try {
+      for (const [regionId, sov] of Object.entries(this.state.sovereigntyMap)) {
+        stateSovereigntyService.updateStateRecord(regionId, {
+          status: sov.status === 'occupied_grace' ? 'under_siege' : (sov.status as any),
+          tcpCurrent: sov.controlPoints,
+          tcpMax: sov.maxControlPoints,
+          defenseLevel: sov.bunkerLevel,
+          controllingClanId: sov.controllerClanId || undefined,
+        });
+      }
+    } finally {
+      this.isSyncingFromService = false;
+    }
   }
 
   public createDefaultState(): PoliticalAliceState {
@@ -534,6 +590,7 @@ export class PoliticalAliceEngine {
         'CHK-PARIA': 4.0,
       },
       sovereigntyMap: buildInitialSovereigntyMap(),
+      provincialStrataMap: buildInitialProvincialStrataMap(),
       operationLogs: [
         {
           id: 'op_boot_1',
@@ -549,11 +606,7 @@ export class PoliticalAliceEngine {
   }
 
   private saveState(): void {
-    try {
-      localStorage.setItem(POLITICAL_STORAGE_KEY, JSON.stringify(this.state));
-    } catch {
-      // Ignorar errores de cuota en modo privado
-    }
+    this.syncToSovereigntyService();
     this.listeners.forEach(cb => cb(this.state));
   }
 
@@ -572,6 +625,159 @@ export class PoliticalAliceEngine {
     this.state = this.createDefaultState();
     this.saveState();
     return this.state;
+  }
+
+  /**
+   * Obtiene la telemetría de estratos sociales (POPs) de una provincia.
+   */
+  public getProvincialStrata(regionId: string): ProvincialStrataState {
+    if (!this.state.provincialStrataMap[regionId]) {
+      const reg = this.getRegionById(regionId);
+      this.state.provincialStrataMap[regionId] = {
+        stateId: regionId,
+        militaristsLoyalty: reg?.isNationalCapital ? 95 : 85,
+        bureaucratsSatisfaction: 90,
+        petroLaborUnrest: 10,
+        oligarchCapitalFlight: 5,
+        secessionRiskPercent: 11,
+        isRebelControlled: false,
+        updatedAt: new Date().toISOString(),
+      };
+    }
+    return this.state.provincialStrataMap[regionId];
+  }
+
+  /**
+   * Calcula el riesgo de secesión provincial (0-100%) como función combinada de Unrest
+   * y deslealtad militar, escalando superlinealmente cuando petroLaborUnrest > 70%.
+   */
+  public calculateSecessionRisk(strata: {
+    militaristsLoyalty: number;
+    petroLaborUnrest: number;
+    bureaucratsSatisfaction: number;
+    oligarchCapitalFlight: number;
+  }): number {
+    const disloyalty = Math.max(0, 100 - strata.militaristsLoyalty);
+    const unrest = Math.max(0, Math.min(100, strata.petroLaborUnrest));
+    const bureaucratStrain = Math.max(0, 100 - strata.bureaucratsSatisfaction);
+    const capitalFlight = Math.max(0, Math.min(100, strata.oligarchCapitalFlight));
+
+    // Función base combinada de descontento obrero y deslealtad militar
+    let risk = (unrest * 0.45) + (disloyalty * 0.35) + (bureaucratStrain * 0.12) + (capitalFlight * 0.08);
+
+    // Escalado superlineal si el descontento obrero (petroLaborUnrest) supera el 70%
+    if (unrest > 70) {
+      const excess = unrest - 70; // 0..30
+      const superlinearPenalty = Math.pow(excess / 30, 1.4) * 35;
+      risk += superlinearPenalty;
+    }
+
+    // Acelerador si la deslealtad militar también es crítica (> 60%)
+    if (disloyalty > 60) {
+      const excessDisloyalty = disloyalty - 60; // 0..40
+      risk += Math.pow(excessDisloyalty / 40, 1.2) * 15;
+    }
+
+    return Math.min(100, Math.max(0, Math.round(risk)));
+  }
+
+  /**
+   * Actualiza los estratos sociales provinciales (POPs) y recalcula el riesgo de secesión.
+   */
+  public updateProvincialStrata(
+    regionId: string,
+    partial: Partial<ProvincialStrataState>
+  ): ProvincialStrataState {
+    const current = this.getProvincialStrata(regionId);
+    const merged: ProvincialStrataState = {
+      ...current,
+      ...partial,
+      stateId: regionId,
+    };
+
+    if (partial.secessionRiskPercent === undefined) {
+      merged.secessionRiskPercent = this.calculateSecessionRisk(merged);
+    } else {
+      merged.secessionRiskPercent = Math.min(100, Math.max(0, Math.round(partial.secessionRiskPercent)));
+    }
+
+    merged.updatedAt = new Date().toISOString();
+    this.state.provincialStrataMap[regionId] = merged;
+    this.saveState();
+    return merged;
+  }
+
+  /**
+   * Evalúa el riesgo de secesión de una provincia.
+   * Si secessionRiskPercent > 80% y se produce la tirada de ruptura, la provincia
+   * entra en secesión armada ('under_siege'), desconectando sus líneas de suministro logístico.
+   */
+  public evaluateProvincialSecession(
+    regionId: string,
+    forceBreakRoll?: boolean
+  ): SecessionEvaluationResult {
+    const strata = this.getProvincialStrata(regionId);
+    const region = this.getRegionById(regionId);
+    const regionName = region?.name ?? regionId;
+
+    if (strata.secessionRiskPercent <= 80) {
+      return {
+        stateId: regionId,
+        seceded: false,
+        strata,
+        reason: `Riesgo de secesión controlado en ${regionName} (${strata.secessionRiskPercent}% <= 80%).`,
+      };
+    }
+
+    // Tirada de ruptura si secessionRiskPercent > 80%
+    const roll = Math.random() * 100;
+    const shouldBreak = forceBreakRoll !== undefined ? forceBreakRoll : roll < strata.secessionRiskPercent;
+
+    if (!shouldBreak) {
+      return {
+        stateId: regionId,
+        seceded: false,
+        strata,
+        reason: `Tirada de ruptura resistida por la guarnición militar en ${regionName} (${strata.secessionRiskPercent}% riesgo).`,
+      };
+    }
+
+    // Secesión armada: marcar como rebelde y pasar a status under_siege
+    const updatedStrata = this.updateProvincialStrata(regionId, {
+      isRebelControlled: true,
+      militaristsLoyalty: Math.min(strata.militaristsLoyalty, 15),
+      petroLaborUnrest: Math.max(strata.petroLaborUnrest, 85),
+    });
+
+    const sov = this.state.sovereigntyMap[regionId];
+    if (sov) {
+      this.state.sovereigntyMap[regionId] = {
+        ...sov,
+        status: 'under_siege',
+        updatedAt: new Date().toISOString(),
+      };
+    }
+
+    // Sincronizar cambio de status a stateSovereigntyService
+    stateSovereigntyService.updateStateRecord(regionId, {
+      status: 'under_siege',
+    });
+
+    this.prependLog({
+      type: 'siege',
+      regionId,
+      headline: `¡SECESIÓN ARMADA EN ${regionName.toUpperCase()}!`,
+      detail: `Riesgo crítico (${updatedStrata.secessionRiskPercent}%). Fricción anti-snowballing: La provincia se declara en rebeldía armada y corta las líneas de suministro logístico del clan dominante.`,
+    });
+
+    this.saveState();
+
+    return {
+      stateId: regionId,
+      seceded: true,
+      strata: updatedStrata,
+      reason: `Secesión armada consumada en ${regionName}: provincia en estado 'under_siege' y líneas logísticas desconectadas.`,
+    };
   }
 
   /**
@@ -607,7 +813,10 @@ export class PoliticalAliceEngine {
     supplyConnectedMap: Record<string, boolean>;
   } {
     const controlledRegions = CANONICAL_VENEZUELA_REGIONS.filter(
-      r => r.isPlayable && this.state.sovereigntyMap[r.id]?.controllerClanId === clanId
+      r =>
+        r.isPlayable &&
+        this.state.sovereigntyMap[r.id]?.controllerClanId === clanId &&
+        !this.getProvincialStrata(r.id).isRebelControlled
     );
     const deJureRegions = CANONICAL_VENEZUELA_REGIONS.filter(
       r => r.isPlayable && this.state.sovereigntyMap[r.id]?.ownerClanId === clanId
@@ -686,6 +895,14 @@ export class PoliticalAliceEngine {
       });
 
       hourlyEcGrossYield += Math.round(yieldVal * rgoEdictMultiplier);
+    }
+
+    // Fricción anti-snowballing: Provincias en secesión armada reportan desconexión logística total
+    for (const reg of CANONICAL_VENEZUELA_REGIONS) {
+      if (!reg.isPlayable) continue;
+      if (this.getProvincialStrata(reg.id).isRebelControlled) {
+        supplyConnectedMap[reg.id] = false;
+      }
     }
 
     // Ingresos por Peajes de Estrechos Estratégicos (CHK-MARACAIBO y CHK-PARIA)
@@ -1016,6 +1233,13 @@ export class PoliticalAliceEngine {
     const nextTcp = Math.min(sov.maxControlPoints, sov.controlPoints + 2500);
     const nextBunker = Math.min(5, sov.bunkerLevel + (sov.controlPoints >= sov.maxControlPoints ? 1 : 0)) as 1 | 2 | 3 | 4 | 5;
 
+    const currentStrata = this.getProvincialStrata(regionId);
+    this.updateProvincialStrata(regionId, {
+      isRebelControlled: false,
+      militaristsLoyalty: Math.min(100, currentStrata.militaristsLoyalty + 20),
+      petroLaborUnrest: Math.max(0, currentStrata.petroLaborUnrest - 25),
+    });
+
     const nowIso = new Date().toISOString();
     this.state.sovereigntyMap[regionId] = {
       ...sov,
@@ -1103,20 +1327,31 @@ export class PoliticalAliceEngine {
   }
 
   /**
-   * Ajusta la tasa de peaje (0% a 10%) en los estrechos estratégicos de Venezuela.
+   * Ajusta la tasa de peaje (0% a 30%) en los estrechos estratégicos de Venezuela.
    */
   public setChokepointToll(chokeId: 'CHK-MARACAIBO' | 'CHK-PARIA', tollPercent: number): {
     success: boolean;
     message: string;
   } {
-    const clamped = Math.max(0, Math.min(10, Number(tollPercent.toFixed(1))));
+    const clamped = Math.max(0, Math.min(30, Number(tollPercent.toFixed(1))));
     this.state.chokepointTolls[chokeId] = clamped;
+
+    const targetRegionId = chokeId === 'CHK-MARACAIBO' ? 'REG_VE_02' : 'REG_VE_13';
+
+    // Fuga de capitales de oligarcas si aranceles o peajes superan el 15%
+    if (clamped > 15) {
+      const currentFlight = this.getProvincialStrata(targetRegionId).oligarchCapitalFlight;
+      const newFlight = Math.min(100, currentFlight + Math.round((clamped - 15) * 3 + 15));
+      this.updateProvincialStrata(targetRegionId, { oligarchCapitalFlight: newFlight });
+    }
 
     this.prependLog({
       type: 'toll',
-      regionId: chokeId === 'CHK-MARACAIBO' ? 'REG_VE_02' : 'REG_VE_13',
+      regionId: targetRegionId,
       headline: `ARANCEL DE ESTRECHO ACTUALIZADO (${chokeId})`,
-      detail: `Nueva tarifa de tránsito marítimo/logístico fijada en ${clamped.toFixed(1)}%.`,
+      detail: `Nueva tarifa de tránsito marítimo/logístico fijada en ${clamped.toFixed(1)}%${
+        clamped > 15 ? ' [ALERTA: Fuga de capitales de oligarcas por aranceles superiores al 15%]' : ''
+      }.`,
     });
 
     this.saveState();
@@ -1175,6 +1410,77 @@ export class PoliticalAliceEngine {
         isEnergyStarved: isStarved,
         controlPoints: regeneratedTcp,
       };
+    }
+
+    // Actualización de Estratos Sociales Provinciales (POPs) y Fricción Anti-Snowballing
+    const imperialCap = THREE_LAYER_ARCHITECTURE.layer1PoliticalMetagame.imperialCapRegions; // 6
+    const controlledCount = metrics.controlledRegions.length;
+    const isOverextended = controlledCount > imperialCap;
+    const overextensionDelta = isOverextended ? (controlledCount - imperialCap) : 0;
+
+    const maxToll = Math.max(
+      this.state.chokepointTolls['CHK-MARACAIBO'] ?? 0,
+      this.state.chokepointTolls['CHK-PARIA'] ?? 0
+    );
+
+    for (const reg of metrics.controlledRegions) {
+      const sov = this.state.sovereigntyMap[reg.id];
+      const strata = this.getProvincialStrata(reg.id);
+      if (!sov) continue;
+
+      let loyalty = strata.militaristsLoyalty;
+      let satisfaction = strata.bureaucratsSatisfaction;
+      let unrest = strata.petroLaborUnrest;
+      let capitalFlight = strata.oligarchCapitalFlight;
+
+      // 1. militaristsLoyalty (0-100%): cae si búnkeres decaen o están subfinanciados / inanición
+      if (isStarved) {
+        loyalty = Math.max(0, loyalty - 15);
+      } else if (sov.bunkerLevel <= 1) {
+        loyalty = Math.max(0, loyalty - 6);
+      } else if (sov.bunkerLevel >= 3) {
+        loyalty = Math.min(100, loyalty + 5);
+      }
+
+      // 2. bureaucratsSatisfaction (0-100%): cae con la sobre-extensión imperial (N_reg > K_Límite)
+      if (isOverextended) {
+        const strain = Math.round(overextensionDelta * 8);
+        satisfaction = Math.max(0, satisfaction - strain);
+      } else {
+        satisfaction = Math.min(100, satisfaction + 5);
+      }
+
+      // 3. petroLaborUnrest (0-100%): sube si producción regional sufre inanición o desconexión logística
+      if (isStarved) {
+        unrest = Math.min(100, unrest + 20);
+      } else if (!metrics.supplyConnectedMap[reg.id]) {
+        unrest = Math.min(100, unrest + 15);
+      } else if (reg.resourceTier >= 4) {
+        unrest = Math.min(100, unrest + 4);
+      } else {
+        unrest = Math.max(0, unrest - 4);
+      }
+
+      // 4. oligarchCapitalFlight (0-100%): sube si aranceles o peajes superan el 15%
+      if (maxToll > 15) {
+        const excess = maxToll - 15;
+        capitalFlight = Math.min(100, capitalFlight + Math.round(excess * 3 + 12));
+      } else {
+        capitalFlight = Math.max(0, capitalFlight - 4);
+      }
+
+      // Sincronizar y recalcular riesgo de secesión
+      const updatedStrata = this.updateProvincialStrata(reg.id, {
+        militaristsLoyalty: loyalty,
+        bureaucratsSatisfaction: satisfaction,
+        petroLaborUnrest: unrest,
+        oligarchCapitalFlight: capitalFlight,
+      });
+
+      // Evaluar secesión si el riesgo supera el 80%
+      if (updatedStrata.secessionRiskPercent > 80 && !updatedStrata.isRebelControlled) {
+        this.evaluateProvincialSecession(reg.id);
+      }
     }
 
     const summary = isStarved

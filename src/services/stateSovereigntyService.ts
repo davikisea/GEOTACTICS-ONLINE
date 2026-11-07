@@ -337,6 +337,42 @@ class StateSovereigntyService {
   }
 
   /**
+   * Sincroniza directamente un registro de soberanía territorial desde el motor geopolítico
+   * (actualizando TCP, status, fortificación, recursos, etc.).
+   */
+  public updateStateRecord(stateId: string, patch: Partial<StateSovereigntyRecord>): StateSovereigntyRecord {
+    const existing = this.getState(stateId) || {
+      stateId,
+      countryId: 'COUNTRY_VEN',
+      canonicalCountryName: 'República de Venezuela',
+      customCountryName: 'República Soberana de Venezuela',
+      canonicalStateName: stateId,
+      customStateName: stateId,
+      controllingFactionId: 'blue_moon' as FactionId,
+      controllingClanId: 'clan-ferro',
+      controllingClanTag: 'FERR',
+      controllingClanName: 'Legión Blindada Ferro',
+      status: 'stable',
+      tcpCurrent: 10000,
+      tcpMax: 10000,
+      gdpWarCreditsPerHour: 5000,
+      resources: { oil: 100, steel: 150, rareEarth: 10, composites: 25 },
+      defenseLevel: 2,
+    };
+
+    const updated: StateSovereigntyRecord = {
+      ...existing,
+      ...patch,
+      stateId,
+      resources: patch.resources ? { ...existing.resources, ...patch.resources } : existing.resources,
+    };
+
+    this.statesMap.set(stateId, updated);
+    this.notifyListeners(updated);
+    return updated;
+  }
+
+  /**
    * Actualiza el concepto del País y del Estado soberano tras validación de permisos RBAC.
    */
   public async updateStateSovereignty(

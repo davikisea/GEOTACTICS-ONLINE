@@ -15,6 +15,7 @@ import {
   RoadSurfaceQuality,
   CommanderFieldPosition,
 } from '../types/tacticalRoadTypes';
+import { SpatialRoadIndex } from './spatialRoadIndex';
 
 export interface RouteStep {
   fromNodeId: string;
@@ -55,6 +56,7 @@ export class RoadNetworkEngine {
   private nodes: Map<string, RoadNode> = new Map();
   private segments: Map<string, RoadSegment> = new Map();
   private adjacencyList: Map<string, { targetNodeId: string; segmentId: string }[]> = new Map();
+  private spatialIndex: SpatialRoadIndex = new SpatialRoadIndex();
 
   constructor() {
     this.seedCabimasNetwork();
@@ -342,6 +344,7 @@ export class RoadNetworkEngine {
     if (!this.adjacencyList.has(node.id)) {
       this.adjacencyList.set(node.id, []);
     }
+    this.spatialIndex.insertNode(node);
   }
 
   public addSegment(segment: RoadSegment): void {
@@ -354,6 +357,11 @@ export class RoadNetworkEngine {
       targetNodeId: segment.fromNodeId,
       segmentId: segment.id,
     });
+    this.spatialIndex.insertSegment(segment);
+  }
+
+  public getSpatialIndex(): SpatialRoadIndex {
+    return this.spatialIndex;
   }
 
   public getNode(id: string): RoadNode | undefined {
@@ -495,32 +503,21 @@ export class RoadNetworkEngine {
   }
 
   /**
-   * Proyección y snapping analítico O(N): encuentra el nodo más cercano a unas coordenadas dadas
+   * Proyección y snapping espacial O(1)/O(log N): encuentra el nodo más cercano a unas coordenadas dadas
+   * utilizando partición espacial 2D nativa sin búsqueda por fuerza bruta O(N).
    */
   public snapCoordinatesToNearestNode(coords: [number, number]): {
     nearestNode: RoadNode | null;
     distanceKm: number;
   } {
-    let nearest: RoadNode | null = null;
-    let minDistance = Infinity;
-
-    for (const node of this.nodes.values()) {
-      const dx = (coords[0] - node.coordinates[0]) * 111.32 * Math.cos((node.coordinates[1] * Math.PI) / 180);
-      const dy = (coords[1] - node.coordinates[1]) * 110.57;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < minDistance) {
-        minDistance = dist;
-        nearest = node;
-      }
-    }
-
-    return { nearestNode: nearest, distanceKm: Number(minDistance.toFixed(2)) };
+    return this.spatialIndex.snapCoordinatesToNearestNode(coords);
   }
 
   /**
    * Valida si unas coordenadas geodésicas están a una distancia menor o igual
    * al umbral permitido (ej. 150 metros = 0.15 km) de una carretera o nodo vial.
    * Regla de Juego: Edificios industriales solo pueden erigirse adyacentes a vías.
+   * Ejecución O(1) tiempo constante gracias al SpatialRoadIndex.
    */
   public isLocationAdjacentToRoad(
     coords: [number, number],
@@ -530,26 +527,45 @@ export class RoadNetworkEngine {
     nearestSegmentId?: string;
     distanceMeters: number;
   } {
-    let minDistanceKm = Infinity;
-    let closestSegmentId: string | undefined;
+    return this.spatialIndex.isLocationAdjacentToRoad(coords, maxDistanceKm);
+  }
 
-    const nodeSnap = this.snapCoordinatesToNearestNode(coords);
-    if (nodeSnap.distanceKm < minDistanceKm) {
-      minDistanceKm = nodeSnap.distanceKm;
-      if (nodeSnap.nearestNode) {
-        const seg = Array.from(this.segments.values()).find(
-          s => s.fromNodeId === nodeSnap.nearestNode!.id || s.toNodeId === nodeSnap.nearestNode!.id
-        );
-        if (seg) closestSegmentId = seg.id;
+  /**
+   * Calcula el número mínimo de saltos (hops) en el grafo vial entre dos nodos
+   */
+  public getHopsBetweenNodes(startNodeId: string, endNodeId: string): number {
+    if (startNodeId === endNodeId) return 0;
+    if (!this.nodes.has(startNodeId) || !this.nodes.has(endNodeId)) return Infinity;
+
+    const visited = new Set<string>([startNodeId]);
+    const queue: { nodeId: string; hops: number }[] = [{ nodeId: startNodeId, hops: 0 }];
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      const neighbors = this.adjacencyList.get(current.nodeId) || [];
+      for (const edge of neighbors) {
+        if (edge.targetNodeId === endNodeId) {
+          return current.hops + 1;
+        }
+        if (!visited.has(edge.targetNodeId)) {
+          visited.add(edge.targetNodeId);
+          queue.push({ nodeId: edge.targetNodeId, hops: current.hops + 1 });
+        }
       }
     }
+    return Infinity;
+  }
 
-    const distanceMeters = Math.round(minDistanceKm * 1000);
-    return {
-      isAdjacent: minDistanceKm <= maxDistanceKm,
-      nearestSegmentId: closestSegmentId,
-      distanceMeters,
-    };
+  /**
+   * Calcula el número de saltos entre un nodo y un segmento vial
+   */
+  public getHopsToSegment(fromNodeId: string, segmentId: string): number {
+    const seg = this.segments.get(segmentId);
+    if (!seg) return Infinity;
+    if (fromNodeId === seg.fromNodeId || fromNodeId === seg.toNodeId) return 0;
+    const hopsFrom = this.getHopsBetweenNodes(fromNodeId, seg.fromNodeId);
+    const hopsTo = this.getHopsBetweenNodes(fromNodeId, seg.toNodeId);
+    return Math.min(hopsFrom, hopsTo);
   }
 
   /**

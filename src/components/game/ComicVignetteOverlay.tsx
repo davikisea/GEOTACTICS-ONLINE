@@ -36,6 +36,11 @@ export const ComicVignetteOverlay: React.FC<ComicVignetteOverlayProps> = ({
           audioManager.playSFX('co_power');
         } else if (bark.bubbleShape === 'radio') {
           audioManager.playSFX('unit_order');
+        } else if (bark.bubbleShape === 'panic') {
+          audioManager.playSFX('explosion');
+          if (typeof window !== 'undefined' && (window as any).__TRIGGER_TACTICAL_SHAKE__) {
+            try { (window as any).__TRIGGER_TACTICAL_SHAKE__(); } catch {}
+          }
         } else {
           audioManager.playSFX('unit_select');
         }
@@ -141,7 +146,7 @@ export const ComicVignetteOverlay: React.FC<ComicVignetteOverlayProps> = ({
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 max-w-xl w-full pointer-events-auto transition-all duration-300 animate-in fade-in slide-in-from-bottom-5">
+    <div className="fixed bottom-6 right-6 z-50 max-w-xl w-full pointer-events-auto transition-all duration-300 tactical-spring-bounce">
       {/* Contenedor Principal: Skill retro-futurism (Aerodinámico Atompunk con sombra dura) */}
       <div
         className="relative bg-[#46521F] border-4 border-[#7B8A4A] shadow-[12px_12px_0px_#0A0B08] rounded-[40px_10px_40px_10px] p-5 overflow-hidden"
@@ -178,7 +183,7 @@ export const ComicVignetteOverlay: React.FC<ComicVignetteOverlayProps> = ({
 
             <button
               onClick={handleClose}
-              className="text-[#F2E8D5] hover:text-[#C46A3A] p-1 transition-colors cursor-pointer"
+              className="tactical-btn-press text-[#F2E8D5] hover:text-[#C46A3A] p-1 transition-colors cursor-pointer"
               title="Cerrar Viñeta"
             >
               <X className="w-4 h-4" />
@@ -226,7 +231,7 @@ export const ComicVignetteOverlay: React.FC<ComicVignetteOverlayProps> = ({
             {/* Sello Pop-Art de Onomatopeya (Rotado, Sombra Dura y Reborde Negro) */}
             {currentBark.onomatopoeia && (
               <div
-                className="absolute -top-3 -right-3 sm:-right-4 px-3 py-1 bg-[#C46A3A] text-yellow-300 font-extrabold text-sm sm:text-base tracking-wider border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] uppercase select-none pointer-events-none"
+                className="tactical-spring-bounce absolute -top-3 -right-3 sm:-right-4 px-3 py-1 bg-[#C46A3A] text-yellow-300 font-extrabold text-sm sm:text-base tracking-wider border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] uppercase select-none pointer-events-none"
                 style={{
                   transform: `rotate(${currentBark.stampRotationDeg}deg)`,
                   textShadow: '2px 2px 0px #000, -1px -1px 0px #000',

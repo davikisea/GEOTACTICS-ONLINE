@@ -12,8 +12,114 @@ import {
   FiefBuilding,
   FiefBuildingType,
   FIEF_BUILDING_SPECS,
+  TacticalMapMark,
+  TacticalMarkEffectResult,
 } from '../types/tacticalRoadTypes';
 import { roadNetworkEngine } from '../engine/roadNetworkEngine';
+
+/**
+ * Calcula la distancia geodésica en kilómetros entre dos coordenadas [lng, lat].
+ */
+export function calculateGeodesicDistanceKm(coord1: [number, number], coord2: [number, number]): number {
+  const [lng1, lat1] = coord1;
+  const [lng2, lat2] = coord2;
+  const midLatRad = ((lat1 + lat2) / 2) * (Math.PI / 180);
+  const dx = (lng1 - lng2) * 111.32 * Math.cos(midLatRad);
+  const dy = (lat1 - lat2) * 110.57;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+/**
+ * 1. EFECTOS FUNCIONALES REALES DE MARCAS WPLACE
+ * Aplica los efectos tácticos de marcas WPlace sobre unidades/convoyes:
+ * - danger_mine: Inflige 400 HP de daño a convoyes/unidades hostiles en radio de 200m (0.2km).
+ * - rally_strike: Confiere +10% de ataque a tropas del clan en radio de 500m (0.5km).
+ * - recon: Disipa la niebla de guerra en un radio de 5 celdas espaciales (revelación de zona).
+ */
+export function applyTacticalMarkEffects(
+  unitCoords: [number, number],
+  marks: TacticalMapMark[],
+  unitClanIdOrOptions?: string | { unitClanId?: string; isHostile?: boolean },
+  explicitIsHostile?: boolean
+): TacticalMarkEffectResult {
+  let unitClanId: string | undefined;
+  let isHostile: boolean | undefined = explicitIsHostile;
+
+  if (typeof unitClanIdOrOptions === 'object' && unitClanIdOrOptions !== null) {
+    unitClanId = unitClanIdOrOptions.unitClanId;
+    if (unitClanIdOrOptions.isHostile !== undefined) {
+      isHostile = unitClanIdOrOptions.isHostile;
+    }
+  } else if (typeof unitClanIdOrOptions === 'string') {
+    unitClanId = unitClanIdOrOptions;
+  }
+
+  let damageInflicted = 0;
+  let attackBonusPercent = 0;
+  let moralBonusPercent = 0;
+  let fowRevealed = false;
+  let revealedRadiusCells = 0;
+  const triggeredMarks: TacticalMapMark[] = [];
+
+  for (const mark of marks) {
+    const distKm = calculateGeodesicDistanceKm(unitCoords, mark.location);
+
+    // Determinar si la unidad es hostil o aliada respecto a la marca
+    const isClanMatch = unitClanId ? mark.clanId === unitClanId : false;
+    const isTargetHostile = isHostile !== undefined
+      ? isHostile
+      : unitClanId
+        ? !isClanMatch
+        : true; // Por defecto hostil ante minas si no se especifica clan
+
+    const isTargetAllied = isHostile !== undefined
+      ? !isHostile
+      : unitClanId
+        ? isClanMatch
+        : true; // Por defecto tropas aliadas para buffs de clan
+
+    switch (mark.markType) {
+      case 'danger_mine': {
+        // Radio de 200m (0.2km)
+        if (distKm <= 0.2001 && isTargetHostile) {
+          damageInflicted += 400;
+          triggeredMarks.push(mark);
+        }
+        break;
+      }
+      case 'rally_strike': {
+        // Radio de 500m (0.5km)
+        if (distKm <= 0.5001 && isTargetAllied) {
+          attackBonusPercent += 10;
+          moralBonusPercent += 10;
+          triggeredMarks.push(mark);
+        }
+        break;
+      }
+      case 'recon': {
+        // Disipa niebla de guerra en radio de 5 celdas espaciales (~0.5km o adyacencia de zona)
+        if (distKm <= 0.5001) {
+          fowRevealed = true;
+          revealedRadiusCells = Math.max(revealedRadiusCells, 5);
+          triggeredMarks.push(mark);
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  return {
+    damageInflicted,
+    speedMultiplier: 1.0,
+    fowRevealed,
+    moralBonusPercent,
+    attackBonusPercent,
+    revealedRadiusCells: fowRevealed ? revealedRadiusCells : 0,
+    triggeredMarks,
+  };
+}
 
 export interface ClanTreasuryState {
   clanId: string;
@@ -346,6 +452,247 @@ export class FiefBuildingService {
     }
 
     return { type: 'FeatureCollection', features };
+  }
+
+  /**
+   * Configura el arancel aduanero del feudo (0% a 25%).
+   * Solo el clan controlador puede emitir o modificar la tasa arancelaria.
+   */
+  public setFiefTariff(
+    fiefId: string,
+    clanId: string,
+    taxRatePercent: number
+  ): { success: boolean; updatedTaxRate?: number; reason?: string } {
+    const fief = this.fiefs.get(fiefId);
+    if (!fief) {
+      return { success: false, reason: 'Feudo no encontrado.' };
+    }
+    if (fief.controllingClanId !== clanId) {
+      return {
+        success: false,
+        reason: 'Acción denegada: Solo el clan controlador puede configurar el arancel aduanero.',
+      };
+    }
+    if (taxRatePercent < 0 || taxRatePercent > 25) {
+      return {
+        success: false,
+        reason: 'Arancel inválido: La tasa debe configurarse entre 0% y 25%.',
+      };
+    }
+
+    fief.taxRatePercent = taxRatePercent;
+    this.notifyListeners();
+    return { success: true, updatedTaxRate: taxRatePercent };
+  }
+
+  /**
+   * Declara un embargo comercial contra un clan hostil.
+   * Impide que convoyes de dicho clan descarguen en terminales y muelles del feudo.
+   */
+  public declareCommercialEmbargo(
+    fiefId: string,
+    clanId: string,
+    targetClanId: string
+  ): { success: boolean; embargoedClanIds?: string[]; reason?: string } {
+    const fief = this.fiefs.get(fiefId);
+    if (!fief) {
+      return { success: false, reason: 'Feudo no encontrado.' };
+    }
+    if (fief.controllingClanId !== clanId) {
+      return {
+        success: false,
+        reason: 'Acción denegada: Solo el clan controlador puede declarar embargos comerciales.',
+      };
+    }
+    if (clanId === targetClanId) {
+      return {
+        success: false,
+        reason: 'Acción inválida: Un clan no puede declarar un embargo contra sí mismo.',
+      };
+    }
+
+    if (!fief.embargoedClanIds) {
+      fief.embargoedClanIds = [];
+    }
+
+    if (!fief.embargoedClanIds.includes(targetClanId)) {
+      fief.embargoedClanIds.push(targetClanId);
+    }
+
+    this.notifyListeners();
+    return { success: true, embargoedClanIds: [...fief.embargoedClanIds] };
+  }
+
+  /**
+   * Levanta el embargo comercial previamente impuesto sobre un clan.
+   */
+  public liftCommercialEmbargo(
+    fiefId: string,
+    clanId: string,
+    targetClanId: string
+  ): { success: boolean; embargoedClanIds?: string[]; reason?: string } {
+    const fief = this.fiefs.get(fiefId);
+    if (!fief) {
+      return { success: false, reason: 'Feudo no encontrado.' };
+    }
+    if (fief.controllingClanId !== clanId) {
+      return {
+        success: false,
+        reason: 'Acción denegada: Solo el clan controlador puede levantar embargos.',
+      };
+    }
+
+    if (fief.embargoedClanIds) {
+      fief.embargoedClanIds = fief.embargoedClanIds.filter(id => id !== targetClanId);
+    }
+
+    this.notifyListeners();
+    return { success: true, embargoedClanIds: [...(fief.embargoedClanIds || [])] };
+  }
+
+  /**
+   * Retorna la lista de clanes embargados en un feudo.
+   */
+  public getEmbargoedClans(fiefId: string): string[] {
+    return this.fiefs.get(fiefId)?.embargoedClanIds || [];
+  }
+
+  /**
+   * Verifica si un clan está bajo embargo en un feudo.
+   */
+  public isClanEmbargoed(fiefId: string, clanId: string): boolean {
+    return (this.fiefs.get(fiefId)?.embargoedClanIds || []).includes(clanId);
+  }
+
+  /**
+   * Valida si un convoy puede descargar en el terminal marítimo / muelle del feudo:
+   * 1. Bloqueo total si existe un embargo comercial activo contra el clan.
+   * 2. Exención para el clan controlador (0% arancel).
+   * 3. Cobro coercitivo de peaje/arancel aduanero (0% a 25%) para clanes foráneos autorizados.
+   */
+  public canConvoyDischarge(
+    fiefId: string,
+    convoyClanId: string,
+    cargoValueEc: number = 0,
+    convoyTreasury?: ClanTreasuryState
+  ): {
+    allowed: boolean;
+    isEmbargoed: boolean;
+    taxRatePercent: number;
+    requiredTollEc: number;
+    reason?: string;
+  } {
+    const fief = this.fiefs.get(fiefId);
+    if (!fief) {
+      return {
+        allowed: false,
+        isEmbargoed: false,
+        taxRatePercent: 0,
+        requiredTollEc: 0,
+        reason: 'Feudo no encontrado.',
+      };
+    }
+
+    // 1. Verificar si hay embargo activo contra el clan
+    if (fief.embargoedClanIds && fief.embargoedClanIds.includes(convoyClanId)) {
+      return {
+        allowed: false,
+        isEmbargoed: true,
+        taxRatePercent: fief.taxRatePercent,
+        requiredTollEc: 0,
+        reason: `Embargo comercial activo: Las operaciones y descargas de ${convoyClanId} están bloqueadas en ${fief.sectorName}.`,
+      };
+    }
+
+    // 2. Clan local controlador: exento de peaje coercitivo
+    if (fief.controllingClanId === convoyClanId) {
+      return {
+        allowed: true,
+        isEmbargoed: false,
+        taxRatePercent: 0,
+        requiredTollEc: 0,
+      };
+    }
+
+    // 3. Clan foráneo autorizado: cálculo de arancel coercitivo
+    const requiredTollEc = Math.ceil(cargoValueEc * (fief.taxRatePercent / 100));
+
+    if (convoyTreasury && convoyTreasury.energyCredits < requiredTollEc) {
+      return {
+        allowed: false,
+        isEmbargoed: false,
+        taxRatePercent: fief.taxRatePercent,
+        requiredTollEc,
+        reason: `Fondos insuficientes para peaje aduanero coercitivo. Requiere: ${requiredTollEc} EC, Disponible: ${convoyTreasury.energyCredits} EC.`,
+      };
+    }
+
+    return {
+      allowed: true,
+      isEmbargoed: false,
+      taxRatePercent: fief.taxRatePercent,
+      requiredTollEc,
+    };
+  }
+
+  /**
+   * Ejecuta la descarga comercial en un terminal portuario deduciendo el arancel
+   * aduanero y transfiriéndolo al tesoro del clan soberano del feudo.
+   */
+  public executeSeaportDischarge(params: {
+    fiefId: string;
+    convoyClanId: string;
+    cargoValueEc: number;
+    convoyTreasury: ClanTreasuryState;
+    controllingClanTreasury?: ClanTreasuryState;
+    buildingId?: string;
+  }): {
+    success: boolean;
+    feePaidEc: number;
+    netValueEc: number;
+    reason?: string;
+  } {
+    const check = this.canConvoyDischarge(
+      params.fiefId,
+      params.convoyClanId,
+      params.cargoValueEc,
+      params.convoyTreasury
+    );
+
+    if (!check.allowed) {
+      return {
+        success: false,
+        feePaidEc: 0,
+        netValueEc: 0,
+        reason: check.reason,
+      };
+    }
+
+    const feePaidEc = check.requiredTollEc;
+    params.convoyTreasury.energyCredits -= feePaidEc;
+
+    if (params.controllingClanTreasury && feePaidEc > 0) {
+      params.controllingClanTreasury.energyCredits += feePaidEc;
+    }
+
+    const netValueEc = Math.max(0, params.cargoValueEc - feePaidEc);
+    return {
+      success: true,
+      feePaidEc,
+      netValueEc,
+    };
+  }
+
+  /**
+   * Evalúa los efectos de marcas tácticas WPlace sobre una posición.
+   */
+  public applyTacticalMarkEffects(
+    unitCoords: [number, number],
+    marks: TacticalMapMark[],
+    unitClanIdOrOptions?: string | { unitClanId?: string; isHostile?: boolean },
+    explicitIsHostile?: boolean
+  ): TacticalMarkEffectResult {
+    return applyTacticalMarkEffects(unitCoords, marks, unitClanIdOrOptions, explicitIsHostile);
   }
 
   public subscribe(listener: () => void): () => void {

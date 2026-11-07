@@ -87,6 +87,9 @@ export interface TacticalMarkEffectResult {
   speedMultiplier: number;
   fowRevealed: boolean;
   moralBonusPercent: number;
+  attackBonusPercent?: number;
+  revealedRadiusCells?: number;
+  triggeredMarks?: TacticalMapMark[];
 }
 
 export type GarrisonTierLevel = 1 | 2 | 3 | 4;
@@ -186,6 +189,30 @@ export interface RoadBattleEvent {
   updatedAt: string;
 }
 
+export type RoadAmbushRiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'EXTREME_KILLZONE';
+
+export interface RoadAmbushRiskAssessment {
+  roadSegmentId: string;
+  ambushRiskScore: number; // 0.0 a 1.0
+  riskLevel: RoadAmbushRiskLevel;
+  iedVulnerabilityMultiplier: number;
+  ambushDamageBonusPercent: number;
+  isKillzone: boolean;
+  factors: {
+    surfaceRiskFactor: number;
+    roadClassFactor: number;
+    throughputVulnerabilityFactor: number;
+  };
+}
+
+export interface AerialInterceptionResult {
+  intercepted: boolean;
+  lethal: boolean;
+  damageDealt: number;
+  remainingHp: number;
+  reason: string;
+}
+
 export type C4ISRMapViewMode =
   | 'V1_SOVEREIGNTY'
   | 'V2_LOGISTICS'
@@ -205,6 +232,7 @@ export interface ClanFief {
   taxRatePercent: number; // 0.0 - 25.0% arancel municipal
   defenseLevel: number;
   jurisdictionNodeIds: string[];
+  embargoedClanIds?: string[];
   createdAt: string;
 }
 

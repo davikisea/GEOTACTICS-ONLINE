@@ -80,3 +80,11 @@ export interface ProvincialStrataState {
   updatedAt: string;
 }
 
+export interface SecessionEvaluationResult {
+  stateId: string;
+  seceded: boolean;
+  strata: ProvincialStrataState;
+  reason: string;
+}
+
+

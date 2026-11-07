@@ -47,6 +47,21 @@ import { MicroTacticalDeckHUD } from '../game/MicroTacticalDeckHUD';
 import { TacticalUnitDeployModal } from '../game/TacticalUnitDeployModal';
 import { TacticalConstructionDrawer } from '../industry/TacticalConstructionDrawer';
 import { TacticalMapControls } from './TacticalMapControls';
+import { audioManager } from '../../engine/audioManager';
+
+export interface WorldSpaceBark {
+  id: string;
+  lngLat: [number, number];
+  text: string;
+  onomatopoeia?: string;
+  stampColor?: string;
+  shape?: 'speech' | 'shout' | 'thought' | 'whisper' | 'radio' | 'panic';
+  intensity?: 'low' | 'medium' | 'high' | 'critical';
+  caller?: string;
+  stampRotationDeg?: number;
+  createdAt: number;
+  durationMs: number;
+}
 
 export interface TacticalWorldMapProps {
   userClanId?: string | null;
@@ -225,6 +240,184 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
   }, []);
 
   const { provinces, controlMap, clansMap } = useTerritoryMap(userClanId);
+
+  const controlMapRef = useRef(controlMap);
+  controlMapRef.current = controlMap;
+
+  // Estados de micro-física, screen shake y diegesis cómic (Supergiant / Atlus lens)
+  const [isScreenShaking, setIsScreenShaking] = useState<boolean>(false);
+  const shakeTimeoutRef = useRef<number | null>(null);
+
+  const triggerScreenShake = useCallback(() => {
+    setIsScreenShaking(true);
+    try {
+      audioManager.playSFX('explosion');
+    } catch {}
+    if (shakeTimeoutRef.current) window.clearTimeout(shakeTimeoutRef.current);
+    shakeTimeoutRef.current = window.setTimeout(() => {
+      setIsScreenShaking(false);
+    }, 190);
+  }, []);
+
+  const triggerScreenShakeRef = useRef(triggerScreenShake);
+  triggerScreenShakeRef.current = triggerScreenShake;
+
+  // Estrato de zoom y cinemática de transición con micro-desenfoque
+  const getStratumForZoom = (z: number): 1 | 2 | 3 => {
+    if (z < 10) return 1;
+    if (z < 15) return 2;
+    return 3;
+  };
+
+  const prevStratumRef = useRef<1 | 2 | 3>(getStratumForZoom(ZOOM_GLOBAL));
+  const [isStratumTransitioning, setIsStratumTransitioning] = useState<boolean>(false);
+  const stratumTimeoutRef = useRef<number | null>(null);
+  const [currentStratum, setCurrentStratum] = useState<1 | 2 | 3>(getStratumForZoom(ZOOM_GLOBAL));
+
+  const handleZoomTransition = useCallback((z: number) => {
+    const rounded = Number(z.toFixed(2));
+    setCurrentZoom(rounded);
+    const nextStratum = getStratumForZoom(rounded);
+    if (prevStratumRef.current !== nextStratum) {
+      prevStratumRef.current = nextStratum;
+      setCurrentStratum(nextStratum);
+      setIsStratumTransitioning(true);
+      if (stratumTimeoutRef.current) window.clearTimeout(stratumTimeoutRef.current);
+      stratumTimeoutRef.current = window.setTimeout(() => {
+        setIsStratumTransitioning(false);
+      }, 260);
+    }
+  }, []);
+
+  const handleZoomTransitionRef = useRef(handleZoomTransition);
+  handleZoomTransitionRef.current = handleZoomTransition;
+
+  // Capa de World-Space Barks y Onomatopeyas Pop-Art Diegéticas
+  const [worldBarks, setWorldBarks] = useState<WorldSpaceBark[]>([
+    {
+      id: 'world-bark-init-1',
+      lngLat: [-71.458, 10.395],
+      text: 'Terminal La Salina bajo monitoreo C4ISR',
+      onomatopoeia: '¡ALERTA VIAL!',
+      stampColor: '#EF4444',
+      shape: 'shout',
+      intensity: 'high',
+      caller: 'VANGUARDIA-1',
+      createdAt: Date.now(),
+      durationMs: 60000,
+      stampRotationDeg: -6,
+    },
+    {
+      id: 'world-bark-init-2',
+      lngLat: [-71.425, 10.370],
+      text: 'Extracción activa en Pozo Barroso II',
+      onomatopoeia: '¡DEFCON 1!',
+      stampColor: '#F59E0B',
+      shape: 'radio',
+      intensity: 'medium',
+      caller: 'LOGÍSTICA',
+      createdAt: Date.now(),
+      durationMs: 60000,
+      stampRotationDeg: 5,
+    },
+  ]);
+
+  const [barkScreenPositions, setBarkScreenPositions] = useState<Record<string, { x: number; y: number } | null>>({});
+
+  const triggerWorldBark = useCallback((
+    bark: Omit<WorldSpaceBark, 'id' | 'createdAt'> & { id?: string }
+  ) => {
+    const newBark: WorldSpaceBark = {
+      ...bark,
+      id: bark.id || `world-bark-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      createdAt: Date.now(),
+      stampRotationDeg: bark.stampRotationDeg ?? (Math.floor(Math.random() * 12) - 6),
+      durationMs: bark.durationMs || 10000,
+    };
+
+    setWorldBarks(prev => [...prev.slice(-9), newBark]);
+
+    if (bark.intensity === 'high' || bark.intensity === 'critical') {
+      triggerScreenShake();
+    }
+  }, [triggerScreenShake]);
+
+  const triggerWorldBarkRef = useRef(triggerWorldBark);
+  triggerWorldBarkRef.current = triggerWorldBark;
+
+  const updateBarkCoordinates = useCallback(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    const positions: Record<string, { x: number; y: number } | null> = {};
+    let w = window.innerWidth;
+    let h = window.innerHeight;
+    try {
+      const container = map.getContainer();
+      if (container) {
+        w = container.clientWidth || w;
+        h = container.clientHeight || h;
+      }
+    } catch {}
+
+    for (const b of worldBarks) {
+      try {
+        const pt = map.project(b.lngLat);
+        if (pt.x >= -60 && pt.x <= w + 60 && pt.y >= -60 && pt.y <= h + 60) {
+          positions[b.id] = { x: Math.round(pt.x), y: Math.round(pt.y) };
+        } else {
+          positions[b.id] = null;
+        }
+      } catch {
+        positions[b.id] = null;
+      }
+    }
+    setBarkScreenPositions(positions);
+  }, [worldBarks]);
+
+  const updateBarkCoordinatesRef = useRef(updateBarkCoordinates);
+  updateBarkCoordinatesRef.current = updateBarkCoordinates;
+
+  useEffect(() => {
+    updateBarkCoordinates();
+  }, [worldBarks, updateBarkCoordinates]);
+
+  useEffect(() => {
+    if (worldBarks.length === 0) return;
+    const interval = window.setInterval(() => {
+      const now = Date.now();
+      setWorldBarks(prev => {
+        const next = prev.filter(b => now - b.createdAt < b.durationMs);
+        return next.length === prev.length ? prev : next;
+      });
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [worldBarks]);
+
+  useEffect(() => {
+    const handleCustomBark = (e: CustomEvent<any>) => {
+      if (e.detail) {
+        triggerWorldBark(e.detail);
+      }
+    };
+    const handleCustomShake = () => {
+      triggerScreenShake();
+    };
+
+    window.addEventListener('tactical-world-bark', handleCustomBark as EventListener);
+    window.addEventListener('tactical-screen-shake', handleCustomShake);
+
+    if (typeof window !== 'undefined') {
+      (window as any).__TRIGGER_TACTICAL_SHAKE__ = triggerScreenShake;
+      (window as any).__TRIGGER_WORLD_BARK__ = triggerWorldBark;
+    }
+
+    return () => {
+      window.removeEventListener('tactical-world-bark', handleCustomBark as EventListener);
+      window.removeEventListener('tactical-screen-shake', handleCustomShake);
+      if (shakeTimeoutRef.current) window.clearTimeout(shakeTimeoutRef.current);
+      if (stratumTimeoutRef.current) window.clearTimeout(stratumTimeoutRef.current);
+    };
+  }, [triggerWorldBark, triggerScreenShake]);
 
   // Selector cromático de facción conforme a @tactical-command-intel
   const resolveFactionColor = useCallback((
@@ -596,7 +789,20 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
 
         map.on('zoom', () => {
           if (isMounted) {
-            setCurrentZoom(Number(map.getZoom().toFixed(2)));
+            handleZoomTransitionRef.current?.(map.getZoom());
+            updateBarkCoordinatesRef.current?.();
+          }
+        });
+
+        map.on('move', () => {
+          if (isMounted) {
+            updateBarkCoordinatesRef.current?.();
+          }
+        });
+
+        map.on('resize', () => {
+          if (isMounted) {
+            updateBarkCoordinatesRef.current?.();
           }
         });
 
@@ -604,7 +810,10 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
           (window as any).__TACTICAL_MAP_INSTANCE__ = map;
           (window as any).__SET_TACTICAL_ZOOM__ = (z: number) => {
             try { map.setZoom(z); } catch {}
-            if (isMounted) setCurrentZoom(z);
+            if (isMounted) {
+              handleZoomTransitionRef.current?.(z);
+              updateBarkCoordinatesRef.current?.();
+            }
           };
         }
 
@@ -1052,15 +1261,31 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
           if (featureId && onSelectProvinceRef.current) {
             onSelectProvinceRef.current(String(featureId));
           }
+          const ctrl = controlMapRef.current?.[featureId];
+          if (ctrl?.status === 'under_siege') {
+            triggerScreenShakeRef.current?.();
+            triggerWorldBarkRef.current?.({
+              lngLat: [e.lngLat.lng, e.lngLat.lat],
+              text: `¡PROVINCIA ${featureId} BAJO ASEDIO BALÍSTICO!`,
+              onomatopoeia: '¡DEFCON 1!',
+              stampColor: '#EF4444',
+              shape: 'panic',
+              intensity: 'critical',
+              caller: 'DEFENSA TERRITORIAL',
+              durationMs: 12000,
+            });
+          }
         });
 
         map.on('zoom', () => {
-          setCurrentZoom(Number(map.getZoom().toFixed(2)));
+          handleZoomTransitionRef.current?.(map.getZoom());
           syncTileCanvasLifecycle(map);
+          updateBarkCoordinatesRef.current?.();
         });
 
         map.on('moveend', () => {
           syncTileCanvasLifecycle(map);
+          updateBarkCoordinatesRef.current?.();
         });
       });
 
@@ -1171,7 +1396,53 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
       expiresAt: new Date(Date.now() + 3600000).toISOString(),
     };
     setTacticalMarks(prev => [newMark, ...prev.slice(0, 49)]);
-  }, [userClanId, commander]);
+
+    if (type === 'rally_strike') {
+      triggerWorldBark({
+        lngLat: [center.lng, center.lat],
+        text: '¡ORDEN DE FUEGO Y ASALTO ARTILLERO CONCENTRADO!',
+        onomatopoeia: '¡¡KABOOM!!',
+        stampColor: '#EF4444',
+        shape: 'shout',
+        intensity: 'critical',
+        caller: commander?.callsign || 'HQ',
+        durationMs: 9000,
+      });
+    } else if (type === 'danger_mine') {
+      triggerWorldBark({
+        lngLat: [center.lng, center.lat],
+        text: '¡PELIGRO: MINA TERRESTRE DETECTADA EN CALZADA!',
+        onomatopoeia: '¡ALERTA VIAL!',
+        stampColor: '#EAB308',
+        shape: 'panic',
+        intensity: 'high',
+        caller: 'RECON TÁCTICO',
+        durationMs: 9000,
+      });
+    } else if (type === 'claim') {
+      triggerWorldBark({
+        lngLat: [center.lng, center.lat],
+        text: '¡RECLAMO DE SOBERANÍA EN TEATRO OPERACIONAL!',
+        onomatopoeia: '¡HOLD!',
+        stampColor: '#3B82F6',
+        shape: 'radio',
+        intensity: 'medium',
+        caller: 'MANDO CENTRAL',
+        durationMs: 9000,
+      });
+    } else {
+      triggerWorldBark({
+        lngLat: [center.lng, center.lat],
+        text: '¡TELEMETRÍA RECON AVANZADA TRANSMITIDA!',
+        onomatopoeia: '¡TACTICAL!',
+        stampColor: '#06B6D4',
+        shape: 'thought',
+        intensity: 'low',
+        caller: 'DRON RADAR',
+        durationMs: 9000,
+      });
+    }
+  }, [userClanId, commander, triggerWorldBark]);
 
   // Sincronización de marcas tácticas WPlace con la fuente WebGL
   useEffect(() => {
@@ -1228,8 +1499,86 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
   }
 
   return (
-    <div className={`relative w-full h-full overflow-hidden bg-[#090D14] ${className}`}>
-      <div ref={mapContainerRef} className="w-full h-full" />
+    <div
+      className={`relative w-full h-full overflow-hidden bg-[#090D14] ${isScreenShaking ? 'tactical-screen-shake' : ''} ${className}`}
+    >
+      <div
+        ref={mapContainerRef}
+        className={`w-full h-full ${isStratumTransitioning ? 'tactical-stratum-blur' : 'tactical-stratum-clear'}`}
+      />
+
+      {/* Indicador Cinético de Cambio de Estrato (HUD C4ISR) */}
+      {isStratumTransitioning && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 pointer-events-none tactical-spring-bounce">
+          <div className="bg-[#161712]/95 border-2 border-[#7B8A4A] text-[#F2E8D5] px-4 py-1.5 rounded-[12px_3px_12px_3px] shadow-[4px_4px_0px_#0A0B08] flex items-center gap-2 font-mono text-xs font-black uppercase tracking-wider backdrop-blur-sm">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#00FF66] animate-ping" />
+            <span>
+              {currentStratum === 1
+                ? '🛰️ ESTRATO 1: VISTA MACRO-ESTRATÉGICA (Z < 10)'
+                : currentStratum === 2
+                ? '🗺️ ESTRATO 2: TEATRO OPERACIONAL Y RED VIAL (10 ≤ Z < 15)'
+                : '⚔️ ESTRATO 3: CUADRÍCULA DE COMBATE C4ISR (Z ≥ 15)'}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Capa Diegética Reactiva de World-Space Barks y Onomatopeyas Pop-Art */}
+      <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden" aria-hidden="true">
+        {worldBarks.map((bark) => {
+          const pos = barkScreenPositions[bark.id];
+          if (!pos) return null;
+          return (
+            <div
+              key={bark.id}
+              style={{
+                left: `${pos.x}px`,
+                top: `${pos.y}px`,
+                transform: 'translate(-50%, -100%) translateY(-12px)',
+              }}
+              className="absolute pointer-events-auto cursor-pointer tactical-spring-bounce select-none"
+              onClick={() => {
+                triggerScreenShake();
+                try { audioManager.playSFX('button_click'); } catch {}
+              }}
+              title="Click para sacudida táctica"
+            >
+              <div className="world-bark-bubble relative px-3.5 py-2 min-w-[140px] max-w-[240px]">
+                {/* Cola triangular con borde del bocadillo orientada hacia la coordenada WebGL */}
+                <div className="absolute left-1/2 -bottom-2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-[#0A0B08]" />
+                <div className="absolute left-1/2 -bottom-1.5 -translate-x-1/2 w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[6px] border-t-[#F2E8D5]" />
+
+                {/* Indicador del Emisor Militar */}
+                {bark.caller && (
+                  <div className="text-[9px] font-mono font-bold uppercase text-[#46521F] tracking-wider mb-0.5 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#C46A3A]" />
+                    <span>{bark.caller}</span>
+                  </div>
+                )}
+
+                {/* Texto de la Transmisión Táctica */}
+                <p className="text-xs font-bold leading-tight font-sans text-[#0A0B08]">
+                  "{bark.text}"
+                </p>
+
+                {/* Sello Pop-Art de Onomatopeya Diegética */}
+                {bark.onomatopoeia && (
+                  <div
+                    className="tactical-spring-bounce absolute -top-3 -right-2 px-2 py-0.5 text-yellow-300 font-black text-[11px] tracking-wider border-2 border-[#0A0B08] shadow-[3px_3px_0px_#0A0B08] uppercase pointer-events-none whitespace-nowrap"
+                    style={{
+                      backgroundColor: bark.stampColor || '#C46A3A',
+                      transform: `rotate(${bark.stampRotationDeg ?? -6}deg)`,
+                      textShadow: '1px 1px 0px #000, -1px -1px 0px #000',
+                    }}
+                  >
+                    {bark.onomatopoeia}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       {/* Controles C4ISR: Selector de 4 Vistas y Herramientas WPlace */}
       <TacticalMapControls
