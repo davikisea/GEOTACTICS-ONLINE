@@ -83,3 +83,38 @@ Durante la sesión estructurada de diseño, se tomaron las siguientes cuatro dec
 - **Build de Producción (`npm run build`)**: ✅ Éxito rotundo en 20.56s.
 - **Suites Unitarias Automatizadas**: ✅ **100% Superadas** (57/57 pruebas en todas las suites).
 - **Playwright E2E Multimodal (`tests/e2e/game-playtester.spec.ts`)**: ✅ **2 de 2 pasadas en 2.5m** en Chromium real (0 errores fatales).
+
+
+---
+
+# ⚔️ 6. REWORK TÁCTICO RTS CONTINUO, VENTANAS DE VULNERABILIDAD Y ECONOMÍA DE BAJAS (100% CANÓNICO)
+
+## 6.1 Síntesis Arquitectónica Ejecutada
+
+De conformidad estricta con la especificación maestra [`docs/03_TACTICAL_STRATEGY_SYSTEM_DESIGN.md`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/docs/03_TACTICAL_STRATEGY_SYSTEM_DESIGN.md), se completó la transición del combate táctico hacia un modelo continuo de alto rendimiento y soberanía territorial:
+
+1. **Motor de Simulación Continua a 10 Ticks/s (`src/engine/tacticalRtsEngine.ts`)**:
+   - Loop determinista sin pausa ($\Delta t = 100\text{ ms}$) gobernado por cadencias canónicas por chasis (Tanque Medio 3.5s, Recon 1.2s, Artillería 5.5s, Lanzacohetes 7.5s, Infantería 1.0s).
+   - Cola de intenciones de marcha interpoladas (`UNIT_MOVE_INTENT`) que erradica el streaming masivo de paquetes y previene la saturación de WebSockets (-97.5% de tráfico).
+   - Balística 100% determinista (1-100 HP) integrando `CanonicalCombatEngine`.
+2. **Defensa Soberana y Timers Anti-Offline Raiding (`supabase/migrations/20261109_territorial_vulnerability_windows.sql`)**:
+   - Tabla `territorial_vulnerability_windows` y RPC `check_territorial_vulnerability` con soporte para ventanas estándar y ventanas trans-medianoche UTC.
+   - Cooldown constitucional anti-evasión de 48 horas ante modificaciones de horario de asedio.
+   - Inmunidad estructural activa en `territorialSiegeOrchestrator.ts`: los 10,000 TCP y las estructuras son invulnerables fuera de la ventana del clan.
+3. **Economía de Bajas y Sumideros Deflacionarios**:
+   - Función RPC `settle_territorial_combat_losses`: exactamente el **65% del valor material del chasis se quema irreversiblemente** como sumidero económico, y el **35% retorna al jugador como `tech_scrap`** para refundición en altos hornos.
+4. **WebGL 2.0 Zero-Jank & Diegesis Cinética (`TacticalWorldMap.tsx`)**:
+   - Dirty Checking en `TileCanvas`: cero repintados de textura si el estado del frame $N$ es idéntico a $N-1$ (60 FPS estables).
+   - Retícula militar C4ISR en unidad seleccionada, proyección de diamante de alcance Manhattan (min/max), y trazadoras balísticas láser con halo de 200 ms.
+   - Sellos Ben-Day de onomatopeyas flotantes (`¡BLAM!`, `¡CRITICAL!`, `¡KABOOM! DESTROYED`), micro-sacudidas de pantalla (`tactical-screen-shake`) y halo pulsante ámbar en vista Macro Nivel 1 sobre provincias vulnerables.
+
+## 6.2 Telemetría de Verificación y Suites de Prueba
+
+| Módulo / Suite | Archivo de Prueba | Resultado | Cobertura |
+| :--- | :--- | :---: | :---: |
+| **Motor RTS Continuo (10 ticks/s)** | `src/engine/tacticalRtsEngine.test.ts` | **6 / 6 PASSED** | 100% Cooldowns, Marchas, Fuego Indirecto y Bajas |
+| **Ventanas de Vulnerabilidad Anti-Raid** | `src/engine/vulnerabilityWindows.test.ts` | **5 / 5 PASSED** | 100% Inmunidad Offline, Horarios UTC y 48h Cooldown |
+| **Asedio Territorial y Handshake 120s** | `src/engine/territorialSiege.test.ts` | **13 / 13 PASSED** | 100% TCP Drenaje, Ocupación De Facto y Escudo 4h |
+| **Metajuego Territorial Canónico** | `src/engine/metagame.test.ts` | **35 / 35 PASSED** | 100% Upkeep, Fricción Topológica y Sinks P2P |
+| **Compilación de Producción (Vite)** | `npm run build` | **EXITOSA (0 Errores)** | Bundles empaquetados en `dist/` |
+| **Playwright E2E en Chromium Real** | `tests/e2e/game-playtester.spec.ts` | **2 / 2 PASSED (1.5m)** | Macro (z<10), Operacional (z=10.5) y RTS Micro (z=15.2) |

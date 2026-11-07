@@ -48,6 +48,7 @@ import { TacticalUnitDeployModal } from '../game/TacticalUnitDeployModal';
 import { TacticalConstructionDrawer } from '../industry/TacticalConstructionDrawer';
 import { TacticalMapControls } from './TacticalMapControls';
 import { audioManager } from '../../engine/audioManager';
+import { TacticalRtsEngine, BallisticTracer, CANONICAL_RTS_PROFILES } from '../../engine/tacticalRtsEngine';
 
 export interface WorldSpaceBark {
   id: string;
@@ -171,6 +172,12 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
   } | null>(null);
   const [isDeployModalOpen, setIsDeployModalOpen] = useState(false);
   const [isBuildDrawerOpen, setIsBuildDrawerOpen] = useState(false);
+
+  // Motor RTS Continuo de Celda (10 ticks/s) y Selección de Unidades
+  const rtsEngineRef = useRef<TacticalRtsEngine>(new TacticalRtsEngine({ tickIntervalMs: 100 }));
+  const [selectedTacticalUnitId, setSelectedTacticalUnitId] = useState<string | null>(null);
+  const selectedTacticalUnitIdRef = useRef<string | null>(null);
+  selectedTacticalUnitIdRef.current = selectedTacticalUnitId;
 
   // Estados de Capa C4ISR y Metajuego Vial 2026
   const [currentViewMode, setCurrentViewMode] = useState<C4ISRMapViewMode>('V1_SOVEREIGNTY');
@@ -467,14 +474,18 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
       tileState: ActiveTileCanvasState,
       units: TacticalUnit[],
       fowBitmap: TacticalBitMap | null,
-      highlightCell: [number, number] | null
+      highlightCell: [number, number] | null,
+      selectedUnitId: string | null = null,
+      tracers: BallisticTracer[] = []
     ) => {
       const { ctx, sourceId } = tileState;
       const cellPx = TILE_SIZE / TACTICAL_GRID_DIMENSION;
 
       ctx.clearRect(0, 0, TILE_SIZE, TILE_SIZE);
 
-      // 1. Dibujar celdas tácticas y niebla de guerra binaria
+      const selectedUnit = units.find((u) => u.id === selectedUnitId && !u.isDestroyed);
+
+      // 1. Dibujar celdas tácticas, cuadrícula de alcance y niebla de guerra binaria
       for (let gy = 0; gy < TACTICAL_GRID_DIMENSION; gy++) {
         for (let gx = 0; gx < TACTICAL_GRID_DIMENSION; gx++) {
           const bitIndex = gy * TACTICAL_GRID_DIMENSION + gx;
@@ -482,10 +493,27 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
           const px = gx * cellPx;
           const py = gy * cellPx;
 
-          ctx.fillStyle = isFogged ? 'rgba(9, 13, 20, 0.72)' : 'rgba(70, 82, 31, 0.14)';
+          // Rango balístico de la unidad seleccionada
+          let isInWeaponRange = false;
+          if (selectedUnit) {
+            const dist = Math.abs(gx - selectedUnit.x) + Math.abs(gy - selectedUnit.y);
+            isInWeaponRange = dist >= selectedUnit.minRange && dist <= selectedUnit.maxRange;
+          }
+
+          if (isFogged) {
+            ctx.fillStyle = 'rgba(9, 13, 20, 0.72)';
+          } else if (isInWeaponRange) {
+            ctx.fillStyle = 'rgba(250, 204, 21, 0.12)'; // Resaltado de alcance balístico
+          } else {
+            ctx.fillStyle = 'rgba(70, 82, 31, 0.14)';
+          }
           ctx.fillRect(px, py, cellPx, cellPx);
 
-          ctx.strokeStyle = isFogged ? 'rgba(51, 65, 85, 0.35)' : 'rgba(163, 230, 53, 0.32)';
+          ctx.strokeStyle = isInWeaponRange
+            ? 'rgba(250, 204, 21, 0.45)'
+            : isFogged
+            ? 'rgba(51, 65, 85, 0.35)'
+            : 'rgba(163, 230, 53, 0.32)';
           ctx.lineWidth = 1;
           ctx.strokeRect(px + 0.5, py + 0.5, cellPx - 1, cellPx - 1);
         }
@@ -499,9 +527,10 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
         ctx.strokeRect(hx * cellPx + 1.5, hy * cellPx + 1.5, cellPx - 3, cellPx - 3);
       }
 
-      // 3. Renderizar unidades militares activas con barra de 1 a 100 HP
+      // 3. Renderizar unidades militares activas con barra de 1 a 100 HP y cooldowns
       for (const unit of units) {
         if (
+          unit.isDestroyed ||
           unit.x < 0 ||
           unit.x >= TACTICAL_GRID_DIMENSION ||
           unit.y < 0 ||
@@ -517,6 +546,7 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
 
         const ux = unit.x * cellPx;
         const uy = unit.y * cellPx;
+        const isSelected = unit.id === selectedUnitId;
 
         // Chasis de la unidad
         ctx.fillStyle = unit.ownerId === userClanId ? '#E65100' : '#0284C7';
@@ -525,11 +555,48 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
         ctx.lineWidth = 2;
         ctx.strokeRect(ux + 6, uy + 6, cellPx - 12, cellPx - 16);
 
+        // Retícula militar de selección C4ISR [ ]
+        if (isSelected) {
+          ctx.strokeStyle = '#FACC15';
+          ctx.lineWidth = 2.5;
+          // Esquina Superior Izquierda
+          ctx.beginPath();
+          ctx.moveTo(ux + 3, uy + 10);
+          ctx.lineTo(ux + 3, uy + 3);
+          ctx.lineTo(ux + 10, uy + 3);
+          ctx.stroke();
+          // Esquina Superior Derecha
+          ctx.beginPath();
+          ctx.moveTo(ux + cellPx - 10, uy + 3);
+          ctx.lineTo(ux + cellPx - 3, uy + 3);
+          ctx.lineTo(ux + cellPx - 3, uy + 10);
+          ctx.stroke();
+          // Esquina Inferior Izquierda
+          ctx.beginPath();
+          ctx.moveTo(ux + 3, uy + cellPx - 10);
+          ctx.lineTo(ux + 3, uy + cellPx - 3);
+          ctx.lineTo(ux + 10, uy + cellPx - 3);
+          ctx.stroke();
+          // Esquina Inferior Derecha
+          ctx.beginPath();
+          ctx.moveTo(ux + cellPx - 10, uy + cellPx - 3);
+          ctx.lineTo(ux + cellPx - 3, uy + cellPx - 3);
+          ctx.lineTo(ux + cellPx - 3, uy + cellPx - 10);
+          ctx.stroke();
+        }
+
         // Código de la unidad
         ctx.fillStyle = '#F2E8D5';
         ctx.font = 'bold 11px monospace';
         ctx.textAlign = 'center';
-        ctx.fillText(unit.unitCode.slice(0, 3).toUpperCase(), ux + cellPx / 2, uy + 24);
+        ctx.fillText(unit.unitCode.slice(0, 3).toUpperCase(), ux + cellPx / 2, uy + 22);
+
+        // Indicador de recarga de arma (Cooldown)
+        if ((unit as any).reloadRemainingMs > 0) {
+          ctx.fillStyle = '#F97316';
+          ctx.font = 'bold 8px monospace';
+          ctx.fillText('CD', ux + cellPx - 10, uy + 14);
+        }
 
         // Barra de Salud Continua 1-100 HP
         const hpRatio = Math.max(0, Math.min(1, unit.hp / 100));
@@ -540,6 +607,23 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
         ctx.fillRect(ux + 6, uy + cellPx - 8, Math.round(barWidth * hpRatio), 5);
       }
 
+      // 4. Renderizar Trazadoras Balísticas Continuas (200 ms de vida con glow)
+      if (tracers.length > 0) {
+        for (const t of tracers) {
+          ctx.save();
+          ctx.strokeStyle = t.isCritical ? '#EF4444' : '#FACC15';
+          ctx.lineWidth = t.isCritical ? 3.5 : 2;
+          ctx.shadowColor = t.isCritical ? '#EF4444' : '#FACC15';
+          ctx.shadowBlur = 8;
+          ctx.beginPath();
+          ctx.moveTo(t.from.x * cellPx + cellPx / 2, t.from.y * cellPx + cellPx / 2);
+          ctx.lineTo(t.to.x * cellPx + cellPx / 2, t.to.y * cellPx + cellPx / 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      // Dirty checking: se empuja al buffer WebGL
       tileState.isDirty = true;
       if (mapInstanceRef.current) {
         pumpCanvasToWebGL(mapInstanceRef.current, sourceId);
@@ -663,6 +747,7 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
             isBuffer,
             isCapital: provId === 'REG_VE_01',
             isUnderSiege,
+            isVulnerableActive: Boolean(isUnderSiege || (ctrl as any)?.isVulnerableActive),
             isSelected,
             tcp: sov?.tcpCurrent ?? (ctrl?.currentTcp ?? 10000),
             tcpMax: sov?.tcpMax ?? (ctrl?.tcpThreshold ?? 10000),
@@ -716,6 +801,8 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
           ownerColor,
           isBuffer,
           isCapital: prov.isCapital,
+          isUnderSiege,
+          isVulnerableActive: Boolean(isUnderSiege || (ctrl as any)?.isVulnerableActive),
           tcp: sov?.tcpCurrent ?? (ctrl?.currentTcp ?? 10000),
           tcpMax: sov?.tcpMax ?? (ctrl?.tcpThreshold ?? 10000),
           isSelected: prov.id === activeProvinceId,
@@ -865,6 +952,21 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
               1.5,
             ],
             'line-opacity': 0.95,
+          },
+        });
+
+        // Halo pulsante ámbar para regiones en estado de vulnerabilidad activa (Anti-Offline Raiding)
+        map.addLayer({
+          id: 'provinces-vulnerable-halo',
+          type: 'line',
+          source: 'tactical-provinces',
+          maxzoom: ZOOM_TACTICO - 0.5,
+          filter: ['==', ['get', 'isVulnerableActive'], true],
+          paint: {
+            'line-color': '#F59E0B',
+            'line-width': 4.5,
+            'line-opacity': 0.85,
+            'line-blur': 3.0,
           },
         });
 
@@ -1252,6 +1354,61 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
             if (onSelectTacticalCellRef.current) {
               onSelectTacticalCellRef.current(sector, cell, [e.lngLat.lng, e.lngLat.lat]);
             }
+
+            // Interacción RTS Continuo en Celda (Subagentes C y D)
+            const rts = rtsEngineRef.current;
+            const clickedUnit = rts.getAllUnits().find((u) => u.x === cell[0] && u.y === cell[1]);
+            const selectedUnit = selectedTacticalUnitIdRef.current
+              ? rts.getUnit(selectedTacticalUnitIdRef.current)
+              : null;
+
+            if (clickedUnit) {
+              if (clickedUnit.owner === (userClanId || 'clan-ferro') || !selectedUnit) {
+                // Seleccionar unidad aliada
+                setSelectedTacticalUnitId(clickedUnit.id);
+                audioManager.playHoverTick();
+              } else if (selectedUnit && clickedUnit.owner !== selectedUnit.owner) {
+                // Disparo sobre unidad enemiga
+                const now = Date.now();
+                const fireResult = rts.executeFire(selectedUnit.id, clickedUnit.id, now);
+                if (fireResult.success) {
+                  triggerScreenShakeRef.current?.();
+                  const isCrit = fireResult.tracer?.isCritical;
+                  const isDead = fireResult.defenderDestroyed;
+                  triggerWorldBarkRef.current?.({
+                    lngLat: [e.lngLat.lng, e.lngLat.lat],
+                    text: `IMPACTO -${fireResult.combatResult?.attackerDamageDealt} HP!`,
+                    onomatopoeia: isDead ? '¡KABOOM!' : isCrit ? '¡CRITICAL!' : '¡BLAM!',
+                    stampColor: isDead ? '#EF4444' : isCrit ? '#F97316' : '#FACC15',
+                    shape: isDead ? 'panic' : 'shout',
+                    intensity: isDead ? 'critical' : 'high',
+                    caller: 'CONTROL DE FUEGO',
+                    durationMs: 3000,
+                  });
+                  audioManager.playCue('action_confirmed');
+                } else {
+                  triggerWorldBarkRef.current?.({
+                    lngLat: [e.lngLat.lng, e.lngLat.lat],
+                    text: fireResult.reason?.includes('WEAPON_RELOADING') ? '¡ARMA RECARGANDO!' : (fireResult.reason || 'FUERA DE ALCANCE'),
+                    onomatopoeia: '¡WAIT!',
+                    stampColor: '#F59E0B',
+                    shape: 'radio',
+                    intensity: 'medium',
+                    caller: 'BALÍSTICA',
+                    durationMs: 2000,
+                  });
+                  audioManager.playCue('ui_cancel_rollback');
+                }
+              }
+            } else if (selectedUnit) {
+              // Clic en celda vacía: orden de marcha interpolada
+              const path = [
+                { x: selectedUnit.x, y: selectedUnit.y },
+                { x: cell[0], y: cell[1] },
+              ];
+              rts.issueMoveOrder(selectedUnit.id, path, Date.now());
+              audioManager.playSFX('button_click');
+            }
           }
         });
 
@@ -1342,6 +1499,88 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
     });
     return () => unsub();
   }, []);
+
+  // Loop de simulación RTS continua a 10 ticks/s (100 ms) en Zoom Táctico (Zero-Jank Dirty Checking)
+  useEffect(() => {
+    if (currentZoom < ZOOM_TACTICO - 1.0) return;
+
+    // Sembrar unidades de escaramuza si el motor está vacío
+    if (rtsEngineRef.current.getAllUnits().length === 0) {
+      if (activeBattleUnits && activeBattleUnits.length > 0) {
+        for (const u of activeBattleUnits) {
+          rtsEngineRef.current.registerUnit(u);
+        }
+      } else {
+        rtsEngineRef.current.registerUnit({
+          id: 'unit-player-tank',
+          unitCode: 'tank_medium',
+          displayName: 'Tanque Medio Alfa',
+          owner: userClanId || 'clan-ferro',
+          ownerId: userClanId || 'clan-ferro',
+          x: 4,
+          y: 4,
+          hp: 100,
+          ammo: 9,
+          fuel: 50,
+          minRange: 1,
+          maxRange: 1,
+          moveRange: 5,
+        });
+        rtsEngineRef.current.registerUnit({
+          id: 'unit-player-recon',
+          unitCode: 'recon',
+          displayName: 'Jeep Explorador',
+          owner: userClanId || 'clan-ferro',
+          ownerId: userClanId || 'clan-ferro',
+          x: 3,
+          y: 3,
+          hp: 100,
+          ammo: 10,
+          fuel: 60,
+          minRange: 1,
+          maxRange: 1,
+          moveRange: 8,
+        });
+        rtsEngineRef.current.registerUnit({
+          id: 'unit-enemy-tank',
+          unitCode: 'tank_medium',
+          displayName: 'Tanque Enemigo Bravo',
+          owner: 'clan-adversario',
+          ownerId: 'clan-adversario',
+          x: 5,
+          y: 4,
+          hp: 100,
+          ammo: 9,
+          fuel: 50,
+          minRange: 1,
+          maxRange: 1,
+          moveRange: 5,
+        });
+      }
+    }
+
+    const interval = window.setInterval(() => {
+      if (isStandbyRef.current || !tileCanvasRef.current) return;
+      const now = Date.now();
+      const { stateChanged } = rtsEngineRef.current.tick(now);
+      const isDirty = rtsEngineRef.current.consumeDirtyFlag();
+
+      if (stateChanged || isDirty) {
+        const units = rtsEngineRef.current.getAllUnits();
+        const fow = fogOfWarBase64 ? TacticalBitMap.fromBase64(fogOfWarBase64) : null;
+        renderTacticalBattleCanvas(
+          tileCanvasRef.current,
+          units,
+          fow,
+          hoveredCell,
+          selectedTacticalUnitIdRef.current,
+          rtsEngineRef.current.getActiveTracers()
+        );
+      }
+    }, 100);
+
+    return () => window.clearInterval(interval);
+  }, [currentZoom, activeBattleUnits, fogOfWarBase64, hoveredCell, renderTacticalBattleCanvas, userClanId]);
 
   // Actualización de Vistas C4ISR en el lienzo WebGL
   const handleSelectViewMode = useCallback((mode: C4ISRMapViewMode) => {

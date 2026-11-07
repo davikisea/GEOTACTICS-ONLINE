@@ -113,6 +113,23 @@ test.describe('Tactical Command - Playtesting E2E Capa 1 (Metajuego Geopolítico
         }),
       });
     });
+
+    await page.route('**/rest/v1/territorial_vulnerability_windows*', async (route: any) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            region_id: 'REG_VE_02',
+            clan_id: 'clan-ferro',
+            window_start_utc: '20:00:00',
+            window_end_utc: '23:00:00',
+            cooldown_until_utc: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+            is_active: true,
+          },
+        ]),
+      });
+    });
   }
 
   test(' Recorrido E2E Capa 1: Boot, Teatro Venezuela (24+7), Edictos, Peajes, Asedio Político y Bark de Mayor Stella', async ({ page }) => {
@@ -148,7 +165,7 @@ test.describe('Tactical Command - Playtesting E2E Capa 1 (Metajuego Geopolítico
     // --- FASE A.1: CARGA DE ARRANQUE (BOOT SCREEN) ---
     console.log('QA [1/6]: Navegando a http://localhost:3000...');
     await page.goto('/?no-splash=1', { waitUntil: 'domcontentloaded', timeout: 35000 });
-    await page.waitForTimeout(800);
+    await page.locator('#root > *').first().waitFor({ timeout: 20000 });
 
     const rootChildren = await page.locator('#root').evaluate((el) => el.children.length);
     expect(rootChildren, 'La aplicación debe montar contenido en #root').toBeGreaterThan(0);
@@ -402,6 +419,20 @@ test.describe('Tactical Command - Playtesting E2E Capa 1 (Metajuego Geopolítico
 
     const tacticalScreenshot = path.join(screenshotsDir, '07_microgame_zoom_level3.png');
     await page.screenshot({ path: tacticalScreenshot, fullPage: true });
+
+    // Probar interacción RTS en celda táctica
+    console.log('QA RTS: Probando interacción de combate continuo y selección en cuadrícula...');
+    const mapCanvas = page.locator('canvas.maplibregl-canvas');
+    if (await mapCanvas.isVisible()) {
+      const box = await mapCanvas.boundingBox();
+      if (box) {
+        // Clic en el cuadrante central del mapa para seleccionar/interactuar en celda
+        await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+        await page.waitForTimeout(400);
+      }
+    }
+    const rtsScreenshot = path.join(screenshotsDir, '08_continuous_rts_engagement.png');
+    await page.screenshot({ path: rtsScreenshot, fullPage: true });
 
     // Cero errores críticos
     const fatalErrors = errors.filter(

@@ -20,12 +20,22 @@ import {
 } from '../types/metagame';
 import { GarrisonAIEngine } from './garrisonAIEngine';
 
+export interface VulnerabilityWindowConfig {
+  regionId: string;
+  clanId: string;
+  windowStartUtc: string; // Formato "HH:MM:SS"
+  windowEndUtc: string;   // Formato "HH:MM:SS"
+  cooldownUntilUtc?: string | null;
+  isActive?: boolean;
+}
+
 export interface InitiateSiegeParams {
   regionId: string;
   attackerClanId: string;
   attackerCommanderId: string;
   defenderClanId?: string | null;
   sovereignty: GeotacticsRegionSovereignty;
+  vulnerabilityWindow?: VulnerabilityWindowConfig | null;
 }
 
 export interface SiegeResolutionResult {
@@ -36,6 +46,7 @@ export interface SiegeResolutionResult {
   previousStatus: 'stable' | 'under_siege' | 'occupied_grace';
   newStatus: 'stable' | 'under_siege' | 'occupied_grace';
   isSovereigntyFlipped: boolean;
+  isImmuneOfflineProtection?: boolean;
   cooldownExpiresAt?: string | null;
   graceExpiresAt?: string | null;
   newOwnerClanId: string | null;
@@ -170,6 +181,36 @@ export class TerritorialSiegeOrchestrator {
   }
 
   /**
+   * Valida si la hora actual UTC está dentro de la ventana de vulnerabilidad del clan
+   */
+  public static isWithinVulnerabilityWindow(
+    windowConfig?: VulnerabilityWindowConfig | null,
+    checkTime: Date = new Date()
+  ): boolean {
+    if (!windowConfig || windowConfig.isActive === false) {
+      return true; // Si no hay ventana configurada, opera con el comportamiento libre por defecto
+    }
+
+    const utcHours = checkTime.getUTCHours();
+    const utcMinutes = checkTime.getUTCMinutes();
+    const utcSeconds = checkTime.getUTCSeconds();
+    const currentSeconds = utcHours * 3600 + utcMinutes * 60 + utcSeconds;
+
+    const [startH, startM, startS] = windowConfig.windowStartUtc.split(':').map((v) => parseInt(v, 10) || 0);
+    const [endH, endM, endS] = windowConfig.windowEndUtc.split(':').map((v) => parseInt(v, 10) || 0);
+
+    const startSeconds = startH * 3600 + startM * 60 + startS;
+    const endSeconds = endH * 3600 + endM * 60 + endS;
+
+    if (endSeconds > startSeconds) {
+      return currentSeconds >= startSeconds && currentSeconds < endSeconds;
+    } else {
+      // Ventana que cruza la medianoche UTC (e.g. 23:00 a 02:00)
+      return currentSeconds >= startSeconds || currentSeconds < endSeconds;
+    }
+  }
+
+  /**
    * Resuelve el asedio, ajusta los puntos de control y transiciona el estado de soberanía territorial.
    */
   public static resolveTerritorialSiege(
@@ -177,9 +218,20 @@ export class TerritorialSiegeOrchestrator {
     session: TerritorialBattleSession,
     winner: 'attacker' | 'defender',
     isCapital: boolean = false,
-    resolutionTime: Date = new Date()
+    resolutionTime: Date = new Date(),
+    windowConfig?: VulnerabilityWindowConfig | null
   ): SiegeResolutionResult {
-    const tcpDelta = this.calculateSiegeTcpDelta(winner, sovereignty.bunkerLevel, isCapital);
+    // Protección soberana contra asedios offline:
+    // Fuera de la ventana de vulnerabilidad, las estructuras y los 10,000 TCP son inmunes al daño permanente.
+    const isVulnerable = this.isWithinVulnerabilityWindow(windowConfig, resolutionTime);
+
+    let tcpDelta = 0;
+    if (winner === 'attacker' && !isVulnerable) {
+      // Daño bloqueado por inmunidad estructural anti-offline
+      tcpDelta = 0;
+    } else {
+      tcpDelta = this.calculateSiegeTcpDelta(winner, sovereignty.bunkerLevel, isCapital);
+    }
     const maxTcp = sovereignty.maxControlPoints || (isCapital ? 15000 : 10000);
     const newTcp = Math.max(0, Math.min(maxTcp, sovereignty.controlPoints + tcpDelta));
 
@@ -226,6 +278,7 @@ export class TerritorialSiegeOrchestrator {
       previousStatus: sovereignty.status,
       newStatus,
       isSovereigntyFlipped,
+      isImmuneOfflineProtection: winner === 'attacker' && !isVulnerable,
       cooldownExpiresAt,
       graceExpiresAt,
       newOwnerClanId,
