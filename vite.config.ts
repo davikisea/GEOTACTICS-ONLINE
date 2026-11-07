@@ -12,6 +12,8 @@ export default defineConfig(() => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
+        '@domains': path.resolve(__dirname, 'src/domains'),
+        '@shared': path.resolve(__dirname, 'src/shared'),
       },
     },
     server: {
@@ -42,9 +44,6 @@ export default defineConfig(() => {
             }
             if (normalizedId.includes('node_modules/motion/')) {
               return 'vendor-motion';
-            }
-            if (normalizedId.includes('src/engine/')) {
-              return 'engine-core';
             }
           },
         },

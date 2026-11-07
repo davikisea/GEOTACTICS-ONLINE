@@ -42,66 +42,106 @@ import {
   Scale
 } from 'lucide-react';
 import { GAME_DOCUMENTS, DocItem } from './docsData';
-import { GameCanvas, AmbushAlert } from './components/game/GameCanvas';
-import { TacticalUnit, TerrainTile } from './types';
-import { CosmeticSkin } from './lib/shopData';
-import { assetLoader } from './engine/assetLoader';
-import { audioManager } from './engine/audioManager';
-import { triggerHaptic } from './engine/hapticFeedback';
-import { CombatEngine } from './engine/combat';
-import { getPredefinedMap, getAllPredefinedMapsMeta, PredefinedMapMeta } from './engine/predefinedMaps';
-import { parseAWBWMap, AWBWMapData } from './engine/mapImporter';
-import { FogOfWarEngine } from './engine/fogOfWar';
-import { TurnEconomyEngine, CANONICAL_UNIT_PRODUCTION_CATALOG } from './engine/turnEconomy';
-import { CaptureEngine } from './engine/captureSystem';
-import { ProductionModal } from './components/game/ProductionModal';
-import { COEngine, COId, COPowerType, PlayerCOState, CANONICAL_CO_REGISTRY } from './engine/coSystem';
-import { COCommandBar } from './components/game/COCommandBar';
-import { CanonicalCombatEngine } from './engine/canonicalCombat';
-import { TacticalBotAI, BotDifficulty, BotGameState } from './engine/aiBot';
-import { AvailableSubAction, evaluateAvailableSubActions } from './engine/subActions';
-import { MATCH_FORMAT_CONFIGS, MatchFormat } from './engine/autonomousOrchestrator';
-import { ComicVignetteOverlay } from './components/game/ComicVignetteOverlay';
-import { barkEngine } from './engine/barkEngine';
-import { IndustrialInventory, ActiveRefiningJob } from './engine/industrialEngine';
-import { Clan, ClanMember, SafeguardInventory, ClanEngine, UserProfileIdentity } from './engine/clanSystem';
-import { WarLobbyHub } from './components/lobby/WarLobbyHub';
-import { CombatTheaterView } from './components/game/CombatTheaterView';
-import { PreBattleDeploymentModal, DeploymentConfig } from './components/game/PreBattleDeploymentModal';
-import { ReinforcementRequestModal } from './components/game/ReinforcementRequestModal';
-import { generateProceduralMap } from './engine/proceduralMapGenerator';
+import { CosmeticSkin } from '@shared';
+
+// Dominio: Game Feel (Audio, Bark, Háptica)
 import {
+  audioManager,
+  triggerHaptic,
+  barkEngine,
+} from '@domains/game-feel';
+
+// Dominio: World (Geopolítica, Cartografía, Asedios, Clanes)
+import {
+  WarLobbyHub,
+  Clan,
+  ClanMember,
+  SafeguardInventory,
+  ClanEngine,
+  UserProfileIdentity,
+  TerritorySiegeModal,
+  useSiegeRealtime,
+} from '@domains/world';
+
+// Dominio: Economy (Hangar, Industria, Mercado, Ticker)
+import {
+  TurnEconomyEngine,
+  CANONICAL_UNIT_PRODUCTION_CATALOG,
+  IndustrialInventory,
+  ActiveRefiningJob,
+  useUserIndustry,
+  useUserHangar,
+} from '@domains/economy';
+
+// Dominio: Tactics (Combate, Tablero, COs, IA, Refuerzos)
+import {
+  GameCanvas,
+  AmbushAlert,
+  CombatEngine,
+  getPredefinedMap,
+  getAllPredefinedMapsMeta,
+  PredefinedMapMeta,
+  parseAWBWMap,
+  AWBWMapData,
+  FogOfWarEngine,
+  CaptureEngine,
+  ProductionModal,
+  COEngine,
+  COId,
+  COPowerType,
+  PlayerCOState,
+  CANONICAL_CO_REGISTRY,
+  COCommandBar,
+  CanonicalCombatEngine,
+  TacticalBotAI,
+  BotDifficulty,
+  BotGameState,
+  AvailableSubAction,
+  evaluateAvailableSubActions,
+  MATCH_FORMAT_CONFIGS,
+  MatchFormat,
+  ComicVignetteOverlay,
+  CombatTheaterView,
+  PreBattleDeploymentModal,
+  DeploymentConfig,
+  ReinforcementRequestModal,
+  generateProceduralMap,
   initializeReinforcementsEngine,
   requestReinforcements,
   processTurnArrival,
   consumeVanguardDeployment,
   ReinforcementsEngineState,
   CANONICAL_RESERVE_CATALOG,
-} from './engine/reinforcementsEngine';
-import { calculateBuildingAuras } from './engine/buildingAuras';
-import { playerDb } from './services/playerDatabaseService';
-import { matchDb } from './services/matchDatabaseService';
-import { useAuth } from './hooks/useAuth';
-import { AuthTerminalModal } from './components/auth/AuthTerminalModal';
-import { useUserIndustry } from './hooks/useUserIndustry';
-import { useUserHangar } from './hooks/useUserHangar';
-import { supabase } from './lib/supabase/client';
-import { TacticalErrorBoundary } from './components/common/TacticalErrorBoundary';
-import { TerritorySiegeModal } from './components/world/TerritorySiegeModal';
-import { useSiegeRealtime } from './hooks/useSiegeRealtime';
+  calculateBuildingAuras,
+  GeotacticsLoadingScreen,
+} from '@domains/tactics';
 
-// Lazy loading de módulos pesados para optimización de bundle inicial en Vercel
-const ShopCatalog = React.lazy(() => import('./components/shop/ShopCatalog').then(m => ({ default: m.ShopCatalog })));
-const LoadoutCustomizer = React.lazy(() => import('./components/armory/LoadoutCustomizer').then(m => ({ default: m.LoadoutCustomizer })));
-const MatchSummaryModal = React.lazy(() => import('./components/ui/MatchSummaryModal').then(m => ({ default: m.MatchSummaryModal })));
-const MapLoadingScreen = React.lazy(() => import('./components/game/MapLoadingScreen').then(m => ({ default: m.MapLoadingScreen })));
-const QADevOpsRunner = React.lazy(() => import('./components/qa/QADevOpsRunner').then(m => ({ default: m.QADevOpsRunner })));
-const TacticalStudioEditor = React.lazy(() => import('./editor/TacticalStudioEditor').then(m => ({ default: m.TacticalStudioEditor })));
-const IndustrialComplexView = React.lazy(() => import('./components/industry/IndustrialComplexView').then(m => ({ default: m.IndustrialComplexView })));
-const P2PMarketplaceView = React.lazy(() => import('./components/industry/P2PMarketplaceView').then(m => ({ default: m.P2PMarketplaceView })));
-const ClanHeadquartersView = React.lazy(() => import('./components/clans/ClanHeadquartersView').then(m => ({ default: m.ClanHeadquartersView })));
-const CommanderProfileModal = React.lazy(() => import('./components/profile/CommanderProfileModal').then(m => ({ default: m.CommanderProfileModal })));
-import { GeotacticsLoadingScreen } from './components/game/GeotacticsLoadingScreen';
+// Shared: Primitivas, Auth, Servicios y Tipos
+import {
+  TacticalUnit,
+  TerrainTile,
+  GridPosition,
+  MovementType,
+  assetLoader,
+  useAuth,
+  supabase,
+  AuthTerminalModal,
+  TacticalErrorBoundary,
+} from '@shared';
+import { playerDb } from './shared/services/playerDatabaseService';
+import { matchDb } from './shared/services/matchDatabaseService';
+
+// Lazy loading de vistas de dominio
+const ShopCatalog = React.lazy(() => import('@domains/economy').then(m => ({ default: m.ShopCatalog })));
+const LoadoutCustomizer = React.lazy(() => import('@domains/economy').then(m => ({ default: m.LoadoutCustomizer })));
+const MatchSummaryModal = React.lazy(() => import('./shared/ui/MatchSummaryModal').then(m => ({ default: m.MatchSummaryModal })));
+const MapLoadingScreen = React.lazy(() => import('@domains/world').then(m => ({ default: m.MapLoadingScreen })));
+const QADevOpsRunner = React.lazy(() => import('@shared').then(m => ({ default: m.QADevOpsRunner })));
+const TacticalStudioEditor = React.lazy(() => import('./domains/tactics/components/TacticalStudioEditor').then(m => ({ default: m.TacticalStudioEditor })));
+const IndustrialComplexView = React.lazy(() => import('@domains/economy').then(m => ({ default: m.IndustrialComplexView })));
+const P2PMarketplaceView = React.lazy(() => import('@domains/economy').then(m => ({ default: m.P2PMarketplaceView })));
+const ClanHeadquartersView = React.lazy(() => import('@domains/world').then(m => ({ default: m.ClanHeadquartersView })));
+const CommanderProfileModal = React.lazy(() => import('./shared/auth/CommanderProfileModal').then(m => ({ default: m.CommanderProfileModal })));
 
 export function TacticalLoadingFallback() {
   return (
@@ -135,7 +175,7 @@ interface SimUnit {
   y: number;
   hp: number;
   movePoints: number;
-  moveType: 'foot' | 'mech' | 'wheels' | 'treads';
+  moveType: MovementType;
   minRange: number;
   maxRange: number;
   baseAtk: number;
@@ -513,11 +553,9 @@ export default function App() {
   const [reinforcementsEngine, setReinforcementsEngine] = useState<ReinforcementsEngineState>(() => initializeReinforcementsEngine());
   const [pendingLaunchFormat, setPendingLaunchFormat] = useState<MatchFormat>('grand_campaign');
 
-  // Despliegue de Combate desde el Lobby Bélico:
-  // En el MVP de 3 Capas, la Capa 2 (Combate Táctico Advance Wars) está deshabilitada.
-  // Cualquier solicitud de despliegue permanece en el Mapa Geopolítico (Capa 1) y dispara a Mayor Stella (Capa 3).
+  // Despliegue de Combate desde el Lobby Bélico (Capa 1 Geopolítica -> Capa 2 Tablero Táctico)
   const handleStartMatchFromLobby = (
-    _format: MatchFormat | 'campaign',
+    format: MatchFormat | 'campaign',
     territorialContext?: {
       provinceId?: string;
       biome?: string;
@@ -528,15 +566,29 @@ export default function App() {
     }
   ) => {
     audioManager.playDeployHorn();
-    setMainNav('lobby');
-    setIsPreBattleModalOpen(false);
-    setIsSiegeModalOpen(false);
+    const targetFormat: MatchFormat = format === 'campaign' ? 'grand_campaign' : format;
+    setPendingLaunchFormat(targetFormat);
+    setMatchFormat(targetFormat);
+
+    if (territorialContext?.garrisonTier) {
+      setBotDifficulty(territorialContext.garrisonTier);
+    }
+
+    if (territorialContext?.isSiege && territorialContext.provinceId) {
+      setActiveSiegeRegionId(territorialContext.provinceId);
+      setActiveSiegeRegionName(territorialContext.regionName || territorialContext.provinceId);
+      setIsSiegeModalOpen(true);
+      return;
+    }
+
     barkEngine.triggerBark({
-      commanderId: 'stella',
+      commanderId: playerCOs.p1.coId || 'stella',
       triggerContext: 'siege_declared',
       unitName: territorialContext?.regionName || territorialContext?.provinceId || 'Teatro Venezuela',
       bondingLevel: 5,
     });
+
+    setIsPreBattleModalOpen(true);
   };
 
   const handleConfirmDeployment = (config: DeploymentConfig) => {
@@ -680,7 +732,7 @@ export default function App() {
         turnNumber: 1,
         activePlayer: 'p1',
         timestamp: new Date().toISOString(),
-        tiles: proceduralMap.tiles.flat().map(t => ({ x: t.x, y: t.y, ownerId: t.ownerId, captureHp: t.captureHp || 20, type: t.type })),
+        tiles: proceduralMap.tiles.flat().map(t => ({ x: t.x, y: t.y, ownerId: t.ownerId ?? null, captureHp: t.captureHp || 20, type: t.type })),
         units: proceduralMap.startingUnits,
         funds: { p1: playerFunds.p1, p2: playerFunds.p2 },
         coStates: playerCOs,
@@ -1227,7 +1279,7 @@ export default function App() {
             mutableFundsP2 -= entry.cost;
             const spawned: SimUnit = {
               id: `bot_${action.spawnUnitCode}_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-              name: entry.name,
+              name: entry.displayName,
               code: action.spawnUnitCode,
               owner: 'p2',
               x: action.factoryPosition.x,
@@ -1467,7 +1519,7 @@ export default function App() {
       turnNumber: nextTurnNum,
       activePlayer: nextPlayer,
       timestamp: new Date().toISOString(),
-      tiles: matchTiles.flat().map(t => ({ x: t.x, y: t.y, ownerId: t.ownerId, captureHp: t.captureHp || 20, type: t.type })),
+      tiles: matchTiles.flat().map(t => ({ x: t.x, y: t.y, ownerId: t.ownerId ?? null, captureHp: t.captureHp || 20, type: t.type })),
       units: convertedUnits,
       funds: { p1: playerFunds.p1, p2: playerFunds.p2 },
       coStates: playerCOs,
@@ -1495,20 +1547,22 @@ export default function App() {
   };
 
   // Activación de Superpoderes CO (COP / SCOP)
-  const handleActivateCOPower = (powerType: COPowerType) => {
-    const activeState = playerCOs[turn];
+  const handleActivateCOPower = (targetPlayerOrPower: 'p1' | 'p2' | COPowerType, maybePowerType?: COPowerType) => {
+    const targetPlayer: 'p1' | 'p2' = (targetPlayerOrPower === 'p1' || targetPlayerOrPower === 'p2') ? targetPlayerOrPower : turn;
+    const powerType: COPowerType = maybePowerType || (targetPlayerOrPower as COPowerType);
+    const activeState = playerCOs[targetPlayer];
     if (!COEngine.canActivatePower(activeState, powerType)) return;
 
     const result = COEngine.activatePower(activeState, powerType, {
-      player: turn,
+      player: targetPlayer,
       units: convertedUnits,
       tiles: matchTiles,
-      funds: playerFunds[turn],
+      funds: playerFunds[targetPlayer],
     });
 
     setPlayerCOs(prev => ({
       ...prev,
-      [turn]: result.updatedState,
+      [targetPlayer]: result.updatedState,
     }));
 
     // Disparo reactivo del Bark Engine en cómic
@@ -2376,7 +2430,7 @@ export default function App() {
     <TacticalErrorBoundary fallbackTitle="DEFCON-1 // CUARTEL GENERAL EN ALERTA">
       <div className="h-screen max-h-screen w-full overflow-hidden bg-[#161712] text-[#F2E8D5] flex flex-col font-sans selection:bg-[#C46A3A] selection:text-[#F2E8D5]">
       {/* Renderizado Principal: Teatro de Combate vs Shell Persistente del Cuartel General (Zero-Unmount) */}
-      {mainNav === 'combat' ? (
+      <div className={mainNav === 'combat' ? 'relative w-full h-full flex flex-col' : 'hidden'}>
         <CombatTheaterView
           matchFormat={matchFormat}
           turn={turn}
@@ -2454,7 +2508,8 @@ export default function App() {
             });
           }}
         />
-      ) : (
+      </div>
+      <div className={mainNav !== 'combat' ? 'relative w-full h-full flex flex-col' : 'hidden'}>
         <WarLobbyHub
           userId={user?.id}
           isGuestMode={!user}
@@ -2503,7 +2558,7 @@ export default function App() {
           onOpenDocs={() => setMainNav('docs')}
           onOpenEditor={() => setIsDevStudioOpen(true)}
           onOpenProfile={() => setIsProfileModalOpen(true)}
-          activeStation={mainNav === 'lobby' ? null : mainNav}
+          activeStation={mainNav === 'lobby' || mainNav === 'combat' ? null : mainNav}
           onCloseStation={() => setMainNav('lobby')}
           onGainGold={(delta) => setUserGold((g) => g + delta)}
           onGainSteel={(delta) =>
@@ -2739,7 +2794,7 @@ export default function App() {
             </div>
           ) : null}
         </WarLobbyHub>
-      )}
+      </div>
 
       {/* Modal Importador de Mapas de la Comunidad (AWBW) */}
       {isImportModalOpen && (
@@ -2845,7 +2900,7 @@ export default function App() {
                   <div className="bg-[#181914] border-2 border-emerald-500/60 rounded-[10px_2px_10px_2px] p-3 text-xs flex flex-col gap-1.5 shadow-[3px_3px_0px_#0A0B08]">
                     <div className="flex items-center justify-between text-emerald-400 font-black">
                       <span>✓ Matriz AWBW Validada</span>
-                      <span className="tabular-nums">{importPreview.width} x {importPreview.height} casillas ({importPreview.width * importPreview.height} tiles)</span>
+                      <span className="tabular-nums">{importPreview.width} x {importPreview.height} casillas ({((importPreview.width || 0) * (importPreview.height || 0))} tiles)</span>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-[#F2E8D5] mt-1 tabular-nums">
                       <div className="bg-[#2B2C24] p-2 rounded border border-[#7B8A4A]/40">

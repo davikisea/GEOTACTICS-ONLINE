@@ -19,6 +19,27 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@domains/world": [
+        "./src/domains/world/index.ts"
+      ],
+      "@domains/tactics": [
+        "./src/domains/tactics/index.ts"
+      ],
+      "@domains/economy": [
+        "./src/domains/economy/index.ts"
+      ],
+      "@domains/game-feel": [
+        "./src/domains/game-feel/index.ts"
+      ],
+      "@shared": [
+        "./src/shared/index.ts"
+      ],
+      "@domains/*": [
+        "./src/domains/*"
+      ],
+      "@shared/*": [
+        "./src/shared/*"
       ]
     },
     "allowImportingTsExtensions": true,

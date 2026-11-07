@@ -204,7 +204,7 @@ ${CANONICAL_FIEF_BUILDINGS.map(
 } as const;
 `;
 
-  const outputDir = path.resolve('src/engine/data');
+  const outputDir = path.resolve('src/shared/data');
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }

@@ -14,7 +14,7 @@ Cada rama, nodo y subsistema del juego se clasifica de forma estricta e invariab
 | :--- | :---: | :--- | :--- |
 | **`LISTO`** | 🟢 | **Producción Certificada y Auditada.** El sistema está completamente programado, integrado end-to-end (Frontend + Motor + Base de Datos) y cuenta con suite de pruebas automatizadas verdes sin regresiones. | Pasa todas las pruebas unitarias e integración en CI y no tiene deuda técnica pendiente. |
 | **`DESPLEGADO`** | 🔵 | **Activo en Entorno / Infraestructura.** El esquema de tablas PostgreSQL, políticas RLS, vistas de React o rutas de servidor están creadas y montadas en la base de datos o en la interfaz, operativas pero pendientes de cierre de tests o auditoría final. | Migración SQL aplicada en Supabase o vista navegable en el cliente. |
-| **`DESARROLLADO`** | 🟡 | **Lógica de Código Implementada.** Algoritmos, modelos de TypeScript o controladores de estado escritos y funcionales en local, pero aún no cableados a la interfaz principal o al backend persistente. | Archivo `.ts` o `.tsx` funcional en `src/engine/` o `src/components/`. |
+| **`DESARROLLADO`** | 🟡 | **Lógica de Código Implementada.** Algoritmos, modelos de TypeScript o controladores de estado escritos y funcionales en local, pero aún no cableados a la interfaz principal o al backend persistente. | Archivo `.ts` o `.tsx` funcional en `src/domains/{world,tactics,economy,game-feel}/` o `src/shared/`. |
 | **`EN DESARROLLO`** | 🟠 | **En Especificación o Refactor Activo.** Módulo en proceso de alineación con el canon, diseño de contratos o refactorización arquitectónica para erradicar discrepancias legacy. | PR abierto, RFC aprobado o tarea activa en roadmap. |
 
 > [!NOTE] CALIBRACIÓN OPERATIVA DE CAPAS EN v0.0.2-alfa (MVP POLÍTICO)
@@ -28,20 +28,37 @@ Cada rama, nodo y subsistema del juego se clasifica de forma estricta e invariab
 
 Antes de desplegar el árbol, se declaran los 7 axiomas rectores del juego ratificados por la dirección:
 
-1. **CERO CARTAS $\rightarrow$ ALMACÉN FÍSICO DE UNIDADES (FLEET HANGAR):**  
-   No existen barajas, no existen sobres de cartas ni manos de naipes. El jugador gestiona un **Almacén Físico de Unidades** con acceso a los **16 arquetipos militares del juego**. Las tropas se fabrican previamente en industrias territoriales acumulando **stock físico real**. En combate, las fábricas aliadas despliegan chasis existentes en dicho stock pagando además los Fondos Tácticos ($G) generados in-match por ciudades capturadas.
-2. **ESCALA BALÍSTICA ESTRICTA: 1 A 100 HP:**  
-   Toda unidad nace con **100 HP continuos**. El daño balístico, las estrellas de terreno (0★ a 4★) y los sprites de vida operan sobre la escala continua de 1 a 100 HP sin redondeos toscos.
+1. **CERO CARTAS $\rightarrow$ ALMACÉN FÍSICO DE UNIDADES (FLEET HANGAR DE 16 TROPAS):**  
+   No existen barajas (NO TCG/CCG), no existen sobres de cartas ni manos de naipes. El jugador gestiona un **Almacén Físico de Unidades (`user_unit_hangar` / `faction_unit_hangar`) de 16 tropas máximo por jugador en orden de batalla (4 slots de despliegue activo de vanguardia + 12 unidades en reserva táctica)**, con acceso al catálogo de los **16 arquetipos militares del juego**. Las tropas se fabrican previamente en industrias territoriales acumulando **stock físico real**. En combate, las fábricas aliadas despliegan chasis existentes en dicho stock mediante **Doble Llave**, pagando además los Fondos Tácticos ($G) generados in-match por ciudades capturadas.
+2. **ESCALA BALÍSTICA ESTRICTA: 1 A 100 HP ENTEROS:**  
+   Toda unidad nace con **100 HP enteros continuos** (`CANONICAL_MAX_HP = 100`). El daño balístico, las estrellas de terreno (0★ a 4★) y los sprites de vida operan sobre la escala continua de 1 a 100 HP sin redondeos toscos (`@domains/tactics/core/canonicalCombat.ts`).
 3. **CONDICIÓN DE DERROTA POR 0 TROPAS:**  
    Si un comandante pierde su última unidad activa sobre el grid (`units.length === 0`), sufre una **Derrota Inmediata Inapelable** (canon estricto *Advance Wars*), sin importar sus fábricas o fondos en reserva.
-4. **PROGRESIÓN EXCLUSIVA: TIERS T1 A T5 (+2% POR TIER):**  
+4. **PROGRESIÓN HORIZONTAL EXCLUSIVA: TIERS T1 A T5 (+2% POR TIER, MÁXIMO +8% EN T5):**  
    Queda erradicado el nivel de carta (1-15). La única bonificación balística en combate clasificado es la pureza de manufactura del chasis: **Tiers T1 a T5 (+2% efectividad por nivel; T1 $+0\%$, T2 $+2\%$, T3 $+4\%$, T4 $+6\%$, T5 $+8\%$)**. En torneos esports y Duelo Espejo se compite forzosamente a **Tier 1 (+0%)**.
-5. **CAPITALES NACIONALES: CONQUISTABLES CON BUFF HEGEMÓNICO REGIONAL:**  
-   Las 195 Capitales son disputables y conquistables en el mapa mundial como cualquier provincia (0% inexpugnabilidad). La facción que domina la Capital de un país proyecta un **Buff Regional Permanente** a todos sus territorios en esa nación: **+15% Créditos Energéticos (EC)**, **+10% velocidad de forja** y **-20% aranceles P2P**.
-6. **PÉRDIDA FÍSICA DE UNIDADES + 35% CHATARRA + KIT BÁSICO F2P:**  
-   Toda tropa destruida en combate territorial se descuenta de forma permanente del stock físico de su almacén, devolviendo el **35% de sus materiales como chatarra balística (`tech_scrap`)**. Para evitar que nadie quede bloqueado sin jugar por falta de tropas, el Estado Mayor provee una **Línea de Pertrechos Básicos Inagotable (Infantería Ligera T1 y Reconocimiento T1 ilimitados)**.
+5. **CAPITALES NACIONALES: CONQUISTABLES CON BUFF REGIONAL (+5%) Y HEGEMONÍA NACIONAL:**  
+   Las 195 Capitales son disputables y conquistables en el mapa mundial como cualquier provincia (0% inexpugnabilidad, `CAPITAL_IMMUNITY = false`). La conquista de una Capital otorga un **Buff Regional de +5% en extracción de recursos y logística en la región**, y proyecta además un **Buff Hegemónico Nacional** a todos los territorios de la facción en esa nación: **+15% Créditos Energéticos (EC)**, **+10% velocidad de forja** y **-20% aranceles P2P** (`@domains/economy/core/strategicAndProductionEngine.ts` y `@domains/world/core/territorialExpansionEngine.ts`).
+6. **PÉRDIDA FÍSICA DE UNIDADES + 35% CHATARRA (`tech_scrap`) + KIT BÁSICO F2P:**  
+   Toda tropa destruida en combate territorial se descuenta de forma permanente del stock físico de su almacén, devolviendo el **35% de sus materiales como chatarra tecnológica (`tech_scrap`, `RECYCLE_SCRAP_RATE = 0.35`)**. Para evitar que nadie quede bloqueado sin jugar por falta de tropas, el Estado Mayor provee una **Línea de Pertrechos Básicos Inagotable (Infantería Ligera T1 y Reconocimiento T1 ilimitados)**.
 7. **HUMAN HANDSHAKE DE 120 SEGUNDOS (2 MINUTOS):**  
-   Al asaltar un territorio defendido por una **Guarnición IA**, el clan defensor dispone de **120 segundos** para tomar el mando en un duelo PvP en vivo. Si expira el plazo sin respuesta humana, la IA comanda el combate autónomamente.
+   Al asaltar un territorio defendido por una **Guarnición IA**, el clan defensor dispone de **120 segundos (`HANDSHAKE_TIMEOUT_SECONDS = 120`)** para tomar el mando en un duelo PvP en vivo. Si expira el plazo sin respuesta humana, la IA de Guarnición (Niveles 1 a 5) comanda el combate autónomamente (`@domains/world/core/territorialSiegeOrchestrator.ts` y `@domains/tactics/core/garrisonAIEngine.ts`).
+
+> [!IMPORTANT] REGLA FINANCIERA CANÓNICA (MERCADO LIBRE P2P)
+> El **Mercado Libre P2P** (`@domains/economy/core/industrialEngine.ts` y `@shared/types/metagame.ts`) aplica un **impuesto transaccional total del 2% (`TOTAL_P2P_TAX_RATE = 0.02`)**, dividido exactamente en **1% quemado en Sink deflacionario (`PLATFORM_BURN_RATE = 0.01`)** + **1% de regalía al Clan dueño del Hub regional (`PROVINCE_ROYALTY_RATE = 0.01`)**, protegido por bandas de precios dinámicas **VWAP Collar ±25% (`VWAP_COLLAR_PERCENT = 0.25`)** anti-especulación y anti-RMT.
+
+---
+
+## 2.1 ARQUITECTURA MODULAR DE 4 DOMINIOS + SHARED (SSOT DE CÓDIGO)
+
+Toda la base de código ejecutable se organiza en **4 Dominios Funcionales Desacoplados** y una **Capa Compartida (`shared`)**, gobernados mediante barriles públicos (`index.ts`) y alias de TypeScript en `tsconfig.json`:
+
+| Dominio / Capa | Ruta Física y Alias TS | Punto de Entrada | Responsabilidad Arquitectónica |
+| :--- | :--- | :--- | :--- |
+| **Dominio 1: World** | `src/domains/world/` (`@domains/world/*`) | `src/domains/world/index.ts` | Cartografía WebGL/MapLibre (`TacticalWorldMap`), coordenadas analíticas $O(1)$ (`coordinates.ts`), bitmaps (`tacticalBitmap.ts`), red vial y guarniciones (`roadNetworkEngine.ts`, `roadGarrisonEngine.ts`), asedios 120s (`territorialSiegeOrchestrator.ts`), expansión celular (`territorialExpansionEngine.ts`), motor político ALICE (`politicalAliceEngine.ts`) y clanes (`clanSystem.ts`). |
+| **Dominio 2: Tactics** | `src/domains/tactics/` (`@domains/tactics/*`) | `src/domains/tactics/index.ts` | Motor balístico determinista 1-100 HP (`canonicalCombat.ts`, `combat.ts`, `canonicalDamageChart.ts`), 28 Comandantes (`coSystem.ts`), IA de Guarnición Nv.1-5 (`garrisonAIEngine.ts`, `aiBot.ts`), niebla y `¡TRAP!` (`fogOfWar.ts`, `pathfinding.ts`), refuerzos (`reinforcementsEngine.ts`, `reinforcementEngine.ts`) e integración Doble Llave (`tacticalCombatSeamlessIntegration.ts`). |
+| **Dominio 3: Economy** | `src/domains/economy/` (`@domains/economy/*`) | `src/domains/economy/index.ts` | Almacén Físico de 16 tropas Cero Cartas (`useUserHangar.ts`, `UnitHangarModal.tsx`, `LoadoutCustomizer.tsx`), complejo industrial de 10 parcelas y Mercado P2P 2% (`industrialEngine.ts`, `IndustrialComplexView.tsx`, `P2PMarketplaceView.tsx`), colas de forja y nodos estratégicos (`strategicAndProductionEngine.ts`, `turnEconomy.ts`, `upkeepEngine.ts`). |
+| **Dominio 4: Game-Feel** | `src/domains/game-feel/` (`@domains/game-feel/*`) | `src/domains/game-feel/index.ts` | Bark Engine Cómic sin voces (`barkEngine.ts`, `CommanderBarkWidget.tsx`, `CommanderLivingVignette.tsx`), síntesis procedural Web Audio API (`audioManager.ts`) y matriz háptica (`hapticFeedback.ts`). |
+| **Capa Shared** | `src/shared/` (`@shared/*`) | `src/shared/index.ts` | Contratos globales y constantes SSOT (`src/shared/types/metagame.ts`, `src/shared/types/index.ts`, `src/shared/types/database.types.ts`), cliente Supabase (`src/shared/lib/supabase/client.ts`), servicios de base de datos (`playerDatabaseService.ts`, `matchDatabaseService.ts`), autenticación (`useAuth.ts`, `AuthTerminalModal.tsx`) y primitivas UI (`TacticalGhostBar.tsx`, `TacticalErrorBoundary.tsx`, `MatchSummaryModal.tsx`, `QADevOpsRunner.tsx`). |
 
 ---
 
@@ -53,17 +70,18 @@ Antes de desplegar el árbol, se declaran los 7 axiomas rectores del juego ratif
          ┌───────────────────┬─────────────────────┼─────────────────────┬───────────────────┐
          ▼                   ▼                     ▼                     ▼                   ▼
    [ RAMA 1: TABLERO ] [ RAMA 2: INDUSTRIA ] [ RAMA 3: GEOPOLÍTICA ] [ RAMA 4: ATOMPUNK ] [ RAMA 5: BACKEND ]
-   • Motor Balístico   • Almacén Físico      • Mapa Mundial 195 P.   • UI Retro-Futurista • 22 Migraciones
-   • Escala 1-100 HP   • Stock Real T1-T5    • Soberanía Capital     • Bark Engine Cómic  • RLS Multi-Tenant
+   • @domains/tactics  • @domains/economy    • @domains/world        • @domains/game-feel • @shared + Supabase
+   • Motor Balístico   • Almacén 16 Tropas   • Mapa Mundial 195 P.   • UI Retro-Futurista • 31 Migraciones
+   • Escala 1-100 HP   • Stock Real T1-T5    • Soberanía Capital +5% • Bark Engine Cómic  • RLS Multi-Tenant
    • Turno Fischer     • Refinado 10 Parcelas• Asedios TCP & Escudo  • Ergonomía In-Situ  • Orquestador
    • Niebla & TRAP!    • Mercado P2P 2% Split• Guarnición IA 120s    • Matriz Háptica     • Arnés E2E QA
 ```
 
 ---
 
-## ⚔️ RAMA 1: MECÁNICAS DEL TABLERO TÁCTICO (CORE TBS ENGINE)
+## ⚔️ RAMA 1: MECÁNICAS DEL TABLERO TÁCTICO (`@domains/tactics` — CORE TBS ENGINE)
 
-*Motor de resolución determinista por turnos sobre cuadrícula ortogonal 2D.*
+*Motor de resolución determinista por turnos sobre cuadrícula ortogonal 2D (`src/domains/tactics/index.ts`).*
 
 ```
 RAMA 1: TABLERO TÁCTICO
@@ -113,13 +131,13 @@ RAMA 1: TABLERO TÁCTICO
 
 ---
 
-## 🏭 RAMA 2: INDUSTRIA BÉLICA, ALMACÉN Y ECONOMÍA (ECONOMY & FLEET)
+## 🏭 RAMA 2: INDUSTRIA BÉLICA, ALMACÉN Y ECONOMÍA (`@domains/economy` — ECONOMY & FLEET)
 
-*Gestión de stock físico de chasis, refinerías territoriales y mercado descentralizado.*
+*Gestión de stock físico de chasis (16 tropas máximo por jugador: 4 activas + 12 reserva), refinerías territoriales y mercado descentralizado (`src/domains/economy/index.ts`).*
 
 ```
 RAMA 2: INDUSTRIA Y ALMACÉN
-├── 2.1 Almacén Físico de Unidades (Fleet Hangar)
+├── 2.1 Almacén Físico de Unidades (Fleet Hangar: 4 Vanguardia + 12 Reserva)
 │   ├── 2.1.1 Eliminación completa de cartas y mazos de la lógica ............... 🟢 [LISTO]
 │   ├── 2.1.2 Registro de stock físico real por arquetipo en base de datos ...... 🟢 [LISTO]
 │   ├── 2.1.3 Línea de Pertrechos Básica F2P (Infantería y Recon T1 ilimitados) . 🟢 [LISTO]
@@ -127,7 +145,7 @@ RAMA 2: INDUSTRIA Y ALMACÉN
 │   ├── 2.1.5 Cola de Producción Física y Concurrencia de Ensamblaje ............ 🟢 [LISTO]
 │   └── 2.1.6 Hangar Compartido de Facción (Despliegue de Arsenal Común) ........ 🟢 [LISTO]
 │
-├── 2.2 Jerarquía de Calidad: Tiers T1 a T5
+├── 2.2 Jerarquía de Calidad: Tiers T1 a T5 (+2% por Tier, máx. +8% en T5)
 │   ├── 2.2.1 Erradicación de Niveles de Carta 1-15 del motor de combate ....... 🟢 [LISTO]
 │   ├── 2.2.2 Bonificación industrial T1 a T5 (+2% balística por Tier) .......... 🟢 [LISTO]
 │   ├── 2.2.3 Normalización obligatoria a Tier 1 (+0%) en Torneos y Espejo ..... 🟢 [LISTO]
@@ -159,9 +177,9 @@ RAMA 2: INDUSTRIA Y ALMACÉN
 
 ---
 
-## 🌍 RAMA 3: GEOPOLÍTICA CONTINENTAL Y SOBERANÍA (WORLD SOVEREIGNTY)
+## 🌍 RAMA 3: GEOPOLÍTICA CONTINENTAL Y SOBERANÍA (`@domains/world` — WORLD SOVEREIGNTY)
 
-*Mapa mundial persistente, asedios geopolíticos, guarniciones y diplomacia.*
+*Mapa mundial persistente, asedios geopolíticos, guarniciones y diplomacia (`src/domains/world/index.ts`).*
 
 ```
 RAMA 3: GEOPOLÍTICA Y SOBERANÍA
@@ -175,7 +193,7 @@ RAMA 3: GEOPOLÍTICA Y SOBERANÍA
 │
 ├── 3.2 Soberanía de Capitales Nacionales
 │   ├── 3.2.1 Asedio conquistable a las 195 Capitales (0% High-Sec inmune) ...... 🟢 [LISTO]
-│   ├── 3.2.2 Buff Hegemónico Nacional (+15% EC, +10% forja, -20% aranceles) .... 🟢 [LISTO]
+│   ├── 3.2.2 Buff Regional (+5% recursos/logística) y Hegemónico (+15% EC, +10% forja, -20% aranceles) 🟢 [LISTO]
 │   └── 3.2.3 Estandarte de Clan y heráldica sobre la frontera nacional ......... 🟢 [LISTO]
 │
 ├── 3.3 Dinámica de Asedio y Conquista
@@ -198,9 +216,9 @@ RAMA 3: GEOPOLÍTICA Y SOBERANÍA
 
 ---
 
-## 🎨 RAMA 4: PRESENTACIÓN, NARRATIVA Y ATOMPUNK (ATOMPUNK EXPERIENCE)
+## 🎨 RAMA 4: PRESENTACIÓN, NARRATIVA Y ATOMPUNK (`@domains/game-feel` — ATOMPUNK EXPERIENCE)
 
-*Identidad visual Space-Age 1950s/1960s, Bark Engine cómico y ergonomía in-situ.*
+*Identidad visual Space-Age 1950s/1960s, Bark Engine cómico y ergonomía in-situ (`src/domains/game-feel/index.ts`).*
 
 ```
 RAMA 4: PRESENTACIÓN Y GAME FEEL
@@ -232,19 +250,20 @@ RAMA 4: PRESENTACIÓN Y GAME FEEL
 
 ---
 
-## 🛠️ RAMA 5: INFRAESTRUCTURA, PERSISTENCIA Y QA (BACKEND & QA)
+## 🛠️ RAMA 5: INFRAESTRUCTURA, PERSISTENCIA Y QA (`@shared` & `supabase/` — BACKEND & QA)
 
-*Arquitectura de datos PostgreSQL, seguridad multi-tenant y pruebas E2E.*
+*Arquitectura de datos PostgreSQL, seguridad multi-tenant y pruebas E2E (`src/shared/index.ts` y `supabase/migrations/`).*
 
 ```
 RAMA 5: INFRAESTRUCTURA Y QA
 ├── 5.1 Base de Datos PostgreSQL / Supabase
-│   ├── 5.1.1 Consolidación de 27 Migraciones DDL e inicialización de esquemas ... 🟢 [LISTO]
+│   ├── 5.1.1 Consolidación de 31 Migraciones DDL (27 base + 4 extensiones) ..... 🟢 [LISTO]
 │   ├── 5.1.2 Esquema relacional de parcelas industriales y órdenes P2P ......... 🟢 [LISTO]
 │   ├── 5.1.3 Esquema cartográfico de continentes, países, provincias y nodos ... 🟢 [LISTO]
 │   ├── 5.1.4 Esquema de hangares físicos de flota (user_unit_hangar) ............ 🟢 [LISTO]
 │   ├── 5.1.5 Esquema de Asedios y Semillero de Venezuela (Migración 26) ........ 🟢 [LISTO]
-│   └── 5.1.6 Esquema de Nodos Estratégicos, Hangar Facción y Colas (Migración 27) 🟢 [LISTO]
+│   ├── 5.1.6 Esquema de Nodos Estratégicos, Hangar Facción y Colas (Migración 27) 🟢 [LISTO]
+│   └── 5.1.7 Soberanía RBAC, Cabimas Realtime, Catálogo y Ventanas (Migr. 28-31) 🟢 [LISTO]
 │
 ├── 5.2 Seguridad y Lógica Transaccional
 │   ├── 5.2.1 Políticas RLS estrictas multi-tenant para aislamiento de perfiles . 🟢 [LISTO]
@@ -258,10 +277,10 @@ RAMA 5: INFRAESTRUCTURA Y QA
 │   └── 5.3.4 Botón Revancha Exprés (5s) para reenganche instantáneo ............ 🟢 [LISTO]
 │
 └── 5.4 Arnés de Pruebas y Aseguramiento de Calidad
-    ├── 5.4.1 Batería de tests unitarios de motor táctico (canonicalCombat.test) . 🟢 [LISTO]
-    ├── 5.4.2 Tests de ciclo circadiano e industria (industrialEngine.test) ...... 🟢 [LISTO]
+    ├── 5.4.1 Batería de tests unitarios de motor táctico (@domains/tactics/__tests__/combat.test.ts) 🟢 [LISTO]
+    ├── 5.4.2 Tests de ciclo circadiano e industria (@domains/economy/__tests__/industrialEngine.test.ts) 🟢 [LISTO]
     ├── 5.4.3 Suite de telemetría y playtesting multimodal con Playwright ....... 🟢 [LISTO]
-    ├── 5.4.4 Consola de desarrollo y depuración aislada (DebugDevConsoleModal) .. 🟢 [LISTO]
+    ├── 5.4.4 Consola de desarrollo y depuración aislada (@domains/tactics/components/DebugDevConsoleModal.tsx) 🟢 [LISTO]
     └── 5.4.5 Batería Geotactics Unificada (npm run test:geotactics: 93/93 tests) 🟢 [LISTO]
 ```
 
@@ -269,21 +288,21 @@ RAMA 5: INFRAESTRUCTURA Y QA
 
 # 4. MATRIZ DE SINCRONIZACIÓN Y PLAN DE CIERRE DE DISCREPANCIAS
 
-Para que la base de código y la documentación subordinada alcancen el estado 100% `LISTO`, se ejecutaron y certificaron las siguientes acciones de alineación:
+Para que la base de código y la documentación subordinada alcancen el estado 100% `LISTO`, se ejecutaron y certificaron las siguientes acciones de alineación sobre los 4 dominios modulares (`@domains/world`, `@domains/tactics`, `@domains/economy`, `@domains/game-feel`) y `@shared`:
 
 | Nodo del Árbol | Estado Anterior | Acción de Limpieza / Refactor Ejecutada | Estado Actual |
 | :--- | :---: | :--- | :---: |
-| **1.1.2 Escala 1-100 HP** | 🟠 | Fijada escala 1-100 HP sin redondeos en `canonicalCombat.ts` y `damageModel.ts`. | 🟢 `[LISTO]` |
-| **2.1.1 Eliminación de Cartas** | 🟠 | Deprecado `deckManager.ts`. Todo el despliegue opera con `user_unit_hangar` y `faction_unit_hangar`. | 🟢 `[LISTO]` |
-| **2.1.4 Modal de Producción** | 🟠 | Desacoplado de mazos. Opera mediante Doble Llave ($G + Chasis físico) en `ProductionModal.tsx`. | 🟢 `[LISTO]` |
-| **2.2.1 Retiro de Nivel de Carta** | 🟠 | Purgado nivel 1-15. Todo el motor opera bajo Tiers industriales T1-T5 (+2%/tier). | 🟢 `[LISTO]` |
-| **3.4.2 Handshake 120s** | 🟠 | Certificado en `territorialSiege.test.ts` y `tacticalCombatSeamlessIntegration.ts`. | 🟢 `[LISTO]` |
-| **3.1.2 WebGL Zero-Raster** | 🟠 | Erradicación de CartoDB y `WorldMapCanvas.tsx`. Carga local de `world_land.json`, `theatre_regions.json` y `theatre_roads.json`. | 🟢 `[LISTO]` |
-| **1.0.0 Capa 2 MVP Standby** | 🟢 | El motor determinista TBS queda en espera en la UI para priorizar la estabilidad geopolítica de Capa 1. | 🟡 `[DESARROLLADO]` |
-| **3.1.5 Expansión Territorial** | 🟠 | Implementado motor de ondas celulares tipo Territorial.io (`territorialExpansionEngine.ts`). | 🟢 `[LISTO]` |
-| **5.1.5 & 5.1.6 Migraciones 26 y 27** | 🟠 | Creadas migraciones SQL para asedios, 24 regiones VE, nodos estratégicos y colas. | 🟢 `[LISTO]` |
-| **2.2.1 Retiro de Nivel de Carta** | 🟠 | Eliminar `getLevelAttackBonus` de `canonicalCombat.ts`, preservando únicamente `attackerTierBonus` (Tiers T1 a T5). | 🟢 `[LISTO]` |
-| **3.4.2 Handshake 120s** | 🟠 | Actualizar `HANDSHAKE_TIMEOUT_SECONDS: 120` en `src/types/metagame.ts` alineándolo con el canon oficial. | 🟢 `[LISTO]` |
+| **1.1.2 Escala 1-100 HP** | 🟠 | Fijada escala continua 1-100 HP enteros (`CANONICAL_MAX_HP = 100`) sin redondeos en `src/domains/tactics/core/canonicalCombat.ts` y `src/domains/tactics/core/canonicalDamageChart.ts`. | 🟢 `[LISTO]` |
+| **2.1.1 Eliminación de Cartas** | 🟠 | Erradicación de mazos TCG/CCG. Almacén físico de 16 tropas máximo por jugador (4 activas + 12 reserva) en `user_unit_hangar` y `faction_unit_hangar` (`src/domains/economy/hooks/useUserHangar.ts` y `src/domains/economy/components/UnitHangarModal.tsx`). | 🟢 `[LISTO]` |
+| **2.1.4 Modal de Producción** | 🟠 | Desacoplado de mazos. Opera mediante Doble Llave ($G + Chasis físico) en `src/domains/tactics/components/ProductionModal.tsx` y `src/domains/tactics/core/tacticalCombatSeamlessIntegration.ts`. | 🟢 `[LISTO]` |
+| **2.2.1 Retiro de Nivel de Carta** | 🟠 | Purgado nivel 1-15 y `getLevelAttackBonus`. Todo el motor en `src/domains/tactics/core/canonicalCombat.ts` opera bajo Tiers industriales T1-T5 (+2%/tier, máximo +8% en T5). | 🟢 `[LISTO]` |
+| **2.5.1 & 2.5.2 Mercado P2P 2%** | 🟠 | Certificado split transaccional del 2% (`1%` Burn Sink + `1%` Regalía al Clan del Hub regional) y bandas `VWAP_COLLAR_PERCENT = 0.25` (±25%) en `src/shared/types/metagame.ts` y `src/domains/economy/core/industrialEngine.ts`. | 🟢 `[LISTO]` |
+| **3.1.2 WebGL Zero-Raster** | 🟠 | Erradicación de CartoDB. Componente unificado en `src/domains/world/components/TacticalWorldMap.tsx` (re-exportado como `WorldMapCanvas` en `src/domains/world/index.ts`) con carga local de `world_land.json`, `theatre_regions.json` y `theatre_roads.json`. | 🟢 `[LISTO]` |
+| **3.1.5 Expansión Territorial** | 🟠 | Implementado motor de ondas celulares tipo Territorial.io y buffs de nodos estratégicos en `src/domains/world/core/territorialExpansionEngine.ts`. | 🟢 `[LISTO]` |
+| **3.2.2 Buff Regional Capital** | 🟠 | Consolidado Buff Regional de Capital (+5% recursos/logística regional) junto con hegemonía nacional (+15% EC, +10% forja, -20% aranceles P2P) en `src/domains/economy/core/strategicAndProductionEngine.ts` y `src/domains/world/core/territorialExpansionEngine.ts`. | 🟢 `[LISTO]` |
+| **3.4.2 Handshake 120s** | 🟠 | Fijado `HANDSHAKE_TIMEOUT_SECONDS: 120` en `src/shared/types/metagame.ts`, orquestado en `src/domains/world/core/territorialSiegeOrchestrator.ts` y certificado en `src/domains/world/__tests__/territorialSiege.test.ts` y `src/domains/tactics/core/tacticalCombatSeamlessIntegration.ts`. | 🟢 `[LISTO]` |
+| **1.0.0 Capa 2 MVP Standby** | 🟢 | El motor determinista TBS (`src/domains/tactics/`) queda en espera en la UI según `THREE_LAYER_ARCHITECTURE` en `src/domains/world/core/politicalAliceEngine.ts` para priorizar la estabilidad geopolítica de Capa 1. | 🟡 `[DESARROLLADO]` |
+| **5.1.1 a 5.1.7 Migraciones SQL** | 🟠 | Consolidadas las 31 migraciones DDL en `supabase/migrations/` (incluyendo asedios, 24 regiones VE, nodos estratégicos, soberanía RBAC, Cabimas realtime, manifiesto de catálogos y ventanas de vulnerabilidad). | 🟢 `[LISTO]` |
 
 ---
 

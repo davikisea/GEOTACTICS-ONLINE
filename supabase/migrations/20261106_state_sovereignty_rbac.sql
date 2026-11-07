@@ -52,7 +52,7 @@ AS $$
       AND (cm.clan_id = target_clan_id OR cm.role IN ('leader', 'officer'))
   )
   OR EXISTS (
-    SELECT 1 FROM public.player_profiles pp
+    SELECT 1 FROM public.profiles pp
     WHERE pp.id = auth.uid()
       AND (pp.is_admin = true OR pp.metadata->>'is_faction_manager' = 'true')
   );

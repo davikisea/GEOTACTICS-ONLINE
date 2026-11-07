@@ -1,16 +1,18 @@
-﻿-- ==============================================================================
--- TACTICAL COMMAND: WARS OF LEGACY - CONSOLIDATED DATABASE DEPLOYMENT SCRIPT
--- Combina las 22 migraciones cannicas + seed inicial en un solo bloque ejecutable.
+-- ==============================================================================
+-- GEOTACTICS ONLINE - CONSOLIDATED DATABASE DEPLOYMENT SCRIPT
+-- Combina las 32 migraciones canónicas + seed inicial en un solo bloque ejecutable.
+-- Generado automáticamente: 2026-11-07T19:00:45.074Z
 -- ==============================================================================
 
--- >>> INICIO MIGRACIN: 20261024000001_initial_schema.sql <<<
+
+-- >>> INICIO MIGRACIÓN: 20261024000001_initial_schema.sql <<<
 -- ============================================================================
--- MIGRACIN 1: ESQUEMA INICIAL DE TABLAS, CLAVES Y NDICES
+-- MIGRACIÓN 1: ESQUEMA INICIAL DE TABLAS, CLAVES Y ÍNDICES
 -- Proyecto: Tactical Command: Wars of Legacy
 -- Fecha: 2026-10-24
 -- ============================================================================
 
--- Habilitar extensiones requeridas para identificadores nicos y criptografa
+-- Habilitar extensiones requeridas para identificadores únicos y criptografía
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
@@ -47,7 +49,7 @@ CREATE INDEX IF NOT EXISTS idx_profiles_level ON public.profiles(account_level D
 
 -- ----------------------------------------------------------------------------
 -- 2. TABLA: units_catalog
--- Catlogo inmutable de unidades tcticas y estadsticas de combate
+-- Catálogo inmutable de unidades tácticas y estadísticas de combate
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.units_catalog (
     id VARCHAR(32) PRIMARY KEY,
@@ -75,7 +77,7 @@ CREATE INDEX IF NOT EXISTS idx_units_catalog_base_unlocked ON public.units_catal
 
 -- ----------------------------------------------------------------------------
 -- 3. TABLA: user_unlocks
--- Registro de propiedad de variantes de unidades y cosmticos por usuario
+-- Registro de propiedad de variantes de unidades y cosméticos por usuario
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.user_unlocks (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -91,7 +93,7 @@ CREATE INDEX IF NOT EXISTS idx_user_unlocks_user_type ON public.user_unlocks(use
 
 -- ----------------------------------------------------------------------------
 -- 4. TABLA: active_matches
--- Encabezado de partidas activas (PvP Realtime, Asncrono o vs Bot)
+-- Encabezado de partidas activas (PvP Realtime, Asíncrono o vs Bot)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.active_matches (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -119,7 +121,7 @@ CREATE INDEX IF NOT EXISTS idx_active_matches_room_code ON public.active_matches
 
 -- ----------------------------------------------------------------------------
 -- 5. TABLA: match_state
--- Representacin en tiempo real del tablero de juego serializado en JSONB
+-- Representación en tiempo real del tablero de juego serializado en JSONB
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.match_state (
     match_id UUID PRIMARY KEY REFERENCES public.active_matches(id) ON DELETE CASCADE,
@@ -138,7 +140,7 @@ CREATE TABLE IF NOT EXISTS public.match_state (
 
 -- ----------------------------------------------------------------------------
 -- 6. TABLA: match_history
--- Auditora inmutable de partidas completadas para analticas y rankings
+-- Auditoría inmutable de partidas completadas para analíticas y rankings
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.match_history (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -162,16 +164,17 @@ CREATE INDEX IF NOT EXISTS idx_match_history_p1 ON public.match_history(player1_
 CREATE INDEX IF NOT EXISTS idx_match_history_p2 ON public.match_history(player2_id);
 CREATE INDEX IF NOT EXISTS idx_match_history_created_at ON public.match_history(created_at DESC);
 
--- >>> FIN MIGRACIN: 20261024000001_initial_schema.sql <<<
+-- >>> FIN MIGRACIÓN: 20261024000001_initial_schema.sql <<<
 
--- >>> INICIO MIGRACIN: 20261024000002_rls_and_policies.sql <<<
+
+-- >>> INICIO MIGRACIÓN: 20261024000002_rls_and_policies.sql <<<
 -- ============================================================================
--- MIGRACIN 2: ROW LEVEL SECURITY (RLS) Y POLTICAS DE ACCESO
+-- MIGRACIÓN 2: ROW LEVEL SECURITY (RLS) Y POLÍTICAS DE ACCESO
 -- Proyecto: Tactical Command: Wars of Legacy
 -- Fecha: 2026-10-24
 -- ============================================================================
 
--- Habilitar RLS en todas las tablas pblicas
+-- Habilitar RLS en todas las tablas públicas
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.units_catalog ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_unlocks ENABLE ROW LEVEL SECURITY;
@@ -180,7 +183,7 @@ ALTER TABLE public.match_state ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.match_history ENABLE ROW LEVEL SECURITY;
 
 -- ----------------------------------------------------------------------------
--- POLTICAS: profiles
+-- POLÍTICAS: profiles
 -- ----------------------------------------------------------------------------
 DROP POLICY IF EXISTS "profiles_select_public" ON public.profiles;
 CREATE POLICY "profiles_select_public"
@@ -199,7 +202,7 @@ CREATE POLICY "profiles_insert_own"
     WITH CHECK (auth.uid() = id);
 
 -- ----------------------------------------------------------------------------
--- POLTICAS: units_catalog
+-- POLÍTICAS: units_catalog
 -- ----------------------------------------------------------------------------
 DROP POLICY IF EXISTS "units_catalog_select" ON public.units_catalog;
 CREATE POLICY "units_catalog_select"
@@ -207,7 +210,7 @@ CREATE POLICY "units_catalog_select"
     USING (true);
 
 -- ----------------------------------------------------------------------------
--- POLTICAS: user_unlocks
+-- POLÍTICAS: user_unlocks
 -- ----------------------------------------------------------------------------
 DROP POLICY IF EXISTS "user_unlocks_select_own" ON public.user_unlocks;
 CREATE POLICY "user_unlocks_select_own"
@@ -215,7 +218,7 @@ CREATE POLICY "user_unlocks_select_own"
     USING (auth.uid() = user_id);
 
 -- ----------------------------------------------------------------------------
--- POLTICAS: active_matches
+-- POLÍTICAS: active_matches
 -- ----------------------------------------------------------------------------
 DROP POLICY IF EXISTS "active_matches_select" ON public.active_matches;
 CREATE POLICY "active_matches_select"
@@ -238,7 +241,7 @@ CREATE POLICY "active_matches_update"
     WITH CHECK (auth.uid() = player1_id OR auth.uid() = player2_id);
 
 -- ----------------------------------------------------------------------------
--- POLTICAS: match_state
+-- POLÍTICAS: match_state
 -- ----------------------------------------------------------------------------
 DROP POLICY IF EXISTS "match_state_select_participants" ON public.match_state;
 CREATE POLICY "match_state_select_participants"
@@ -272,24 +275,25 @@ CREATE POLICY "match_state_update_turn_player_only"
     );
 
 -- ----------------------------------------------------------------------------
--- POLTICAS: match_history
+-- POLÍTICAS: match_history
 -- ----------------------------------------------------------------------------
 DROP POLICY IF EXISTS "match_history_select_own" ON public.match_history;
 CREATE POLICY "match_history_select_own"
     ON public.match_history FOR SELECT
     USING (auth.uid() = player1_id OR auth.uid() = player2_id);
 
--- >>> FIN MIGRACIN: 20261024000002_rls_and_policies.sql <<<
+-- >>> FIN MIGRACIÓN: 20261024000002_rls_and_policies.sql <<<
 
--- >>> INICIO MIGRACIN: 20261024000003_triggers_and_rpc.sql <<<
+
+-- >>> INICIO MIGRACIÓN: 20261024000003_triggers_and_rpc.sql <<<
 -- ============================================================================
--- MIGRACIN 3: TRIGGERS Y FUNCIONES RPC (PROGRESIN Y SEGURIDAD)
+-- MIGRACIÓN 3: TRIGGERS Y FUNCIONES RPC (PROGRESIÓN Y SEGURIDAD)
 -- Proyecto: Tactical Command: Wars of Legacy
 -- Fecha: 2026-10-24
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
--- 1. FUNCIN MATEMTICA: calculate_required_xp
+-- 1. FUNCIÓN MATEMÁTICA: calculate_required_xp
 -- Curva potencial: XP(N) = floor(150 * N^1.85)
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.calculate_required_xp(p_level INTEGER)
@@ -304,7 +308,7 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 
 -- ----------------------------------------------------------------------------
 -- 2. TRIGGER: trg_process_level_up
--- Evala y sube de nivel automticamente al modificar current_xp en profiles
+-- Evalúa y sube de nivel automáticamente al modificar current_xp en profiles
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.trg_process_level_up()
 RETURNS TRIGGER AS $$
@@ -316,12 +320,12 @@ BEGIN
     v_new_level := NEW.account_level;
     v_xp_needed := public.calculate_required_xp(v_new_level);
 
-    -- Permitir subir mltiples niveles de golpe
+    -- Permitir subir múltiples niveles de golpe
     WHILE NEW.current_xp >= v_xp_needed AND v_new_level < 100 LOOP
         NEW.current_xp := NEW.current_xp - v_xp_needed;
         v_new_level := v_new_level + 1;
         
-        -- Otorgar crditos por nivel (100 * nivel alcanzado)
+        -- Otorgar créditos por nivel (100 * nivel alcanzado)
         v_bonus_credits := v_new_level * 100;
         NEW.battle_credits := NEW.battle_credits + v_bonus_credits;
 
@@ -348,7 +352,7 @@ CREATE TRIGGER trg_profile_xp_check
 
 -- ----------------------------------------------------------------------------
 -- 3. TRIGGER: handle_new_user
--- Registra automticamente el perfil de un usuario cuando se crea en auth.users
+-- Registra automáticamente el perfil de un usuario cuando se crea en auth.users
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
@@ -386,7 +390,7 @@ CREATE TRIGGER on_auth_user_created
 
 -- ----------------------------------------------------------------------------
 -- 4. RPC: award_match_rewards
--- Liquidacin segura de fin de partida (clculo de XP, crditos y ranking ELO)
+-- Liquidación segura de fin de partida (cálculo de XP, créditos y ranking ELO)
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.award_match_rewards(
     p_match_id UUID,
@@ -422,7 +426,7 @@ BEGIN
     v_is_p1_winner := (p_winner_id = v_match.player1_id);
     v_duration_sec := EXTRACT(EPOCH FROM (timezone('utc'::text, now()) - v_match.created_at))::INTEGER;
 
-    -- Aplicacin de multiplicadores objetivos
+    -- Aplicación de multiplicadores objetivos
     IF v_is_p1_winner THEN
         v_p1_xp := FLOOR((150 + LEAST(v_turns, 30) * 12) * 2.2)::INTEGER;
         v_p1_credits := FLOOR((80 + LEAST(v_turns, 30) * 8) * 2.0)::INTEGER;
@@ -457,7 +461,7 @@ BEGIN
         WHERE id = v_match.player2_id;
     END IF;
 
-    -- Insertar en histrico inmutable
+    -- Insertar en histórico inmutable
     INSERT INTO public.match_history (
         match_id, player1_id, player2_id, winner_id, end_reason,
         total_turns, duration_seconds, game_mode,
@@ -487,11 +491,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- >>> FIN MIGRACIN: 20261024000003_triggers_and_rpc.sql <<<
+-- >>> FIN MIGRACIÓN: 20261024000003_triggers_and_rpc.sql <<<
 
--- >>> INICIO MIGRACIN: 20261024000004_seed_units_catalog.sql <<<
+
+-- >>> INICIO MIGRACIÓN: 20261024000004_seed_units_catalog.sql <<<
 -- ============================================================================
--- MIGRACIN 4: SEED DATA CANNICO DE UNIDADES TCTICAS
+-- MIGRACIÓN 4: SEED DATA CANÓNICO DE UNIDADES TÁCTICAS
 -- Proyecto: Tactical Command: Wars of Legacy
 -- Fecha: 2026-10-24
 -- ============================================================================
@@ -501,17 +506,17 @@ INSERT INTO public.units_catalog (
     movement_points, movement_type, vision_range, production_cost_g,
     ammo_max, fuel_max, required_account_level, unlock_cost_credits, is_base_unlocked
 ) VALUES
-('infantry', 'Infantera Ligera', 'infantry', 10, 55, 1, 1, 3, 'foot', 3, 1000, 99, 99, 1, 0, true),
-('mech', 'Infantera Pesada (Bazuca)', 'infantry', 10, 65, 1, 1, 2, 'mech', 2, 3000, 3, 70, 2, 0, true),
-('recon', 'Vehculo de Reconocimiento', 'vehicle', 10, 60, 1, 1, 8, 'wheels', 5, 4000, 99, 80, 1, 0, true),
+('infantry', 'Infantería Ligera', 'infantry', 10, 55, 1, 1, 3, 'foot', 3, 1000, 99, 99, 1, 0, true),
+('mech', 'Infantería Pesada (Bazuca)', 'infantry', 10, 65, 1, 1, 2, 'mech', 2, 3000, 3, 70, 2, 0, true),
+('recon', 'Vehículo de Reconocimiento', 'vehicle', 10, 60, 1, 1, 8, 'wheels', 5, 4000, 99, 80, 1, 0, true),
 ('tank_light', 'Tanque de Combate Ligero', 'vehicle', 10, 75, 1, 1, 6, 'treads', 3, 7000, 9, 70, 1, 0, true),
 ('tank_medium', 'Tanque Blindado Mediano', 'vehicle', 10, 105, 1, 1, 5, 'treads', 1, 16000, 8, 50, 7, 1200, false),
-('artillery', 'Artillera de Obs Mvil', 'indirect', 10, 80, 2, 3, 5, 'treads', 1, 6000, 9, 50, 1, 0, true),
+('artillery', 'Artillería de Obús Móvil', 'indirect', 10, 80, 2, 3, 5, 'treads', 1, 6000, 9, 50, 1, 0, true),
 ('rocket', 'Lanzacohetes de Asedio', 'indirect', 10, 95, 3, 5, 5, 'wheels', 1, 15000, 6, 50, 6, 1000, false),
-('anti_air', 'Blindado Antiareo Vulcano', 'vehicle', 10, 100, 1, 1, 6, 'treads', 2, 8000, 9, 60, 3, 0, true),
-('b_copter', 'Helicptero de Ataque', 'aircraft', 10, 75, 1, 1, 6, 'air', 3, 9000, 6, 99, 4, 0, true),
-('fighter', 'Caza de Supremsaca Area', 'aircraft', 10, 100, 1, 1, 9, 'air', 4, 20000, 9, 99, 9, 1500, false),
-('bomber', 'Bombardero Tctico Pesado', 'aircraft', 10, 110, 1, 1, 7, 'air', 2, 22000, 9, 99, 12, 1800, false),
+('anti_air', 'Blindado Antiaéreo Vulcano', 'vehicle', 10, 100, 1, 1, 6, 'treads', 2, 8000, 9, 60, 3, 0, true),
+('b_copter', 'Helicóptero de Ataque', 'aircraft', 10, 75, 1, 1, 6, 'air', 3, 9000, 6, 99, 4, 0, true),
+('fighter', 'Caza de Supremsacía Aérea', 'aircraft', 10, 100, 1, 1, 9, 'air', 4, 20000, 9, 99, 9, 1500, false),
+('bomber', 'Bombardero Táctico Pesado', 'aircraft', 10, 110, 1, 1, 7, 'air', 2, 22000, 9, 99, 12, 1800, false),
 ('battleship', 'Acorazado Naval de Guerra', 'naval', 10, 90, 2, 6, 5, 'sea', 2, 28000, 9, 99, 15, 2500, false)
 ON CONFLICT (id) DO UPDATE SET
     display_name = EXCLUDED.display_name,
@@ -522,17 +527,18 @@ ON CONFLICT (id) DO UPDATE SET
     max_range = EXCLUDED.max_range,
     vision_range = EXCLUDED.vision_range;
 
--- >>> FIN MIGRACIN: 20261024000004_seed_units_catalog.sql <<<
+-- >>> FIN MIGRACIÓN: 20261024000004_seed_units_catalog.sql <<<
 
--- >>> INICIO MIGRACIN: 20261024000005_grant_match_rewards.sql <<<
+
+-- >>> INICIO MIGRACIÓN: 20261024000005_grant_match_rewards.sql <<<
 -- ============================================================================
--- MIGRACIN 5: FUNCIN RPC grant_match_rewards Y TRIGGER DE NIVEL
+-- MIGRACIÓN 5: FUNCIÓN RPC grant_match_rewards Y TRIGGER DE NIVEL
 -- Proyecto: Tactical Command: Wars of Legacy
 -- Fecha: 2026-10-24
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
--- 1. FUNCIN MATEMTICA: calculate_required_xp
+-- 1. FUNCIÓN MATEMÁTICA: calculate_required_xp
 -- XP_necesaria(N) = floor(150 * N^1.85)
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.calculate_required_xp(p_level INTEGER)
@@ -547,8 +553,8 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 
 -- ----------------------------------------------------------------------------
 -- 2. TRIGGER: trg_process_level_up
--- Evala si la XP acumulada supera el umbral del siguiente nivel y actualiza
--- account_level, abonando crditos y gemas automticamente.
+-- Evalúa si la XP acumulada supera el umbral del siguiente nivel y actualiza
+-- account_level, abonando créditos y gemas automáticamente.
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.trg_process_level_up()
 RETURNS TRIGGER AS $$
@@ -560,12 +566,12 @@ BEGIN
     v_new_level := NEW.account_level;
     v_xp_needed := public.calculate_required_xp(v_new_level);
 
-    -- Permite subir mltiples niveles consecutivos si la XP recibida es sustancial
+    -- Permite subir múltiples niveles consecutivos si la XP recibida es sustancial
     WHILE NEW.current_xp >= v_xp_needed AND v_new_level < 100 LOOP
         NEW.current_xp := NEW.current_xp - v_xp_needed;
         v_new_level := v_new_level + 1;
         
-        -- Bono de 100 crditos por nivel alcanzado
+        -- Bono de 100 créditos por nivel alcanzado
         v_bonus_credits := v_new_level * 100;
         NEW.battle_credits := NEW.battle_credits + v_bonus_credits;
 
@@ -592,8 +598,8 @@ CREATE TRIGGER trg_profile_xp_check
 
 -- ----------------------------------------------------------------------------
 -- 3. RPC: grant_match_rewards
--- Calcula XP y Oro (Battle Credits) al concluir una partida segn la frmula
--- cannica de docs/05_MONETIZATION_AND_PROGRESSION.md:
+-- Calcula XP y Oro (Battle Credits) al concluir una partida según la fórmula
+-- canónica de docs/05_MONETIZATION_AND_PROGRESSION.md:
 -- XP = (Base + (Ciudades * A) + (Bajas * B) + min(Turnos, 30) * C) * Multiplicador
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.grant_match_rewards(
@@ -611,7 +617,7 @@ DECLARE
     v_duration_sec INTEGER;
     v_is_p1_winner BOOLEAN;
 
-    -- Constantes de calibracin de GDD
+    -- Constantes de calibración de GDD
     c_base_xp CONSTANT INTEGER := 120;
     c_city_xp_weight CONSTANT INTEGER := 45;
     c_kill_xp_weight CONSTANT INTEGER := 35;
@@ -637,7 +643,7 @@ DECLARE
     v_p1_elo_delta INTEGER;
     v_p2_elo_delta INTEGER;
 BEGIN
-    -- Bloqueo pesimista para evitar doble liquidacin
+    -- Bloqueo pesimista para evitar doble liquidación
     SELECT * INTO v_match 
     FROM public.active_matches 
     WHERE id = p_match_id 
@@ -655,14 +661,14 @@ BEGIN
     v_duration_sec := EXTRACT(EPOCH FROM (timezone('utc'::text, now()) - v_match.created_at))::INTEGER;
     v_is_p1_winner := (p_winner_id = v_match.player1_id);
 
-    -- 1. Calcular Puntajes Tcticos Base
+    -- 1. Calcular Puntajes Tácticos Base
     v_p1_score := c_base_xp + (p_cities_captured_p1 * c_city_xp_weight) + (p_units_destroyed_p1 * c_kill_xp_weight) + (LEAST(v_turns, 30) * c_turn_xp_weight);
     v_p2_score := c_base_xp + (p_cities_captured_p2 * c_city_xp_weight) + (p_units_destroyed_p2 * c_kill_xp_weight) + (LEAST(v_turns, 30) * c_turn_xp_weight);
 
     v_p1_gold_score := c_base_gold + (p_cities_captured_p1 * c_city_gold_weight) + (p_units_destroyed_p1 * c_kill_gold_weight);
     v_p2_gold_score := c_base_gold + (p_cities_captured_p2 * c_city_gold_weight) + (p_units_destroyed_p2 * c_kill_gold_weight);
 
-    -- 2. Aplicar Multiplicadores segn Resultado
+    -- 2. Aplicar Multiplicadores según Resultado
     IF v_is_p1_winner THEN
         v_p1_xp_awarded := FLOOR(v_p1_score * c_win_multiplier)::INTEGER;
         v_p1_gold_awarded := FLOOR(v_p1_gold_score * 2.0)::INTEGER;
@@ -703,7 +709,7 @@ BEGIN
         WHERE id = v_match.player2_id;
     END IF;
 
-    -- 5. Registrar en el Histrico Inmutable
+    -- 5. Registrar en el Histórico Inmutable
     INSERT INTO public.match_history (
         match_id, player1_id, player2_id, winner_id, end_reason,
         total_turns, duration_seconds, game_mode,
@@ -737,18 +743,19 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- >>> FIN MIGRACIN: 20261024000005_grant_match_rewards.sql <<<
+-- >>> FIN MIGRACIÓN: 20261024000005_grant_match_rewards.sql <<<
 
--- >>> INICIO MIGRACIN: 20261024000006_shop_and_loadout_rpc.sql <<<
+
+-- >>> INICIO MIGRACIÓN: 20261024000006_shop_and_loadout_rpc.sql <<<
 -- ============================================================================
--- MIGRACIN 6: RPC DE COMPRA ATMICA DE COSMTICOS Y EQUIPAMIENTO DE SKINS
+-- MIGRACIÓN 6: RPC DE COMPRA ATÓMICA DE COSMÉTICOS Y EQUIPAMIENTO DE SKINS
 -- Proyecto: Tactical Command: Wars of Legacy
 -- Fecha: 2026-10-24
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
 -- 1. RPC: purchase_cosmetic_item
--- Compra atmica con deduccin de moneda (Gold / Gems) y registro en user_unlocks
+-- Compra atómica con deducción de moneda (Gold / Gems) y registro en user_unlocks
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.purchase_cosmetic_item(
     p_user_id UUID,
@@ -776,17 +783,17 @@ BEGIN
         RETURN jsonb_build_object('success', false, 'error', 'Perfil de usuario no encontrado');
     END IF;
 
-    -- Comprobar si el usuario ya posee el cosmtico
+    -- Comprobar si el usuario ya posee el cosmético
     IF EXISTS (
         SELECT 1 FROM public.user_unlocks 
         WHERE user_id = p_user_id 
         AND item_type = p_item_type 
         AND item_id = p_item_id
     ) THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Ya posees este cosmtico en tu inventario');
+        RETURN jsonb_build_object('success', false, 'error', 'Ya posees este cosmético en tu inventario');
     END IF;
 
-    -- Verificar solvencia econmica
+    -- Verificar solvencia económica
     IF p_currency = 'gold' THEN
         v_current_funds := v_profile.battle_credits;
         IF v_current_funds < p_price THEN
@@ -812,10 +819,10 @@ BEGIN
         WHERE id = p_user_id;
 
     ELSE
-        RETURN jsonb_build_object('success', false, 'error', 'Tipo de moneda invlido');
+        RETURN jsonb_build_object('success', false, 'error', 'Tipo de moneda inválido');
     END IF;
 
-    -- Registrar el cosmtico en user_unlocks
+    -- Registrar el cosmético en user_unlocks
     INSERT INTO public.user_unlocks (
         user_id,
         item_type,
@@ -854,7 +861,7 @@ DECLARE
     v_is_unlocked BOOLEAN := false;
     v_new_cosmetics JSONB;
 BEGIN
-    -- La skin por defecto siempre est desbloqueada
+    -- La skin por defecto siempre está desbloqueada
     IF p_skin_id = 'skin_default' THEN
         v_is_unlocked := true;
     ELSE
@@ -890,18 +897,19 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- >>> FIN MIGRACIN: 20261024000006_shop_and_loadout_rpc.sql <<<
+-- >>> FIN MIGRACIÓN: 20261024000006_shop_and_loadout_rpc.sql <<<
 
--- >>> INICIO MIGRACIN: 20261031000007_canonical_engine_catalogs_and_maps.sql <<<
+
+-- >>> INICIO MIGRACIÓN: 20261031000007_canonical_engine_catalogs_and_maps.sql <<<
 -- ============================================================================
--- MIGRACIN 7: CATLOGOS CANNICOS DEL MOTOR, 23 UNIDADES, TERRENOS Y MAPAS
+-- MIGRACIÓN 7: CATÁLOGOS CANÓNICOS DEL MOTOR, 23 UNIDADES, TERRENOS Y MAPAS
 -- Proyecto: Tactical Command: Wars of Legacy
 -- Fecha: 2026-10-31
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
 -- 1. TABLA: terrain_catalog
--- Catlogo de 19 terrenos y sus costes cannicos de movimiento por traccin
+-- Catálogo de 19 terrenos y sus costes canónicos de movimiento por tracción
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.terrain_catalog (
     id VARCHAR(24) PRIMARY KEY,
@@ -936,21 +944,21 @@ INSERT INTO public.terrain_catalog (
 ) VALUES
 ('plains', 'Llanura', 1, 0, false, false, false, false, false, 0, false, NULL, 1, 1, 2, 1, 1, NULL, NULL),
 ('forest', 'Bosque', 2, 0, false, false, false, false, true, 0, false, NULL, 1, 1, 3, 2, 1, NULL, NULL),
-('mountain', 'Montaa', 4, 0, false, false, false, false, false, 3, false, NULL, 2, 1, NULL, NULL, 1, NULL, NULL),
+('mountain', 'Montaña', 4, 0, false, false, false, false, false, 3, false, NULL, 2, 1, NULL, NULL, 1, NULL, NULL),
 ('road', 'Carretera', 0, 0, false, false, false, false, false, 0, false, NULL, 1, 1, 1, 1, 1, NULL, NULL),
-('river', 'Ro', 0, 0, false, false, false, false, false, 0, false, NULL, 2, 1, NULL, NULL, 1, NULL, NULL),
+('river', 'Río', 0, 0, false, false, false, false, false, 0, false, NULL, 2, 1, NULL, NULL, 1, NULL, NULL),
 ('city', 'Ciudad', 3, 1000, true, true, false, false, false, 0, false, 20, 1, 1, 1, 1, 1, NULL, NULL),
-('factory', 'Fbrica Militar', 3, 1000, true, true, false, false, false, 0, false, 20, 1, 1, 1, 1, 1, NULL, NULL),
-('airport', 'Base Area', 3, 1000, true, false, true, false, false, 0, false, 20, 1, 1, 1, 1, 1, NULL, NULL),
+('factory', 'Fábrica Militar', 3, 1000, true, true, false, false, false, 0, false, 20, 1, 1, 1, 1, 1, NULL, NULL),
+('airport', 'Base Aérea', 3, 1000, true, false, true, false, false, 0, false, 20, 1, 1, 1, 1, 1, NULL, NULL),
 ('port', 'Puerto Naval', 3, 1000, true, false, false, true, false, 0, false, 20, 1, 1, 1, 1, 1, 1, NULL),
 ('hq', 'Cuartel General (HQ)', 4, 1000, true, true, false, false, false, 0, false, 20, 1, 1, 1, 1, 1, NULL, NULL),
 ('sea', 'Mar Abierto', 0, 0, false, false, false, false, false, 0, false, NULL, NULL, NULL, NULL, NULL, 1, 1, NULL),
 ('reef', 'Arrecife Coralino', 1, 0, false, false, false, false, true, 0, false, NULL, NULL, NULL, NULL, NULL, 1, 2, NULL),
-('shoal', 'Bajo / Playa', 0, 0, false, false, false, false, false, 0, false, NULL, 1, 1, 1, 1, 1, 1, NULL),
+('shoal', 'Bajío / Playa', 0, 0, false, false, false, false, false, 0, false, NULL, 1, 1, 1, 1, 1, 1, NULL),
 ('bridge', 'Puente Fluvial', 0, 0, false, false, false, false, false, 0, false, NULL, 1, 1, 1, 1, 1, NULL, NULL),
 ('commtower', 'Torre de Comunicaciones', 3, 1000, true, false, false, false, false, 0, false, 20, 1, 1, 1, 1, 1, NULL, NULL),
 ('silo', 'Silo de Misiles', 3, 0, false, false, false, false, false, 0, false, NULL, 1, 1, 1, 1, 1, NULL, NULL),
-('lab', 'Laboratorio Tctico', 3, 1000, true, true, false, false, false, 0, false, 20, 1, 1, 1, 1, 1, NULL, NULL),
+('lab', 'Laboratorio Táctico', 3, 1000, true, true, false, false, false, 0, false, 20, 1, 1, 1, 1, 1, NULL, NULL),
 ('pipe', 'Oleoducto Infranqueable', 0, 0, false, false, false, false, false, 0, false, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1),
 ('pipe_seam', 'Costura de Oleoducto (Destructible)', 0, 0, false, false, false, false, false, 0, true, 100, NULL, NULL, NULL, NULL, NULL, NULL, 1)
 ON CONFLICT (id) DO UPDATE SET
@@ -967,7 +975,7 @@ ON CONFLICT (id) DO UPDATE SET
     default_hp = EXCLUDED.default_hp;
 
 -- ----------------------------------------------------------------------------
--- 2. AMPLIACIN DE units_catalog A LAS 23 UNIDADES CANNICAS
+-- 2. AMPLIACIÓN DE units_catalog A LAS 23 UNIDADES CANÓNICAS
 -- ----------------------------------------------------------------------------
 ALTER TABLE public.units_catalog
     DROP CONSTRAINT IF EXISTS units_catalog_movement_type_check,
@@ -1003,30 +1011,30 @@ INSERT INTO public.units_catalog (
     required_account_level, unlock_cost_credits, is_base_unlocked, is_awbw_extended
 ) VALUES
 -- Las 16 unidades del GDD
-('infantry', 'Infantera Ligera', 'infantry', 'factory', 'mandatory_infantry', 10, 55, 1, 1, 3, 'foot', 2, 1000, 0, 0, 99, 0, 0, true, NULL, 'Fusil 9mm', 0, '{}', '{wait,attack,capture,launch_silo,join,load,delete}', 1, 0, true, false),
-('mech', 'Infantera Pesada (Bazuca)', 'infantry', 'factory', 'mandatory_infantry', 10, 65, 1, 1, 2, 'mech', 2, 3000, 0, 3, 70, 0, 0, true, 'Bazuca Antitanque', 'Ametralladora', 0, '{}', '{wait,attack,capture,launch_silo,join,load,delete}', 2, 0, true, false),
+('infantry', 'Infantería Ligera', 'infantry', 'factory', 'mandatory_infantry', 10, 55, 1, 1, 3, 'foot', 2, 1000, 0, 0, 99, 0, 0, true, NULL, 'Fusil 9mm', 0, '{}', '{wait,attack,capture,launch_silo,join,load,delete}', 1, 0, true, false),
+('mech', 'Infantería Pesada (Bazuca)', 'infantry', 'factory', 'mandatory_infantry', 10, 65, 1, 1, 2, 'mech', 2, 3000, 0, 3, 70, 0, 0, true, 'Bazuca Antitanque', 'Ametralladora', 0, '{}', '{wait,attack,capture,launch_silo,join,load,delete}', 2, 0, true, false),
 ('recon', 'Blindado de Reconocimiento', 'vehicle', 'factory', 'light_vehicle', 10, 70, 1, 1, 8, 'wheels', 5, 4000, 1, 0, 80, 0, 0, true, NULL, 'Ametralladora Pesada', 0, '{}', '{wait,attack,join,load,delete}', 1, 0, true, false),
 ('apc', 'Transporte Blindado APC', 'vehicle', 'factory', 'transport', 10, 0, 1, 1, 6, 'treads', 1, 5000, 1, 0, 70, 0, 0, false, NULL, NULL, 1, '{infantry,mech}', '{wait,supply,unload,join,load,delete}', 2, 0, true, false),
-('tank_light', 'Tanque Ligero', 'vehicle', 'factory', 'direct_combat', 10, 75, 1, 1, 6, 'treads', 3, 7000, 2, 9, 70, 0, 0, true, 'Can 75mm', 'Ametralladora Coaxial', 0, '{}', '{wait,attack,join,load,delete}', 1, 0, true, false),
-('tank_medium', 'Tanque Mediano', 'vehicle', 'factory', 'direct_combat', 10, 105, 1, 1, 5, 'treads', 1, 16000, 3, 8, 50, 0, 0, true, 'Can Pesado 105mm', 'Ametralladora Coaxial', 0, '{}', '{wait,attack,join,load,delete}', 7, 1200, false, false),
-('neotank', 'Neotanque Pesado', 'vehicle', 'factory', 'super_heavy', 10, 125, 1, 1, 6, 'treads', 1, 22000, 4, 9, 99, 0, 0, true, 'Can Neofase', 'Ametralladora Pesada', 0, '{}', '{wait,attack,join,load,delete}', 14, 2000, false, false),
-('artillery', 'Artillera de Obs Mvil', 'indirect', 'factory', 'indirect_fire', 10, 80, 2, 3, 5, 'treads', 1, 6000, 2, 9, 50, 0, 0, false, 'Obs 155mm', NULL, 0, '{}', '{wait,attack,join,load,delete}', 1, 0, true, false),
-('rocket', 'Lanzacohetes de Asedio', 'indirect', 'factory', 'indirect_fire', 10, 95, 3, 5, 5, 'wheels', 1, 15000, 3, 6, 50, 0, 0, false, 'Batera Cohetes', NULL, 0, '{}', '{wait,attack,join,load,delete}', 6, 1000, false, false),
-('anti_air', 'Blindado Antiareo Vulcano', 'vehicle', 'factory', 'anti_air', 10, 105, 1, 1, 6, 'treads', 2, 8000, 3, 9, 60, 0, 0, true, 'Can Vulcano 20mm', NULL, 0, '{}', '{wait,attack,join,load,delete}', 3, 0, true, false),
-('missiles', 'Batera Misiles Antiareos', 'indirect', 'factory', 'anti_air', 10, 100, 3, 5, 4, 'wheels', 5, 12000, 4, 6, 50, 0, 0, false, 'Misiles Superficie-Aire', NULL, 0, '{}', '{wait,attack,join,load,delete}', 8, 1100, false, false),
-('b_copter', 'Helicptero de Ataque', 'aircraft', 'airport', 'air_unit', 10, 75, 1, 1, 6, 'air', 3, 9000, 3, 6, 99, 2, 2, true, 'Misiles Aire-Tierra', 'Ametralladora', 0, '{}', '{wait,attack,join,load,delete}', 4, 0, true, false),
-('t_copter', 'Helicptero de Transporte', 'aircraft', 'airport', 'transport', 10, 0, 1, 1, 6, 'air', 2, 5000, 1, 0, 99, 2, 2, false, NULL, NULL, 1, '{infantry,mech}', '{wait,unload,join,load,delete}', 4, 0, true, false),
-('fighter', 'Caza de Supremaca Area', 'aircraft', 'airport', 'anti_air', 10, 100, 1, 1, 9, 'air', 4, 20000, 4, 9, 99, 5, 5, true, 'Misiles Aire-Aire', NULL, 0, '{}', '{wait,attack,join,delete}', 9, 1500, false, false),
-('bomber', 'Bombardero Tctico Pesado', 'aircraft', 'airport', 'super_heavy', 10, 110, 1, 1, 7, 'air', 2, 22000, 4, 9, 99, 5, 5, true, 'Bombas Guiadas', NULL, 0, '{}', '{wait,attack,join,delete}', 12, 1800, false, false),
-('battleship', 'Acorazado Naval', 'naval', 'port', 'super_heavy', 10, 95, 2, 6, 5, 'sea', 2, 28000, 4, 9, 99, 1, 1, false, 'Batera Naval 16"', NULL, 0, '{}', '{wait,attack,join,delete}', 15, 2500, false, false),
+('tank_light', 'Tanque Ligero', 'vehicle', 'factory', 'direct_combat', 10, 75, 1, 1, 6, 'treads', 3, 7000, 2, 9, 70, 0, 0, true, 'Cañón 75mm', 'Ametralladora Coaxial', 0, '{}', '{wait,attack,join,load,delete}', 1, 0, true, false),
+('tank_medium', 'Tanque Mediano', 'vehicle', 'factory', 'direct_combat', 10, 105, 1, 1, 5, 'treads', 1, 16000, 3, 8, 50, 0, 0, true, 'Cañón Pesado 105mm', 'Ametralladora Coaxial', 0, '{}', '{wait,attack,join,load,delete}', 7, 1200, false, false),
+('neotank', 'Neotanque Pesado', 'vehicle', 'factory', 'super_heavy', 10, 125, 1, 1, 6, 'treads', 1, 22000, 4, 9, 99, 0, 0, true, 'Cañón Neofase', 'Ametralladora Pesada', 0, '{}', '{wait,attack,join,load,delete}', 14, 2000, false, false),
+('artillery', 'Artillería de Obús Móvil', 'indirect', 'factory', 'indirect_fire', 10, 80, 2, 3, 5, 'treads', 1, 6000, 2, 9, 50, 0, 0, false, 'Obús 155mm', NULL, 0, '{}', '{wait,attack,join,load,delete}', 1, 0, true, false),
+('rocket', 'Lanzacohetes de Asedio', 'indirect', 'factory', 'indirect_fire', 10, 95, 3, 5, 5, 'wheels', 1, 15000, 3, 6, 50, 0, 0, false, 'Batería Cohetes', NULL, 0, '{}', '{wait,attack,join,load,delete}', 6, 1000, false, false),
+('anti_air', 'Blindado Antiaéreo Vulcano', 'vehicle', 'factory', 'anti_air', 10, 105, 1, 1, 6, 'treads', 2, 8000, 3, 9, 60, 0, 0, true, 'Cañón Vulcano 20mm', NULL, 0, '{}', '{wait,attack,join,load,delete}', 3, 0, true, false),
+('missiles', 'Batería Misiles Antiaéreos', 'indirect', 'factory', 'anti_air', 10, 100, 3, 5, 4, 'wheels', 5, 12000, 4, 6, 50, 0, 0, false, 'Misiles Superficie-Aire', NULL, 0, '{}', '{wait,attack,join,load,delete}', 8, 1100, false, false),
+('b_copter', 'Helicóptero de Ataque', 'aircraft', 'airport', 'air_unit', 10, 75, 1, 1, 6, 'air', 3, 9000, 3, 6, 99, 2, 2, true, 'Misiles Aire-Tierra', 'Ametralladora', 0, '{}', '{wait,attack,join,load,delete}', 4, 0, true, false),
+('t_copter', 'Helicóptero de Transporte', 'aircraft', 'airport', 'transport', 10, 0, 1, 1, 6, 'air', 2, 5000, 1, 0, 99, 2, 2, false, NULL, NULL, 1, '{infantry,mech}', '{wait,unload,join,load,delete}', 4, 0, true, false),
+('fighter', 'Caza de Supremacía Aérea', 'aircraft', 'airport', 'anti_air', 10, 100, 1, 1, 9, 'air', 4, 20000, 4, 9, 99, 5, 5, true, 'Misiles Aire-Aire', NULL, 0, '{}', '{wait,attack,join,delete}', 9, 1500, false, false),
+('bomber', 'Bombardero Táctico Pesado', 'aircraft', 'airport', 'super_heavy', 10, 110, 1, 1, 7, 'air', 2, 22000, 4, 9, 99, 5, 5, true, 'Bombas Guiadas', NULL, 0, '{}', '{wait,attack,join,delete}', 12, 1800, false, false),
+('battleship', 'Acorazado Naval', 'naval', 'port', 'super_heavy', 10, 95, 2, 6, 5, 'sea', 2, 28000, 4, 9, 99, 1, 1, false, 'Batería Naval 16"', NULL, 0, '{}', '{wait,attack,join,delete}', 15, 2500, false, false),
 -- 7 Unidades Extendidas de WarsWorld / AWBW ya implementadas en src/engine/
 ('lander', 'Barcaza de Desembarco', 'naval', 'port', 'transport', 10, 0, 1, 1, 6, 'sea', 1, 12000, 2, 0, 99, 1, 1, false, NULL, NULL, 2, '{infantry,mech,recon,apc,tank_light,tank_medium,neotank,artillery,rocket,anti_air,missiles}', '{wait,unload,join,delete}', 5, 600, true, true),
-('cruiser', 'Crucero Antiareo / ASW', 'naval', 'port', 'naval_unit', 10, 65, 1, 1, 6, 'sea', 3, 18000, 3, 9, 99, 1, 1, true, 'Misiles ASW', 'Ametralladoras AA', 2, '{b_copter,t_copter}', '{wait,attack,unload,join,delete}', 10, 1400, false, true),
-('submarine', 'Submarino Tctico', 'naval', 'port', 'naval_unit', 10, 85, 1, 1, 5, 'sea', 5, 20000, 3, 6, 60, 1, 5, true, 'Torpedos Pesados', NULL, 0, '{}', '{wait,attack,hide,show,join,delete}', 11, 1600, false, true),
+('cruiser', 'Crucero Antiaéreo / ASW', 'naval', 'port', 'naval_unit', 10, 65, 1, 1, 6, 'sea', 3, 18000, 3, 9, 99, 1, 1, true, 'Misiles ASW', 'Ametralladoras AA', 2, '{b_copter,t_copter}', '{wait,attack,unload,join,delete}', 10, 1400, false, true),
+('submarine', 'Submarino Táctico', 'naval', 'port', 'naval_unit', 10, 85, 1, 1, 5, 'sea', 5, 20000, 3, 6, 60, 1, 5, true, 'Torpedos Pesados', NULL, 0, '{}', '{wait,attack,hide,show,join,delete}', 11, 1600, false, true),
 ('stealth', 'Caza Furtivo (Stealth)', 'aircraft', 'airport', 'super_heavy', 10, 90, 1, 1, 6, 'air', 4, 24000, 4, 6, 60, 5, 8, true, 'Misil Omni-Objetivo', NULL, 0, '{}', '{wait,attack,hide,show,join,delete}', 16, 2200, false, true),
-('blackbomb', 'Bomba Voladora Tctica', 'aircraft', 'airport', 'super_heavy', 10, 0, 1, 1, 9, 'air', 1, 25000, 4, 0, 45, 5, 5, false, NULL, NULL, 0, '{}', '{wait,explode,delete}', 18, 2500, false, true),
-('blackboat', 'Lancha Tctica de Apoyo', 'naval', 'port', 'transport', 10, 0, 1, 1, 7, 'sea', 1, 7500, 2, 0, 60, 1, 1, false, NULL, NULL, 2, '{infantry,mech}', '{wait,repair,supply,unload,join,delete}', 6, 800, false, true),
-('piperunner', 'Artillera de Oleoducto', 'indirect', 'factory', 'indirect_fire', 10, 90, 2, 5, 9, 'pipe', 4, 20000, 4, 9, 99, 0, 0, false, 'Can Tubo Asedio', NULL, 0, '{}', '{wait,attack,join,delete}', 15, 2000, false, true)
+('blackbomb', 'Bomba Voladora Táctica', 'aircraft', 'airport', 'super_heavy', 10, 0, 1, 1, 9, 'air', 1, 25000, 4, 0, 45, 5, 5, false, NULL, NULL, 0, '{}', '{wait,explode,delete}', 18, 2500, false, true),
+('blackboat', 'Lancha Táctica de Apoyo', 'naval', 'port', 'transport', 10, 0, 1, 1, 7, 'sea', 1, 7500, 2, 0, 60, 1, 1, false, NULL, NULL, 2, '{infantry,mech}', '{wait,repair,supply,unload,join,delete}', 6, 800, false, true),
+('piperunner', 'Artillería de Oleoducto', 'indirect', 'factory', 'indirect_fire', 10, 90, 2, 5, 9, 'pipe', 4, 20000, 4, 9, 99, 0, 0, false, 'Cañón Tubo Asedio', NULL, 0, '{}', '{wait,attack,join,delete}', 15, 2000, false, true)
 ON CONFLICT (id) DO UPDATE SET
     display_name = EXCLUDED.display_name,
     category = EXCLUDED.category,
@@ -1054,7 +1062,7 @@ ON CONFLICT (id) DO UPDATE SET
 
 -- ----------------------------------------------------------------------------
 -- 3. TABLA: unit_weapon_damage_matrix
--- Matriz de dao cannico cruzado para clculo server-authoritative
+-- Matriz de daño canónico cruzado para cálculo server-authoritative
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.unit_weapon_damage_matrix (
     attacker_unit_id VARCHAR(32) NOT NULL REFERENCES public.units_catalog(id) ON DELETE CASCADE,
@@ -1109,15 +1117,15 @@ CREATE TABLE IF NOT EXISTS public.maps (
 ALTER TABLE public.maps ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "maps_select_published" ON public.maps FOR SELECT USING (is_published = true);
 
--- Sembrar los 6 mapas oficiales cannicos
+-- Sembrar los 6 mapas oficiales canónicos
 INSERT INTO public.maps (id, name, width, height, max_players, recommended_mode, description, is_official, is_published)
 VALUES
-('sector_alfa', 'Sector Alfa (Duelo Cerrado)', 16, 16, 2, 'blitz_skirmish', 'Mapa simtrico ultrarrpido diseado para escaramuzas tcticas Blitz.', true, true),
-('caustic_finale', 'Caustic Finale (Valle Custico)', 18, 18, 2, 'grand_campaign', 'Mapa cannico con ros, cuellos de botella y combate combinado.', true, true),
+('sector_alfa', 'Sector Alfa (Duelo Cerrado)', 16, 16, 2, 'blitz_skirmish', 'Mapa simétrico ultrarrápido diseñado para escaramuzas tácticas Blitz.', true, true),
+('caustic_finale', 'Caustic Finale (Valle Cáustico)', 18, 18, 2, 'grand_campaign', 'Mapa canónico con ríos, cuellos de botella y combate combinado.', true, true),
 ('1v1_issus', 'Llanuras de Issus', 17, 13, 2, 'blitz_skirmish', 'Batalla abierta con amplia maniobra de unidades blindadas y reconocimiento.', true, true),
-('dubious_procession', 'Dubious Procession', 25, 20, 2, 'grand_campaign', 'Escenario estratgico con mltiples frentes de fbrica y aeropuertos.', true, true),
-('chosin_reservoir', 'Chosin Reservoir', 21, 21, 2, 'grand_campaign', 'Teatro invernal de asedio con lagos congelados y pasos de montaa angostos.', true, true),
-('love_and_literature', 'Love & Literature', 29, 23, 2, 'grand_campaign', 'Mapa masivo con despliegue naval, areo y de tuberas fortificadas.', true, true)
+('dubious_procession', 'Dubious Procession', 25, 20, 2, 'grand_campaign', 'Escenario estratégico con múltiples frentes de fábrica y aeropuertos.', true, true),
+('chosin_reservoir', 'Chosin Reservoir', 21, 21, 2, 'grand_campaign', 'Teatro invernal de asedio con lagos congelados y pasos de montaña angostos.', true, true),
+('love_and_literature', 'Love & Literature', 29, 23, 2, 'grand_campaign', 'Mapa masivo con despliegue naval, aéreo y de tuberías fortificadas.', true, true)
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     width = EXCLUDED.width,
@@ -1125,11 +1133,12 @@ ON CONFLICT (id) DO UPDATE SET
     recommended_mode = EXCLUDED.recommended_mode,
     description = EXCLUDED.description;
 
--- >>> FIN MIGRACIN: 20261031000007_canonical_engine_catalogs_and_maps.sql <<<
+-- >>> FIN MIGRACIÓN: 20261031000007_canonical_engine_catalogs_and_maps.sql <<<
 
--- >>> INICIO MIGRACIN: 20261031000008_commanders_and_bark_engine.sql <<<
+
+-- >>> INICIO MIGRACIÓN: 20261031000008_commanders_and_bark_engine.sql <<<
 -- ============================================================================
--- MIGRACIN 8: CATLOGO DE COMANDANTES CON NOMBRES DE CMIC, PROGRESIN Y BARK
+-- MIGRACIÓN 8: CATÁLOGO DE COMANDANTES CON NOMBRES DE CÓMIC, PROGRESIÓN Y BARK
 -- Proyecto: Tactical Command: Wars of Legacy
 -- Fecha: 2026-10-31
 -- ============================================================================
@@ -1156,7 +1165,7 @@ CREATE TABLE IF NOT EXISTS public.commanders_catalog (
     scop_summary TEXT NOT NULL,
     default_bubble_shape VARCHAR(24) NOT NULL DEFAULT 'speech' 
         CHECK (default_bubble_shape IN ('speech', 'shout', 'thought', 'whisper', 'radio')),
-    default_onomatopoeia VARCHAR(32) DEFAULT 'TACTICAL!',
+    default_onomatopoeia VARCHAR(32) DEFAULT '¡TACTICAL!',
     personality_archetype VARCHAR(32) NOT NULL DEFAULT 'balanced',
     cost_modifier_percent SMALLINT NOT NULL DEFAULT 100,
     repair_bonus_hp SMALLINT NOT NULL DEFAULT 0,
@@ -1171,7 +1180,7 @@ CREATE POLICY "commanders_catalog_select" ON public.commanders_catalog FOR SELEC
 
 -- Sembrado de Comandantes:
 -- 3 F2P Iniciales Disponibles para TODOS los jugadores
--- 28 Comandantes con nombres y lore propios de cmic, revelados poco a poco mediante Battle Pass / Eventos
+-- 28 Comandantes con nombres y lore propios de cómic, revelados poco a poco mediante Battle Pass / Eventos
 INSERT INTO public.commanders_catalog (
     id, codename, military_rank, faction, unlock_method, is_revealed,
     cop_name, cop_stars, scop_name, scop_stars,
@@ -1179,76 +1188,76 @@ INSERT INTO public.commanders_catalog (
     d2d_summary, cop_summary, scop_summary, cost_modifier_percent
 ) VALUES
 -- LOS 3 COMANDANTES F2P BASE (Desbloqueados para todos al registrarse)
-('vance', 'Vance "El Muro"', 'Capitn de Blindados', 'iron-vanguard', 'starter', true,
- 'Reparacin de Campo', 3, 'Fortaleza Mvil', 6,
- 'speech', 'HOLD!', 'disciplined',
- 'Doctrina de infantera mecanizada balanceada; las unidades reparan +1 HP en bases.',
+('vance', 'Vance "El Muro"', 'Capitán de Blindados', 'iron-vanguard', 'starter', true,
+ 'Reparación de Campo', 3, 'Fortaleza Móvil', 6,
+ 'speech', '¡HOLD!', 'disciplined',
+ 'Doctrina de infantería mecanizada balanceada; las unidades reparan +1 HP en bases.',
  'Cura 2 HP a todas las unidades terrestres en radio.',
- 'Otorga +30% de defensa y regenera 4 HP a todo el ejrcito terrestre.', 100),
+ 'Otorga +30% de defensa y regenera 4 HP a todo el ejército terrestre.', 100),
 
 ('stella', 'Stella "Tempestad"', 'Mayor de Asalto', 'aurora-dominion', 'starter', true,
- 'Sobrecarga Alfa', 3, 'Huracn Relmpago', 6,
- 'shout', 'RATATAT!', 'aggressive_sarcastic',
+ 'Sobrecarga Alfa', 3, 'Huracán Relámpago', 6,
+ 'shout', '¡RATATAT!', 'aggressive_sarcastic',
  'Doctrina de asalto veloz; unidades terrestres tienen +1 de movimiento.',
- 'Aumenta el dao de fuego directo un +25% durante el turno.',
+ 'Aumenta el daño de fuego directo un +25% durante el turno.',
  'Permite a todas las unidades que destruyan un objetivo actuar por segunda vez en el turno.', 100),
 
 ('volkov', 'Volkov "Calculus"', 'Comandante en Jefe', 'frost-legion', 'starter', true,
- 'Clculo Balstico', 3, 'Tormenta de Asedio', 6,
- 'thought', 'CALCULATED!', 'analytical_cold',
- 'Doctrina de asedio y artillera; unidades indirectas tienen +1 de rango mximo de disparo.',
- 'Otorga +1 de rango a artillera y +15% de dao.',
- 'Aade +2 de rango a todas las unidades de fuego indirecto y revela casillas en niebla.', 100),
+ 'Cálculo Balístico', 3, 'Tormenta de Asedio', 6,
+ 'thought', '¡CALCULATED!', 'analytical_cold',
+ 'Doctrina de asedio y artillería; unidades indirectas tienen +1 de rango máximo de disparo.',
+ 'Otorga +1 de rango a artillería y +15% de daño.',
+ 'Añade +2 de rango a todas las unidades de fuego indirecto y revela casillas en niebla.', 100),
 
--- COMANDANTES DESBLOQUEABLES (Con nombres originales de cmic, revelados gradualmente por Pase / Eventos)
-('ares', 'Ares "Martillo"', 'General de Divisin', 'iron-vanguard', 'battle_pass', true,
+-- COMANDANTES DESBLOQUEABLES (Con nombres originales de cómic, revelados gradualmente por Pase / Eventos)
+('ares', 'Ares "Martillo"', 'General de División', 'iron-vanguard', 'battle_pass', true,
  'Max Fuerza', 3, 'Fuerza Imparable', 6,
- 'shout', 'SMASH!', 'aggressive_sarcastic',
+ 'shout', '¡SMASH!', 'aggressive_sarcastic',
  'Unidades de combate directo tienen +20% de ataque, pero las indirectas tienen -1 de alcance.',
  '+50% ataque en unidades de combate directo y +1 de movimiento.',
- '+75% ataque en combate directo y +2 de movimiento a vehculos.', 100),
+ '+75% ataque en combate directo y +2 de movimiento a vehículos.', 100),
 
 ('valkyrie', 'Valeria "Valkiria"', 'Comandante Paracaidista', 'iron-vanguard', 'battle_pass', true,
  'Marcha Forzada', 3, 'Furia de Comandos', 6,
- 'shout', 'CHARGE!', 'disciplined',
- 'Infantera y mechs tienen +1 de movimiento y capturan a una tasa de 1.5x.',
- 'Infantera gana +2 de movimiento.',
- 'Infantera gana +3 de movimiento y capacidad de captura instantnea en propiedades no-HQ.', 100),
+ 'shout', '¡CHARGE!', 'disciplined',
+ 'Infantería y mechs tienen +1 de movimiento y capturan a una tasa de 1.5x.',
+ 'Infantería gana +2 de movimiento.',
+ 'Infantería gana +3 de movimiento y capacidad de captura instantánea en propiedades no-HQ.', 100),
 
-('hawk_eye', 'Garrick "Ojo de Halcn"', 'Capitn Francotirador', 'frost-legion', 'trophy_road', true,
- 'Mirilla Telescpica', 3, 'Tiro Certero', 6,
- 'whisper', 'HEADSHOT!', 'analytical_cold',
- 'Unidades de fuego indirecto infligen +20% dao base.',
- '+1 de rango y +30% de dao a fuego indirecto.',
- '+2 de rango a unidades indirectas y dao perforante de blindaje.', 100),
+('hawk_eye', 'Garrick "Ojo de Halcón"', 'Capitán Francotirador', 'frost-legion', 'trophy_road', true,
+ 'Mirilla Telescópica', 3, 'Tiro Certero', 6,
+ 'whisper', '¡HEADSHOT!', 'analytical_cold',
+ 'Unidades de fuego indirecto infligen +20% daño base.',
+ '+1 de rango y +30% de daño a fuego indirecto.',
+ '+2 de rango a unidades indirectas y daño perforante de blindaje.', 100),
 
-('solaris', 'Coronel Solaris', 'Comandante Areo', 'verdant-front', 'battle_pass', true,
- 'Vuelo Rasante', 3, 'Supremaca Total', 7,
- 'radio', 'AIR_STRIKE!', 'disciplined',
- 'Unidades areas tienen -10% de coste y +10% de dao.',
+('solaris', 'Coronel Solaris', 'Comandante Aéreo', 'verdant-front', 'battle_pass', true,
+ 'Vuelo Rasante', 3, 'Supremacía Total', 7,
+ 'radio', '¡AIR_STRIKE!', 'disciplined',
+ 'Unidades aéreas tienen -10% de coste y +10% de daño.',
  'Aeronaves ganan +2 de movimiento y consumen 0 fuel este turno.',
- 'Aeronaves no consumen accin tras atacar y pueden retirarse.', 100),
+ 'Aeronaves no consumen acción tras atacar y pueden retirarse.', 100),
 
 ('leviathan', 'Almirante Mare', 'Comandante de Flota', 'verdant-front', 'special_event', true,
- 'Oleaje Tctico', 4, 'Tsunami Negro', 8,
- 'radio', 'TORPEDO!', 'balanced',
- 'Unidades navales tienen +1 de movimiento y 0 penalizacin de movimiento por arrecifes.',
- 'Inunda casillas costeras ralentizando vehculos rivales.',
- 'Inflige 2 de dao directo a toda unidad enemiga que se encuentre en mar o ro.', 100),
+ 'Oleaje Táctico', 4, 'Tsunami Negro', 8,
+ 'radio', '¡TORPEDO!', 'balanced',
+ 'Unidades navales tienen +1 de movimiento y 0 penalización de movimiento por arrecifes.',
+ 'Inunda casillas costeras ralentizando vehículos rivales.',
+ 'Inflige 2 de daño directo a toda unidad enemiga que se encuentre en mar o río.', 100),
 
-('magnate', 'Balthazar "El Magnate"', 'Director Logstico', 'frost-legion', 'shop_gems', true,
+('magnate', 'Balthazar "El Magnate"', 'Director Logístico', 'frost-legion', 'shop_gems', true,
  'Flujo de Capital', 3, 'Poder Corporativo', 6,
- 'speech', 'PROFIT!', 'balanced',
+ 'speech', '¡PROFIT!', 'balanced',
  'Todas las unidades cuestan un 20% menos, pero tienen un 10% menos de potencia de fuego.',
- 'Aumenta los fondos disponibles un 50% instantneamente.',
+ 'Aumenta los fondos disponibles un 50% instantáneamente.',
  'Convierte los fondos en un bono multiplicativo masivo de ataque.', 80),
 
 ('tyrant', 'Lord Malakor', 'Gran Comandante Tirano', 'shadow-syndicate', 'classified_unrevealed', false,
- 'Pulso Oscuro', 4, 'Cataclismo Meterico', 9,
- 'thought', 'DOOM!', 'analytical_cold',
+ 'Pulso Oscuro', 4, 'Cataclismo Meteórico', 9,
+ 'thought', '¡DOOM!', 'analytical_cold',
  'Todas las unidades tienen +20% ataque y defensa pero su coste es 120%.',
- 'Drena 2 HP a todo el ejrcito enemigo.',
- 'Invoca un impacto orbital que causa 8 HP de dao en un radio de 5 casillas sobre la mayor aglomeracin enemiga.', 120)
+ 'Drena 2 HP a todo el ejército enemigo.',
+ 'Invoca un impacto orbital que causa 8 HP de daño en un radio de 5 casillas sobre la mayor aglomeración enemiga.', 120)
 ON CONFLICT (id) DO UPDATE SET
     codename = EXCLUDED.codename,
     military_rank = EXCLUDED.military_rank,
@@ -1261,7 +1270,7 @@ ON CONFLICT (id) DO UPDATE SET
     scop_summary = EXCLUDED.scop_summary;
 
 -- ----------------------------------------------------------------------------
--- 2. TABLA: user_commanders (Progresin, Nivel 1-15, Nivel de Vnculo 1-20 y Cosmticos)
+-- 2. TABLA: user_commanders (Progresión, Nivel 1-15, Nivel de Vínculo 1-20 y Cosméticos)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.user_commanders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1292,7 +1301,7 @@ ALTER TABLE public.user_commanders ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "user_commanders_select_own" ON public.user_commanders FOR SELECT TO authenticated USING (auth.uid() = user_id);
 
 -- ----------------------------------------------------------------------------
--- 3. TABLAS DE TELEMETRA PSICOLGICA Y BARK ENGINE
+-- 3. TABLAS DE TELEMETRÍA PSICOLÓGICA Y BARK ENGINE
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.player_tactical_behavior_profile (
     user_id UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -1371,17 +1380,18 @@ CREATE INDEX IF NOT EXISTS idx_bark_templates_lookup ON public.bark_dialogue_tem
 ALTER TABLE public.bark_dialogue_templates ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "bark_templates_select" ON public.bark_dialogue_templates FOR SELECT USING (true);
 
--- >>> FIN MIGRACIN: 20261031000008_commanders_and_bark_engine.sql <<<
+-- >>> FIN MIGRACIÓN: 20261031000008_commanders_and_bark_engine.sql <<<
 
--- >>> INICIO MIGRACIN: 20261031000009_matches_v2_participants_and_fow.sql <<<
+
+-- >>> INICIO MIGRACIÓN: 20261031000009_matches_v2_participants_and_fow.sql <<<
 -- ============================================================================
--- MIGRACIN 9: PARTIDAS V2, PARTICIPANTES, NIEBLA ANTI-CHEAT Y ACTIONS LOG
+-- MIGRACIÓN 9: PARTIDAS V2, PARTICIPANTES, NIEBLA ANTI-CHEAT Y ACTIONS LOG
 -- Proyecto: Tactical Command: Wars of Legacy
 -- Fecha: 2026-10-31
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
--- 1. AMPLIACIN DE active_matches
+-- 1. AMPLIACIÓN DE active_matches
 -- ----------------------------------------------------------------------------
 ALTER TABLE public.active_matches
     DROP CONSTRAINT IF EXISTS active_matches_game_mode_check;
@@ -1454,7 +1464,7 @@ CREATE POLICY "match_participants_select" ON public.match_participants FOR SELEC
 
 -- ----------------------------------------------------------------------------
 -- 3. TABLA: match_player_views (ARQUITECTURA ANTI-MAPHACK NIEBLA DE GUERRA)
--- Proyeccin autoritativa por jugador: el cliente SOLO recibe su niebla procesada
+-- Proyección autoritativa por jugador: el cliente SOLO recibe su niebla procesada
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.match_player_views (
     match_id UUID NOT NULL REFERENCES public.active_matches(id) ON DELETE CASCADE,
@@ -1495,7 +1505,7 @@ CREATE POLICY "match_state_select_participants"
     );
 
 -- ----------------------------------------------------------------------------
--- 4. AMPLIACIN DE match_state (Clima, Transportes y Lmites Cuadrcula 64)
+-- 4. AMPLIACIÓN DE match_state (Clima, Transportes y Límites Cuadrícula 64)
 -- ----------------------------------------------------------------------------
 ALTER TABLE public.match_state
     DROP CONSTRAINT IF EXISTS match_state_grid_width_check,
@@ -1573,17 +1583,18 @@ CREATE TABLE IF NOT EXISTS public.match_replays (
 ALTER TABLE public.match_replays ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "match_replays_select_public" ON public.match_replays FOR SELECT USING (true);
 
--- >>> FIN MIGRACIN: 20261031000009_matches_v2_participants_and_fow.sql <<<
+-- >>> FIN MIGRACIÓN: 20261031000009_matches_v2_participants_and_fow.sql <<<
 
--- >>> INICIO MIGRACIN: 20261031000010_metagame_cards_chests_pass_and_social.sql <<<
+
+-- >>> INICIO MIGRACIÓN: 20261031000010_metagame_cards_chests_pass_and_social.sql <<<
 -- ============================================================================
--- MIGRACIN 10: PROGRESIN, CARTAS, COFRES, COMMAND PASS 50 NIVELES Y SOCIAL
+-- MIGRACIÓN 10: PROGRESIÓN, CARTAS, COFRES, COMMAND PASS 50 NIVELES Y SOCIAL
 -- Proyecto: Tactical Command: Wars of Legacy
 -- Fecha: 2026-10-31
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
--- 1. AMPLIACIN DE profiles (Trofeos, Mazo Cannico 10 Cartas, PTE, Clanes)
+-- 1. AMPLIACIÓN DE profiles (Trofeos, Mazo Canónico 10 Cartas, PTE, Clanes)
 -- ----------------------------------------------------------------------------
 ALTER TABLE public.profiles
     ADD COLUMN IF NOT EXISTS trophies_count INTEGER NOT NULL DEFAULT 0 CHECK (trophies_count >= 0),
@@ -1595,7 +1606,7 @@ ALTER TABLE public.profiles
     ADD COLUMN IF NOT EXISTS equipped_deck JSONB NOT NULL DEFAULT '["infantry", "mech", "recon", "tank_light", "artillery", "anti_air", "b_copter", "tank_medium", "fighter", "rocket"]'::jsonb;
 
 -- ----------------------------------------------------------------------------
--- 2. TABLA: user_cards (Coleccin de Cartas de Unidades, Nvl 1-15 y Duplicados)
+-- 2. TABLA: user_cards (Colección de Cartas de Unidades, Nvl 1-15 y Duplicados)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.user_cards (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1620,7 +1631,7 @@ CREATE TABLE IF NOT EXISTS public.user_decks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     slot_index INTEGER NOT NULL CHECK (slot_index BETWEEN 1 AND 5),
-    deck_name VARCHAR(32) NOT NULL DEFAULT 'Mazo Tctico 1',
+    deck_name VARCHAR(32) NOT NULL DEFAULT 'Mazo Táctico 1',
     commander_id VARCHAR(32) NOT NULL REFERENCES public.commanders_catalog(id),
     unit_codes VARCHAR(32)[] NOT NULL CHECK (
         array_length(unit_codes, 1) = 10
@@ -1809,17 +1820,18 @@ ALTER TABLE public.user_relationships ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "user_relationships_select_own" ON public.user_relationships FOR SELECT TO authenticated
     USING (auth.uid() = user_id OR auth.uid() = target_user_id);
 
--- >>> FIN MIGRACIN: 20261031000010_metagame_cards_chests_pass_and_social.sql <<<
+-- >>> FIN MIGRACIÓN: 20261031000010_metagame_cards_chests_pass_and_social.sql <<<
 
--- >>> INICIO MIGRACIN: 20261031000011_shop_ledger_and_security_hardening.sql <<<
+
+-- >>> INICIO MIGRACIÓN: 20261031000011_shop_ledger_and_security_hardening.sql <<<
 -- ============================================================================
--- MIGRACIN 11: TIENDA EN SERVIDOR, LEDGER, SEGURIDAD RLS Y MATCHMAKING ATMICO
+-- MIGRACIÓN 11: TIENDA EN SERVIDOR, LEDGER, SEGURIDAD RLS Y MATCHMAKING ATÓMICO
 -- Proyecto: Tactical Command: Wars of Legacy
 -- Fecha: 2026-10-31
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
--- 1. CATLOGO DE COSMTICOS Y OFERTAS DE TIENDA EN SERVIDOR
+-- 1. CATÁLOGO DE COSMÉTICOS Y OFERTAS DE TIENDA EN SERVIDOR
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.cosmetics_catalog (
     id VARCHAR(64) PRIMARY KEY,
@@ -1861,7 +1873,7 @@ ALTER TABLE public.shop_offers ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "shop_offers_select" ON public.shop_offers FOR SELECT USING (is_active = true);
 
 -- ----------------------------------------------------------------------------
--- 2. LIBRO MAYOR FINANCIERO (CURRENCY LEDGER) Y AUDITORA DE PAGOS STRIPE
+-- 2. LIBRO MAYOR FINANCIERO (CURRENCY LEDGER) Y AUDITORÍA DE PAGOS STRIPE
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.currency_ledger (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1899,7 +1911,7 @@ ALTER TABLE public.payments_audit ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "payments_audit_select_own" ON public.payments_audit FOR SELECT TO authenticated USING (auth.uid() = user_id);
 
 -- ----------------------------------------------------------------------------
--- 3. TRIGGER ANTI-TRAMPAS EN PROFILES: PROTECCIN DE MONEDAS, XP Y RATING
+-- 3. TRIGGER ANTI-TRAMPAS EN PROFILES: PROTECCIÓN DE MONEDAS, XP Y RATING
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.trg_guard_profile_sensitive_columns()
 RETURNS TRIGGER
@@ -1918,7 +1930,7 @@ BEGIN
            OR NEW.trophies_count IS DISTINCT FROM OLD.trophies_count
            OR NEW.total_matches_played IS DISTINCT FROM OLD.total_matches_played
            OR NEW.total_victories IS DISTINCT FROM OLD.total_victories THEN
-            RAISE EXCEPTION 'Operacin denegada: Los balances de divisas, XP y ranking solo pueden modificarse mediante transacciones autorizadas del servidor.';
+            RAISE EXCEPTION 'Operación denegada: Los balances de divisas, XP y ranking solo pueden modificarse mediante transacciones autorizadas del servidor.';
         END IF;
     END IF;
     RETURN NEW;
@@ -1932,7 +1944,7 @@ CREATE TRIGGER trg_guard_profile_columns
     EXECUTE FUNCTION public.trg_guard_profile_sensitive_columns();
 
 -- ----------------------------------------------------------------------------
--- 4. COLA DE MATCHMAKING ATMICA CON SKIP LOCKED
+-- 4. COLA DE MATCHMAKING ATÓMICA CON SKIP LOCKED
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.matchmaking_queue (
     user_id UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -2052,7 +2064,7 @@ END;
 $$;
 
 -- ----------------------------------------------------------------------------
--- 5. RPC DE COMPRA EN TIENDA SEGURA Y RPC DE UNIN A SALA
+-- 5. RPC DE COMPRA EN TIENDA SEGURA Y RPC DE UNIÓN A SALA
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.purchase_shop_offer(
     p_offer_id VARCHAR(64)
@@ -2089,7 +2101,7 @@ BEGIN
 
     IF v_offer.currency = 'credits' THEN
         IF v_profile.battle_credits < v_offer.price THEN
-            RETURN jsonb_build_object('success', false, 'error', 'Crditos insuficientes');
+            RETURN jsonb_build_object('success', false, 'error', 'Créditos insuficientes');
         END IF;
         v_new_balance := v_profile.battle_credits - v_offer.price;
         UPDATE public.profiles SET battle_credits = v_new_balance, updated_at = now() WHERE id = v_user_id;
@@ -2137,7 +2149,7 @@ BEGIN
     FOR UPDATE SKIP LOCKED;
 
     IF NOT FOUND THEN
-        RETURN jsonb_build_object('success', false, 'error', 'La sala no est disponible o ya fue ocupada');
+        RETURN jsonb_build_object('success', false, 'error', 'La sala no está disponible o ya fue ocupada');
     END IF;
 
     IF v_match.player1_id = v_user_id THEN
@@ -2162,22 +2174,23 @@ BEGIN
 END;
 $$;
 
--- >>> FIN MIGRACIN: 20261031000011_shop_ledger_and_security_hardening.sql <<<
+-- >>> FIN MIGRACIÓN: 20261031000011_shop_ledger_and_security_hardening.sql <<<
 
--- >>> INICIO MIGRACIN: 20261031000012_consolidated_master_database_expansion.sql <<<
+
+-- >>> INICIO MIGRACIÓN: 20261031000012_consolidated_master_database_expansion.sql <<<
 -- ============================================================================
--- MIGRACIN 12: EXPANSIN MAESTRA UNIFICADA DE BASE DE DATOS SUPABASE
+-- MIGRACIÓN 12: EXPANSIÓN MAESTRA UNIFICADA DE BASE DE DATOS SUPABASE
 -- Proyecto: Tactical Command: Wars of Legacy
--- Versin: 4.1.0-DEFINITIVE-ARCHITECTURE
+-- Versión: 4.1.0-DEFINITIVE-ARCHITECTURE
 -- Consenso: Agente 1 (Gameplay/Realtime), Agente 2 (Metagame/P2P), Agente 3 (Bark/Social)
 -- Fecha: 2026-10-31
 -- ============================================================================
 
 -- ============================================================================
--- SECCIN 1: GAMEPLAY TCTICO, TABLERO REALTIME Y DUELO ESPEJO (15s)
+-- SECCIÓN 1: GAMEPLAY TÁCTICO, TABLERO REALTIME Y DUELO ESPEJO (15s)
 -- ============================================================================
 
--- 1.1 Correccin de Restricciones en active_matches para Duelo Espejo (15s)
+-- 1.1 Corrección de Restricciones en active_matches para Duelo Espejo (15s)
 ALTER TABLE public.active_matches
     DROP CONSTRAINT IF EXISTS active_matches_turn_time_limit_sec_check,
     DROP CONSTRAINT IF EXISTS active_matches_game_mode_check;
@@ -2190,7 +2203,7 @@ ALTER TABLE public.active_matches
     ADD COLUMN IF NOT EXISTS overtime_started_at_turn SMALLINT DEFAULT NULL,
     ADD COLUMN IF NOT EXISTS sudden_death_first_blood_player_id UUID REFERENCES public.profiles(id);
 
--- 1.2 Extensin de match_history para desempates, near-miss y torneos
+-- 1.2 Extensión de match_history para desempates, near-miss y torneos
 ALTER TABLE public.match_history
     DROP CONSTRAINT IF EXISTS match_history_end_reason_check;
 
@@ -2211,7 +2224,7 @@ ALTER TABLE public.match_participants
     ADD COLUMN IF NOT EXISTS is_connected BOOLEAN NOT NULL DEFAULT true,
     ADD COLUMN IF NOT EXISTS last_heartbeat_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now());
 
--- 1.5 Cola de Emparejamiento Rpido para Duelo Espejo (15s)
+-- 1.5 Cola de Emparejamiento Rápido para Duelo Espejo (15s)
 CREATE TABLE IF NOT EXISTS public.mirror_duel_queue (
     user_id UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
     co_commander_id VARCHAR(32) NOT NULL REFERENCES public.commanders_catalog(id),
@@ -2225,17 +2238,17 @@ ALTER TABLE public.mirror_duel_queue ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "mirror_queue_select_own" ON public.mirror_duel_queue;
 CREATE POLICY "mirror_queue_select_own" ON public.mirror_duel_queue FOR SELECT TO authenticated USING (auth.uid() = user_id);
 
--- Sembrado de mapa oficial simtrico 10x10 para Duelos Espejo
+-- Sembrado de mapa oficial simétrico 10x10 para Duelos Espejo
 INSERT INTO public.maps (id, name, width, height, max_players, recommended_mode, description, is_official, is_published)
 VALUES (
     'mirror_arena_10x10',
     'Arena Espejo Alfa (10x10)',
     10, 10, 2, 'mirror_duel',
-    'Cuadrcula simtrica 10x10 para duelos tcticos hiper-compulsivos de 15 segundos.',
+    'Cuadrícula simétrica 10x10 para duelos tácticos hiper-compulsivos de 15 segundos.',
     true, true
 ) ON CONFLICT (id) DO NOTHING;
 
--- 1.6 Tabla de Auditora de AirDrops Reclamados
+-- 1.6 Tabla de Auditoría de AirDrops Reclamados
 CREATE TABLE IF NOT EXISTS public.match_airdrop_events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     match_id UUID NOT NULL REFERENCES public.active_matches(id) ON DELETE CASCADE,
@@ -2257,10 +2270,10 @@ CREATE POLICY "airdrop_events_select" ON public.match_airdrop_events FOR SELECT 
 
 
 -- ============================================================================
--- SECCIN 2: COMPLEJO INDUSTRIAL, MERCADO P2P Y SALVAGUARDA TCTICA
+-- SECCIÓN 2: COMPLEJO INDUSTRIAL, MERCADO P2P Y SALVAGUARDA TÁCTICA
 -- ============================================================================
 
--- 2.1 Extensin de Perfiles para Salvaguarda Tctica, Rachas y Moderacin
+-- 2.1 Extensión de Perfiles para Salvaguarda Táctica, Rachas y Moderación
 ALTER TABLE public.profiles
     ADD COLUMN IF NOT EXISTS safeguard_items_count INTEGER NOT NULL DEFAULT 0 CHECK (safeguard_items_count >= 0),
     ADD COLUMN IF NOT EXISTS is_safeguard_equipped BOOLEAN NOT NULL DEFAULT false,
@@ -2270,7 +2283,7 @@ ALTER TABLE public.profiles
     ADD COLUMN IF NOT EXISTS muted_until TIMESTAMPTZ DEFAULT NULL,
     ADD COLUMN IF NOT EXISTS is_chat_banned BOOLEAN NOT NULL DEFAULT false;
 
--- 2.2 Extensin de Clanes y Miembros (Guerra y Embargo)
+-- 2.2 Extensión de Clanes y Miembros (Guerra y Embargo)
 ALTER TABLE public.clans
     ADD COLUMN IF NOT EXISTS current_war_tier INTEGER NOT NULL DEFAULT 1 CHECK (current_war_tier BETWEEN 1 AND 4),
     ADD COLUMN IF NOT EXISTS active_war_participants_today INTEGER NOT NULL DEFAULT 0,
@@ -2301,7 +2314,7 @@ ALTER TABLE public.user_industrial_inventory ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "industrial_inventory_own" ON public.user_industrial_inventory;
 CREATE POLICY "industrial_inventory_own" ON public.user_industrial_inventory FOR ALL USING (auth.uid() = user_id);
 
--- Trabajos de Refinacin en Hornos y Talleres
+-- Trabajos de Refinación en Hornos y Talleres
 CREATE TABLE IF NOT EXISTS public.industrial_refining_jobs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -2357,7 +2370,7 @@ CREATE POLICY "p2p_listings_view_all" ON public.p2p_market_listings FOR SELECT U
 DROP POLICY IF EXISTS "p2p_listings_manage_own" ON public.p2p_market_listings;
 CREATE POLICY "p2p_listings_manage_own" ON public.p2p_market_listings FOR UPDATE USING (auth.uid() = seller_id);
 
--- 2.5 Fabricacin de Salvaguardas Tcticas (Taller F2P 72h)
+-- 2.5 Fabricación de Salvaguardas Tácticas (Taller F2P 72h)
 CREATE TABLE IF NOT EXISTS public.safeguard_crafting_jobs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -2406,17 +2419,17 @@ CREATE POLICY "tilt_offers_select_own" ON public.tilt_emergency_offers FOR SELEC
 
 
 -- ============================================================================
--- SECCIN 3: BARK ENGINE, VNCULO 1-10, COSMTICOS Y MODERACIN
+-- SECCIÓN 3: BARK ENGINE, VÍNCULO 1-10, COSMÉTICOS Y MODERACIÓN
 -- ============================================================================
 
--- 3.1 Correccin del Rango de Vnculo de Camaradera (1 a 10) en user_commanders
+-- 3.1 Corrección del Rango de Vínculo de Camaradería (1 a 10) en user_commanders
 ALTER TABLE public.user_commanders
     DROP CONSTRAINT IF EXISTS user_commanders_bonding_level_check;
 
 ALTER TABLE public.user_commanders
     ADD CONSTRAINT user_commanders_bonding_level_check CHECK (bonding_level BETWEEN 1 AND 10);
 
--- Catlogo de Hitos de Vnculo de Camaradera (1-10)
+-- Catálogo de Hitos de Vínculo de Camaradería (1-10)
 CREATE TABLE IF NOT EXISTS public.commander_bonding_rewards_catalog (
     bonding_level SMALLINT PRIMARY KEY CHECK (bonding_level BETWEEN 1 AND 10),
     required_total_xp INTEGER NOT NULL,
@@ -2431,19 +2444,19 @@ DROP POLICY IF EXISTS "bonding_rewards_select_all" ON public.commander_bonding_r
 CREATE POLICY "bonding_rewards_select_all" ON public.commander_bonding_rewards_catalog FOR SELECT USING (true);
 
 INSERT INTO public.commander_bonding_rewards_catalog (bonding_level, required_total_xp, reward_type, description) VALUES
-(1, 0, 'dialogue_token', 'Directivas tcticas estndar y trato militar formal (Cadete).'),
-(2, 1000, 'dialogue_token', 'Lneas tcticas de aliento tras prdida de unidades.'),
-(3, 3000, 'dialogue_token', 'Reconocimiento de Camarada: El Comandante utiliza el nombre del jugador en vietas.'),
-(4, 6000, 'lore_entry', 'Acceso al expediente clasificado y trasfondo blico del Comandante.'),
-(5, 10000, 'dialogue_token', 'Lneas tcticas avanzadas y pose de vieta de concentracin analtica.'),
+(1, 0, 'dialogue_token', 'Directivas tácticas estándar y trato militar formal (Cadete).'),
+(2, 1000, 'dialogue_token', 'Líneas tácticas de aliento tras pérdida de unidades.'),
+(3, 3000, 'dialogue_token', 'Reconocimiento de Camarada: El Comandante utiliza el nombre del jugador en viñetas.'),
+(4, 6000, 'lore_entry', 'Acceso al expediente clasificado y trasfondo bélico del Comandante.'),
+(5, 10000, 'dialogue_token', 'Líneas tácticas avanzadas y pose de viñeta de concentración analítica.'),
 (6, 15000, 'onomatopoeia_stamp', 'Desbloqueo de sello Pop-Art exclusivo de la doctrina militar del Comandante.'),
-(7, 21000, 'dialogue_token', 'Comentarios nicos durante activacin de Superpoderes CO.'),
-(8, 28000, 'bubble_skin', 'Diseo de bocadillo de dilogo exclusivo con tramas Ben-Day de faccin.'),
-(9, 36000, 'dialogue_token', 'Lneas de camaradera mxima ante victorias ajustadas (Clutch).'),
-(10, 45000, 'vignette_frame', 'Retrato de cmic animado, marco dorado de novela grfica y condecoracin mxima.')
+(7, 21000, 'dialogue_token', 'Comentarios únicos durante activación de Superpoderes CO.'),
+(8, 28000, 'bubble_skin', 'Diseño de bocadillo de diálogo exclusivo con tramas Ben-Day de facción.'),
+(9, 36000, 'dialogue_token', 'Líneas de camaradería máxima ante victorias ajustadas (Clutch).'),
+(10, 45000, 'vignette_frame', 'Retrato de cómic animado, marco dorado de novela gráfica y condecoración máxima.')
 ON CONFLICT (bonding_level) DO NOTHING;
 
--- 3.2 Tabla de Cosmticos Desbloqueados por Jugador
+-- 3.2 Tabla de Cosméticos Desbloqueados por Jugador
 CREATE TABLE IF NOT EXISTS public.user_cosmetics (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -2459,67 +2472,67 @@ ALTER TABLE public.user_cosmetics ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "user_cosmetics_select_own" ON public.user_cosmetics;
 CREATE POLICY "user_cosmetics_select_own" ON public.user_cosmetics FOR SELECT TO authenticated USING (auth.uid() = user_id);
 
--- 3.3 Extensin de bark_dialogue_templates y Sembrado Masivo de Barks
+-- 3.3 Extensión de bark_dialogue_templates y Sembrado Masivo de Barks
 ALTER TABLE public.bark_dialogue_templates
     ADD COLUMN IF NOT EXISTS trigger_phase VARCHAR(16) NOT NULL DEFAULT 'in_match'
         CHECK (trigger_phase IN ('pre_match', 'in_match', 'post_match', 'menu_lobby')),
     ADD COLUMN IF NOT EXISTS cooldown_turns SMALLINT NOT NULL DEFAULT 2 CHECK (cooldown_turns >= 0);
 
--- Sembrado inicial masivo de plantillas de cmic para los comandantes
+-- Sembrado inicial masivo de plantillas de cómic para los comandantes
 INSERT INTO public.bark_dialogue_templates (
     id, commander_id, trigger_context, trigger_phase, bubble_shape, onomatopoeia_stamp,
     comic_vignette_pose, affinity_level_min, priority_weight, dialogue_template_text
 ) VALUES
 -- STELLA (Ofensiva, Agresiva)
-('stella_start_01', 'stella', 'match_start', 'pre_match', 'shout', 'RATATAT!', 'proud', 1, 10,
- 'Pisa el acelerador a fondo! No quiero ver un solo tanque frenando antes de aplastar su cuartel!'),
-('stella_start_b3', 'stella', 'match_start', 'pre_match', 'shout', 'RATATAT!', 'proud', 3, 20,
- '{player_name}! Espero que hoy no me hagas perder el tiempo contra estos aficionados!'),
-('stella_low_hp_01', 'stella', 'low_hp', 'in_match', 'shout', 'ALERT!', 'alarmed', 1, 15,
- 'Qu diablos haces?! Estn pulverizando nuestro blindaje! Reorganiza esa lnea YA!'),
-('stella_near_miss_01', 'stella', 'enemy_near_miss', 'post_match', 'shout', 'BOOM!', 'angry', 1, 30,
- 'MALDITA SEA! Se quedaron a 1 HP por culpa de su blindaje! Ese tanque deba ser chatarra!'),
-('stella_cop_01', 'stella', 'cop_activated', 'in_match', 'shout', 'RATATAT!', 'proud', 1, 20,
- 'Sobrecarga Alfa activada! Abran fuego con todo lo que tengan en la recmara!'),
-('stella_scop_01', 'stella', 'scop_activated', 'in_match', 'shout', 'BOOM!', 'proud', 1, 35,
- 'BOMBARDEO SUPREMO! Borren esa cuadrcula del mapa, ahora mismo!'),
-('stella_clutch_01', 'stella', 'victory', 'post_match', 'speech', 'CLUTCH!', 'proud', 3, 25,
- 'Por un pelo de acero, {player_name}! Estuvimos al borde del abismo... as es como se gana!'),
-('stella_airdrop_01', 'stella', 'airdrop_spawn', 'in_match', 'shout', 'AIRDROP!', 'proud', 1, 20,
- 'Caja de suministros en el sector! Asegrenla antes de que esos buitres le pongan la mano encima!'),
+('stella_start_01', 'stella', 'match_start', 'pre_match', 'shout', '¡RATATAT!', 'proud', 1, 10,
+ '¡Pisa el acelerador a fondo! ¡No quiero ver un solo tanque frenando antes de aplastar su cuartel!'),
+('stella_start_b3', 'stella', 'match_start', 'pre_match', 'shout', '¡RATATAT!', 'proud', 3, 20,
+ '¡{player_name}! ¡Espero que hoy no me hagas perder el tiempo contra estos aficionados!'),
+('stella_low_hp_01', 'stella', 'low_hp', 'in_match', 'shout', '¡ALERT!', 'alarmed', 1, 15,
+ '¡¿Qué diablos haces?! ¡Están pulverizando nuestro blindaje! ¡Reorganiza esa línea YA!'),
+('stella_near_miss_01', 'stella', 'enemy_near_miss', 'post_match', 'shout', '¡BOOM!', 'angry', 1, 30,
+ '¡MALDITA SEA! ¡Se quedaron a 1 HP por culpa de su blindaje! ¡Ese tanque debía ser chatarra!'),
+('stella_cop_01', 'stella', 'cop_activated', 'in_match', 'shout', '¡RATATAT!', 'proud', 1, 20,
+ '¡Sobrecarga Alfa activada! ¡Abran fuego con todo lo que tengan en la recámara!'),
+('stella_scop_01', 'stella', 'scop_activated', 'in_match', 'shout', '¡BOOM!', 'proud', 1, 35,
+ '¡BOMBARDEO SUPREMO! ¡Borren esa cuadrícula del mapa, ahora mismo!'),
+('stella_clutch_01', 'stella', 'victory', 'post_match', 'speech', '¡CLUTCH!', 'proud', 3, 25,
+ '¡Por un pelo de acero, {player_name}! Estuvimos al borde del abismo... ¡así es como se gana!'),
+('stella_airdrop_01', 'stella', 'airdrop_spawn', 'in_match', 'shout', '¡AIRDROP!', 'proud', 1, 20,
+ '¡Caja de suministros en el sector! ¡Asegúrenla antes de que esos buitres le pongan la mano encima!'),
 
--- VOLKOV (Fro, Balstica, Calculado)
-('volkov_start_01', 'volkov', 'match_start', 'pre_match', 'thought', 'CALCULATED!', 'neutral', 1, 10,
- 'Bateras listas. Cada casilla es un vector de impacto. No desperdicies municin en disparos inciertos.'),
-('volkov_start_b3', 'volkov', 'match_start', 'pre_match', 'speech', 'CALCULATED!', 'neutral', 3, 20,
- 'Camarada {player_name}, los clculos de balstica estn calibrados a tu favor. Procede.'),
-('volkov_trap_01', 'volkov', 'trap_ambush', 'in_match', 'whisper', 'TRAP!', 'alarmed', 1, 25,
+-- VOLKOV (Frío, Balística, Calculado)
+('volkov_start_01', 'volkov', 'match_start', 'pre_match', 'thought', '¡CALCULATED!', 'neutral', 1, 10,
+ 'Baterías listas. Cada casilla es un vector de impacto. No desperdicies munición en disparos inciertos.'),
+('volkov_start_b3', 'volkov', 'match_start', 'pre_match', 'speech', '¡CALCULATED!', 'neutral', 3, 20,
+ 'Camarada {player_name}, los cálculos de balística están calibrados a tu favor. Procede.'),
+('volkov_trap_01', 'volkov', 'trap_ambush', 'in_match', 'whisper', '¡TRAP!', 'alarmed', 1, 25,
  'Emboscada en sector boscoso. Error de reconocimiento elemental. Retrocede a rango de tiro.'),
-('volkov_near_miss_01', 'volkov', 'enemy_near_miss', 'post_match', 'thought', 'CALCULATED!', 'stern', 1, 30,
- 'El vector balstico fue impecable; sin embargo, el blindaje rival resisti con 2 HP. Recomiendo reforzar el calibre.'),
-('volkov_cop_01', 'volkov', 'cop_activated', 'in_match', 'speech', 'CALCULATED!', 'proud', 1, 20,
- 'Proyectiles de precisin cargados. El rango de fuego efectivo se ha duplicado.'),
-('volkov_victory_01', 'volkov', 'victory', 'post_match', 'speech', 'CALCULATED!', 'proud', 1, 15,
- 'Victoria confirmada con margen estadstico aceptable. Buen trabajo tctico.'),
+('volkov_near_miss_01', 'volkov', 'enemy_near_miss', 'post_match', 'thought', '¡CALCULATED!', 'stern', 1, 30,
+ 'El vector balístico fue impecable; sin embargo, el blindaje rival resistió con 2 HP. Recomiendo reforzar el calibre.'),
+('volkov_cop_01', 'volkov', 'cop_activated', 'in_match', 'speech', '¡CALCULATED!', 'proud', 1, 20,
+ 'Proyectiles de precisión cargados. El rango de fuego efectivo se ha duplicado.'),
+('volkov_victory_01', 'volkov', 'victory', 'post_match', 'speech', '¡CALCULATED!', 'proud', 1, 15,
+ 'Victoria confirmada con margen estadístico aceptable. Buen trabajo táctico.'),
 
 -- VANCE (Disciplinado, Protector)
-('vance_start_01', 'vance', 'match_start', 'pre_match', 'speech', 'HOLD!', 'disciplined', 1, 10,
- 'Mantengan la formacin! Un ejrcito que defiende sus fbricas es un ejrcito invencible.'),
-('vance_start_b3', 'vance', 'match_start', 'pre_match', 'speech', 'HOLD!', 'proud', 3, 20,
- 'Al frente una vez ms, {player_name}! La Vanguardia de Hierro nunca da un paso atrs.'),
-('vance_cop_01', 'vance', 'cop_activated', 'in_match', 'shout', 'HOLD!', 'proud', 1, 20,
- 'Reparacin de campo de emergencia! Levanten esas orugas, la batalla contina!'),
-('vance_defeat_01', 'vance', 'defeat', 'post_match', 'speech', 'PANIC!', 'alarmed', 1, 20,
- 'Retrocedan con orden. Aprendan de las brechas en la defensa para el prximo despliegue.'),
+('vance_start_01', 'vance', 'match_start', 'pre_match', 'speech', '¡HOLD!', 'disciplined', 1, 10,
+ '¡Mantengan la formación! Un ejército que defiende sus fábricas es un ejército invencible.'),
+('vance_start_b3', 'vance', 'match_start', 'pre_match', 'speech', '¡HOLD!', 'proud', 3, 20,
+ '¡Al frente una vez más, {player_name}! La Vanguardia de Hierro nunca da un paso atrás.'),
+('vance_cop_01', 'vance', 'cop_activated', 'in_match', 'shout', '¡HOLD!', 'proud', 1, 20,
+ '¡Reparación de campo de emergencia! ¡Levanten esas orugas, la batalla continúa!'),
+('vance_defeat_01', 'vance', 'defeat', 'post_match', 'speech', '¡PANIC!', 'alarmed', 1, 20,
+ 'Retrocedan con orden. Aprendan de las brechas en la defensa para el próximo despliegue.'),
 
 -- COLIN (Financiero, Modesto)
-('colin_start_01', 'colin', 'match_start', 'pre_match', 'speech', 'TACTICAL!', 'neutral', 1, 10,
- 'Mis fondos estn listos para la produccin en masa! Espero no arruinar el presupuesto...'),
-('colin_cop_01', 'colin', 'cop_activated', 'in_match', 'shout', 'TACTICAL!', 'proud', 1, 25,
- 'Inyeccin de capital de emergencia! Produzcan tanques al 50% de descuento!')
+('colin_start_01', 'colin', 'match_start', 'pre_match', 'speech', '¡TACTICAL!', 'neutral', 1, 10,
+ '¡Mis fondos están listos para la producción en masa! Espero no arruinar el presupuesto...'),
+('colin_cop_01', 'colin', 'cop_activated', 'in_match', 'shout', '¡TACTICAL!', 'proud', 1, 25,
+ '¡Inyección de capital de emergencia! ¡Produzcan tanques al 50% de descuento!')
 ON CONFLICT (id) DO NOTHING;
 
--- 3.4 Seguridad de Chat, DMs Privados y Reportes de Moderacin
+-- 3.4 Seguridad de Chat, DMs Privados y Reportes de Moderación
 ALTER TABLE public.chat_messages
     ADD COLUMN IF NOT EXISTS recipient_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
     ADD COLUMN IF NOT EXISTS message_type VARCHAR(16) NOT NULL DEFAULT 'text'
@@ -2543,7 +2556,7 @@ CREATE POLICY "reports_insert_own" ON public.chat_moderation_reports FOR INSERT 
 DROP POLICY IF EXISTS "reports_select_own" ON public.chat_moderation_reports;
 CREATE POLICY "reports_select_own" ON public.chat_moderation_reports FOR SELECT TO authenticated USING (auth.uid() = reporter_id);
 
--- Aislamiento estricto de privacidad en chat (solucin de data leak)
+-- Aislamiento estricto de privacidad en chat (solución de data leak)
 DROP POLICY IF EXISTS "chat_messages_select_channel" ON public.chat_messages;
 DROP POLICY IF EXISTS "chat_messages_select_isolated" ON public.chat_messages;
 CREATE POLICY "chat_messages_select_isolated" ON public.chat_messages
@@ -2573,10 +2586,10 @@ CREATE POLICY "chat_messages_insert_own" ON public.chat_messages
 
 
 -- ============================================================================
--- SECCIN 4: CATLOGO MAESTRO DE FUNCIONES RPC ALMACENADAS (ACID)
+-- SECCIÓN 4: CATÁLOGO MAESTRO DE FUNCIONES RPC ALMACENADAS (ACID)
 -- ============================================================================
 
--- 4.1 RPC: Emparejamiento Rpido en Duelo Espejo (15s)
+-- 4.1 RPC: Emparejamiento Rápido en Duelo Espejo (15s)
 CREATE OR REPLACE FUNCTION public.join_mirror_duel_queue(
     p_co_id VARCHAR(32)
 )
@@ -2662,7 +2675,7 @@ BEGIN
 END;
 $$;
 
--- 4.2 RPC: Reclamacin Atmica de AirDrops con Validacin Estricta de Casilla
+-- 4.2 RPC: Reclamación Atómica de AirDrops con Validación Estricta de Casilla
 CREATE OR REPLACE FUNCTION public.claim_airdrop(
     p_match_id UUID,
     p_airdrop_id TEXT,
@@ -2693,20 +2706,20 @@ DECLARE
     v_is_p1 BOOLEAN;
 BEGIN
     SELECT * INTO v_match FROM public.active_matches WHERE id = p_match_id AND status = 'in_progress' FOR UPDATE;
-    IF NOT FOUND THEN RAISE EXCEPTION 'Partida no vlida o no est en curso.'; END IF;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Partida no válida o no está en curso.'; END IF;
     IF v_match.current_turn_player_id <> v_user_id THEN RAISE EXCEPTION 'No es tu turno de juego.'; END IF;
 
     SELECT * INTO v_state FROM public.match_state WHERE match_id = p_match_id FOR UPDATE;
     v_drops := v_state.airdrops;
     v_units := v_state.units;
 
-    -- Validar que la unidad exista, pertenezca al jugador y est viva
+    -- Validar que la unidad exista, pertenezca al jugador y esté viva
     FOR v_unit IN SELECT * FROM jsonb_array_elements(v_units) LOOP
         IF (v_unit->>'id') = p_unit_id THEN
             IF (v_unit->>'owner')::text <> v_user_id::text AND (v_unit->>'playerId')::text <> v_user_id::text THEN
                 RAISE EXCEPTION 'La unidad no pertenece al comandante activo.';
             END IF;
-            IF (v_unit->>'hp')::int <= 0 THEN RAISE EXCEPTION 'La unidad est destruida.'; END IF;
+            IF (v_unit->>'hp')::int <= 0 THEN RAISE EXCEPTION 'La unidad está destruida.'; END IF;
             v_unit_found := true;
             EXIT;
         END IF;
@@ -2714,7 +2727,7 @@ BEGIN
 
     IF NOT v_unit_found THEN RAISE EXCEPTION 'Unidad no encontrada en el tablero.'; END IF;
 
-    -- Localizar y validar la posicin del AirDrop
+    -- Localizar y validar la posición del AirDrop
     FOR v_drop IN SELECT * FROM jsonb_array_elements(v_drops) LOOP
         IF (v_drop->>'id') = p_airdrop_id AND (v_drop->>'is_claimed')::boolean = false THEN
             v_drop_found := true;
@@ -2723,9 +2736,9 @@ BEGIN
             v_reward_type := v_drop->>'reward_type';
             v_reward_value := v_drop->'reward_value';
 
-            -- VERIFICACIN ESTRICTA: La unidad debe ocupar exactamente la casilla
+            -- VERIFICACIÓN ESTRICTA: La unidad debe ocupar exactamente la casilla
             IF (v_unit->>'x')::int <> v_drop_x OR (v_unit->>'y')::int <> v_drop_y THEN
-                RAISE EXCEPTION 'Posicin invlida: La unidad no ocupa la casilla del suministro.';
+                RAISE EXCEPTION 'Posición inválida: La unidad no ocupa la casilla del suministro.';
             END IF;
 
             v_updated_drops := v_updated_drops || jsonb_build_array(
@@ -2773,7 +2786,7 @@ BEGIN
 END;
 $$;
 
--- 4.3 RPC: Arbitraje de Timeout de Turno y Derrota Tcnica por AFK
+-- 4.3 RPC: Arbitraje de Timeout de Turno y Derrota Técnica por AFK
 CREATE OR REPLACE FUNCTION public.handle_turn_timeout(p_match_id UUID)
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -2802,7 +2815,7 @@ BEGIN
     WHERE match_id = p_match_id AND user_id = v_current_player
     RETURNING consecutive_inactive_turns INTO v_inactive_turns;
 
-    -- Si alcanza 2 turnos consecutivos inactivos -> Derrota Tcnica por AFK
+    -- Si alcanza 2 turnos consecutivos inactivos -> Derrota Técnica por AFK
     IF v_inactive_turns >= 2 THEN
         v_winner_id := v_next_player;
         UPDATE public.active_matches
@@ -2828,7 +2841,7 @@ BEGIN
 END;
 $$;
 
--- 4.4 RPC: Recoleccin Industrial con Merma de 10 Horas (Carcoma Logstica)
+-- 4.4 RPC: Recolección Industrial con Merma de 10 Horas (Carcoma Logística)
 CREATE OR REPLACE FUNCTION public.harvest_industrial_resources()
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -2908,7 +2921,7 @@ BEGIN
 
     SELECT * INTO v_buyer_profile FROM public.profiles WHERE id = v_buyer_id FOR UPDATE;
     IF v_buyer_profile.battle_credits < v_listing.total_price THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Crditos de Batalla insuficientes.');
+        RETURN jsonb_build_object('success', false, 'error', 'Créditos de Batalla insuficientes.');
     END IF;
 
     v_tax := FLOOR(v_listing.total_price * 0.12);
@@ -2959,7 +2972,7 @@ BEGIN
     WHERE user_id = v_user_id AND clan_id = p_clan_id FOR UPDATE;
 
     IF v_member.id IS NULL THEN RAISE EXCEPTION 'No perteneces a este clan.'; END IF;
-    IF v_member.daily_war_matches_played > 0 THEN RAISE EXCEPTION 'No ests bajo embargo de deshonor.'; END IF;
+    IF v_member.daily_war_matches_played > 0 THEN RAISE EXCEPTION 'No estás bajo embargo de deshonor.'; END IF;
     IF v_member.has_claimed_daily_chest THEN RAISE EXCEPTION 'El cofre ya ha sido reclamado.'; END IF;
 
     SELECT array_agg(user_id) INTO v_top_members FROM (
@@ -3004,7 +3017,7 @@ BEGIN
         channel_type, channel_id, sender_id, message_text, message_type, metadata
     ) VALUES (
         'clan', p_clan_id::text, v_user_id,
-        'FIANZA DE DESHONOR PAGADA! El botn fue redistribuido al Top 3 del clan.',
+        '¡FIANZA DE DESHONOR PAGADA! El botín fue redistribuido al Top 3 del clan.',
         'system_alert',
         jsonb_build_object('event', 'dishonor_paid', 'top1', v_top1, 'currency', p_currency)
     );
@@ -3013,7 +3026,7 @@ BEGIN
 END;
 $$;
 
--- 4.7 RPC: Seleccin Contextual de Dilogo Cmic (Bark Engine Procedural)
+-- 4.7 RPC: Selección Contextual de Diálogo Cómic (Bark Engine Procedural)
 CREATE OR REPLACE FUNCTION public.rpc_get_contextual_bark(
     p_commander_id VARCHAR(32),
     p_trigger_context VARCHAR(48),
@@ -3039,7 +3052,7 @@ BEGIN
         SELECT username INTO v_username FROM public.profiles WHERE id = v_user_id;
     END IF;
 
-    -- Muestreo ponderado estocstico O(1)
+    -- Muestreo ponderado estocástico O(1)
     SELECT * INTO v_chosen
     FROM public.bark_dialogue_templates
     WHERE (commander_id = p_commander_id OR commander_id = 'all')
@@ -3073,7 +3086,7 @@ BEGIN
 END;
 $$;
 
--- 4.8 RPC: Diagnstico Balstico Near-Miss Post-Combate
+-- 4.8 RPC: Diagnóstico Balístico Near-Miss Post-Combate
 CREATE OR REPLACE FUNCTION public.process_post_match_near_miss(
     p_match_id UUID,
     p_loser_id UUID,
@@ -3119,7 +3132,7 @@ BEGIN
 END;
 $$;
 
--- 4.9 RPC: Evaluacin de Tilt y Disparo de Oferta Flash ($0.99 en 180s)
+-- 4.9 RPC: Evaluación de Tilt y Disparo de Oferta Flash ($0.99 en 180s)
 CREATE OR REPLACE FUNCTION public.evaluate_match_tilt_and_offer(
     p_match_id UUID,
     p_player_id UUID
@@ -3164,23 +3177,24 @@ BEGIN
 END;
 $$;
 
--- >>> FIN MIGRACIN: 20261031000012_consolidated_master_database_expansion.sql <<<
+-- >>> FIN MIGRACIÓN: 20261031000012_consolidated_master_database_expansion.sql <<<
 
--- >>> INICIO MIGRACIN: 20261031000013_economy_idle_rework_territorial_plots.sql <<<
+
+-- >>> INICIO MIGRACIÓN: 20261031000013_economy_idle_rework_territorial_plots.sql <<<
 -- ==============================================================================
--- MIGRACIN 13: REWORK DE ECONOMA MATEMTICA, PARCELAS TERRITORIALES E IDLE TYCOON
+-- MIGRACIÓN 13: REWORK DE ECONOMÍA MATEMÁTICA, PARCELAS TERRITORIALES E IDLE TYCOON
 -- ==============================================================================
--- Especificacin: docs/08_PROPOSAL_ECONOMY_IDLE_REWORK.md (v2.0.0-CALIBRATED)
+-- Especificación: docs/08_PROPOSAL_ECONOMY_IDLE_REWORK.md (v2.0.0-CALIBRATED)
 -- Fecha: 2026-10-31
--- Descripcin:
--- 1. Crea la tabla relacional 'user_industrial_plots' (Cuadrcula de 10 parcelas).
+-- Descripción:
+-- 1. Crea la tabla relacional 'user_industrial_plots' (Cuadrícula de 10 parcelas).
 -- 2. Inicializa las parcelas gratuitas iniciales para usuarios existentes y nuevos (P1-P2 y P3 tutorial).
--- 3. Implementa RPC 'harvest_industrial_territory' con evaluacin perezosa O(1),
+-- 3. Implementa RPC 'harvest_industrial_territory' con evaluación perezosa O(1),
 --    ciclo circadiano de 12h + 4h de gracia, carcoma del 1.5%/h y salvamento de carga varada (70%).
--- 4. Implementa RPC 'reconfigure_industrial_plot' con coste de overhaul y demolicin con 50% de reembolso.
--- 5. Implementa RPC 'acquire_industrial_plot' con validacin de account_level y costes calibrados.
--- 6. Hardening de 'execute_p2p_purchase' con ordenacin determinista de locks (buyer_id < seller_id)
---    y patrn Escrow para erradicar deadlocks y doble gasto.
+-- 4. Implementa RPC 'reconfigure_industrial_plot' con coste de overhaul y demolición con 50% de reembolso.
+-- 5. Implementa RPC 'acquire_industrial_plot' con validación de account_level y costes calibrados.
+-- 6. Hardening de 'execute_p2p_purchase' con ordenación determinista de locks (buyer_id < seller_id)
+--    y patrón Escrow para erradicar deadlocks y doble gasto.
 -- 7. Implementa RPC 'fulfill_stale_p2p_orders' (Banco Central de Intendencia Militar NPC).
 -- ==============================================================================
 
@@ -3191,11 +3205,11 @@ CREATE TABLE IF NOT EXISTS public.user_industrial_plots (
     plot_index INTEGER NOT NULL CHECK (plot_index BETWEEN 1 AND 10),
     enterprise_type VARCHAR(48) NOT NULL CHECK (enterprise_type IN (
         'empty',
-        -- Categora A: Extraccin Primaria
+        -- Categoría A: Extracción Primaria
         'mine_iron', 'quarry_stone', 'drill_rare_earth', 'distillery_synth_fuel',
-        -- Categora B: Refinacin Secundaria
+        -- Categoría B: Refinación Secundaria
         'smelter_vulcan', 'concrete_plant', 'cleanroom_chips', 'lab_nano_compounds',
-        -- Categora C: Soporte e Infraestructura
+        -- Categoría C: Soporte e Infraestructura
         'logistics_silo', 'market_terminal', 'fuel_generator'
     )),
     tier INTEGER NOT NULL DEFAULT 1 CHECK (tier BETWEEN 1 AND 5),
@@ -3224,7 +3238,7 @@ DO $$ BEGIN
     END IF;
 END $$;
 
--- 2. TABLA: user_stranded_cargo (Almacn de Cargamento Militar Varado)
+-- 2. TABLA: user_stranded_cargo (Almacén de Cargamento Militar Varado)
 CREATE TABLE IF NOT EXISTS public.user_stranded_cargo (
     user_id UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
     stranded_iron INTEGER NOT NULL DEFAULT 0,
@@ -3247,7 +3261,7 @@ DO $$ BEGIN
     END IF;
 END $$;
 
--- 3. POBLACIN RETROACTIVA DE PARCELAS PARA USUARIOS EXISTENTES
+-- 3. POBLACIÓN RETROACTIVA DE PARCELAS PARA USUARIOS EXISTENTES
 DO $$
 DECLARE
     r_user RECORD;
@@ -3291,7 +3305,7 @@ BEGIN
             ON CONFLICT (user_id, plot_index) DO NOTHING;
         END IF;
 
-        -- Parcela 7: Silo Central Logstico (desbloqueada en N10+)
+        -- Parcela 7: Silo Central Logístico (desbloqueada en N10+)
         IF r_user.account_level >= 10 THEN
             INSERT INTO public.user_industrial_plots (user_id, plot_index, enterprise_type, tier, status)
             VALUES (r_user.id, 7, 'logistics_silo', 1, 'active')
@@ -3301,7 +3315,7 @@ BEGIN
 END $$;
 
 -- 4. RPC: harvest_industrial_territory
--- Evaluacin perezosa O(1), ciclo circadiano 12h + 4h gracia, merma -1.5%/h con 70% a cargamento varado.
+-- Evaluación perezosa O(1), ciclo circadiano 12h + 4h gracia, merma -1.5%/h con 70% a cargamento varado.
 CREATE OR REPLACE FUNCTION public.harvest_industrial_territory()
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -3355,7 +3369,7 @@ BEGIN
         VALUES (v_user_id) RETURNING * INTO v_inv;
     END IF;
 
-    -- Agregacin territorial de empresas activas
+    -- Agregación territorial de empresas activas
     FOR v_plot IN 
         SELECT enterprise_type, tier, status, work_completes_at 
         FROM public.user_industrial_plots 
@@ -3391,11 +3405,11 @@ BEGIN
         RETURN jsonb_build_object('success', false, 'message', 'Recursos recolectados recientemente.');
     END IF;
 
-    -- Ciclo Circadiano Cannico: 12h base + silos + 4h de gracia
+    -- Ciclo Circadiano Canónico: 12h base + silos + 4h de gracia
     v_effective_hours := LEAST(v_elapsed_hours, 12.0 + v_silo_bonus_hours);
     v_excess_hours := GREATEST(0.0, v_elapsed_hours - (16.0 + v_silo_bonus_hours));
 
-    -- Bono de Eficiencia (+10% recursos y +500 crditos) por retirar antes de la saturacin
+    -- Bono de Eficiencia (+10% recursos y +500 créditos) por retirar antes de la saturación
     IF v_elapsed_hours < (12.0 + v_silo_bonus_hours) THEN
         v_efficiency_bonus := true;
         v_efficiency_bonus_credits := 500;
@@ -3406,13 +3420,13 @@ BEGIN
         v_decay_factor := LEAST(0.40, (v_excess_hours * 0.015 * v_decay_mitigation));
     END IF;
 
-    -- Clculo bruto y neto
+    -- Cálculo bruto y neto
     v_gain_iron := FLOOR(v_rate_iron * v_effective_hours * (1.0 - v_decay_factor));
     v_gain_stone := FLOOR(v_rate_stone * v_effective_hours * (1.0 - v_decay_factor));
     v_gain_rare := FLOOR(v_rate_rare * v_effective_hours * (1.0 - v_decay_factor));
     v_gain_fuel := FLOOR(v_rate_fuel * v_effective_hours * (1.0 - v_decay_factor));
 
-    -- Si aplic el bono de eficiencia de alta pureza (+10%)
+    -- Si aplicó el bono de eficiencia de alta pureza (+10%)
     IF v_efficiency_bonus THEN
         v_gain_iron := FLOOR(v_gain_iron * 1.10);
         v_gain_stone := FLOOR(v_gain_stone * 1.10);
@@ -3442,7 +3456,7 @@ BEGIN
             updated_at = v_now;
     END IF;
 
-    -- Actualizacin de inventario consolidado
+    -- Actualización de inventario consolidado
     UPDATE public.user_industrial_inventory
     SET raw_iron = raw_iron + v_gain_iron,
         raw_stone = raw_stone + v_gain_stone,
@@ -3452,7 +3466,7 @@ BEGIN
         updated_at = v_now
     WHERE user_id = v_user_id;
 
-    -- Si hubo bono de eficiencia en crditos
+    -- Si hubo bono de eficiencia en créditos
     IF v_efficiency_bonus_credits > 0 THEN
         UPDATE public.profiles
         SET battle_credits = battle_credits + v_efficiency_bonus_credits,
@@ -3493,14 +3507,14 @@ DECLARE
     v_now TIMESTAMPTZ := timezone('utc'::text, now());
 BEGIN
     IF v_user_id IS NULL THEN RAISE EXCEPTION 'No autenticado'; END IF;
-    IF p_plot_index < 1 OR p_plot_index > 10 THEN RAISE EXCEPTION 'ndice de parcela invlido'; END IF;
+    IF p_plot_index < 1 OR p_plot_index > 10 THEN RAISE EXCEPTION 'Índice de parcela inválido'; END IF;
 
     -- Validar si ya posee la parcela
     IF EXISTS (SELECT 1 FROM public.user_industrial_plots WHERE user_id = v_user_id AND plot_index = p_plot_index) THEN
         RETURN jsonb_build_object('success', false, 'message', 'La parcela ya ha sido adquirida.');
     END IF;
 
-    -- Tabla de costes calibrada segn 4.1
+    -- Tabla de costes calibrada según §4.1
     CASE p_plot_index
         WHEN 3 THEN v_min_level := 2; v_cost_credits := 0; v_cost_gems := 0;
         WHEN 4 THEN v_min_level := 4; v_cost_credits := 1000; v_cost_gems := 0;
@@ -3510,7 +3524,7 @@ BEGIN
         WHEN 8 THEN v_min_level := 12; v_cost_credits := 80000; v_cost_gems := 150;
         WHEN 9 THEN v_min_level := 13; v_cost_credits := 180000; v_cost_gems := 350;
         WHEN 10 THEN v_min_level := 15; v_cost_credits := 400000; v_cost_gems := 800;
-        ELSE RAISE EXCEPTION 'Parcela bsica predeterminada';
+        ELSE RAISE EXCEPTION 'Parcela básica predeterminada';
     END CASE;
 
     SELECT * INTO v_prof FROM public.profiles WHERE id = v_user_id FOR UPDATE;
@@ -3518,7 +3532,7 @@ BEGIN
         RETURN jsonb_build_object('success', false, 'message', format('Requiere Nivel de Cuenta %s.', v_min_level));
     END IF;
     IF v_prof.battle_credits < v_cost_credits THEN
-        RETURN jsonb_build_object('success', false, 'message', 'Crditos insuficientes.');
+        RETURN jsonb_build_object('success', false, 'message', 'Créditos insuficientes.');
     END IF;
     IF v_prof.command_gems < v_cost_gems THEN
         RETURN jsonb_build_object('success', false, 'message', 'Gemas de mando insuficientes.');
@@ -3601,7 +3615,7 @@ BEGIN
         WHERE id = v_user_id AND battle_credits >= v_cost;
 
         IF NOT FOUND THEN
-            RETURN jsonb_build_object('success', false, 'message', 'Crditos insuficientes para overhaul.');
+            RETURN jsonb_build_object('success', false, 'message', 'Créditos insuficientes para overhaul.');
         END IF;
 
         UPDATE public.user_industrial_plots
@@ -3620,13 +3634,13 @@ BEGIN
             'completes_at', v_now + (v_duration_hours * INTERVAL '1 hour')
         );
     ELSE
-        RETURN jsonb_build_object('success', false, 'message', 'Accin invlida.');
+        RETURN jsonb_build_object('success', false, 'message', 'Acción inválida.');
     END IF;
 END;
 $$;
 
 -- 7. RPC: fulfill_stale_p2p_orders (Banco Central de Intendencia Militar NPC)
--- Absorbe rdenes activas mayores a 6 horas a precio de collar para garantizar liquidez permanente
+-- Absorbe órdenes activas mayores a 6 horas a precio de collar para garantizar liquidez permanente
 CREATE OR REPLACE FUNCTION public.fulfill_stale_p2p_orders()
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -3663,21 +3677,22 @@ BEGIN
 END;
 $$;
 
--- >>> FIN MIGRACIN: 20261031000013_economy_idle_rework_territorial_plots.sql <<<
+-- >>> FIN MIGRACIÓN: 20261031000013_economy_idle_rework_territorial_plots.sql <<<
 
--- >>> INICIO MIGRACIN: 20261031000014_unified_matchmaking_and_ranked_ladder.sql <<<
+
+-- >>> INICIO MIGRACIÓN: 20261031000014_unified_matchmaking_and_ranked_ladder.sql <<<
 -- ==============================================================================
--- MIGRACIN 14: EMPAREJAMIENTO MULTI-MODO UNIFICADO, BLINDAJE DE LEDGER Y RANKED LADDER
+-- MIGRACIÓN 14: EMPAREJAMIENTO MULTI-MODO UNIFICADO, BLINDAJE DE LEDGER Y RANKED LADDER
 -- ==============================================================================
--- Especificacin: PROPOSAL_DB_ARCHITECTURE.md (v2.0.0-CALIBRATED-BACKEND-RFC)
+-- Especificación: PROPOSAL_DB_ARCHITECTURE.md (v2.0.0-CALIBRATED-BACKEND-RFC)
 -- Fecha: 2026-10-31
--- Descripcin:
--- 1. Unifica colas en 'matchmaking_queue' con soporte multi-modo (Mirror, Blitz, Campaa).
--- 2. Conciliacin aditiva en 'currency_ledger' con soporte de materiales y trigger append-only.
--- 3. Conciliacin aditiva en 'user_chest_slots' con anti-speedhack (unlock_completes_at).
--- 4. Conciliacin aditiva en 'user_cosmetics' con categoras y FK restrictiva.
+-- Descripción:
+-- 1. Unifica colas en 'matchmaking_queue' con soporte multi-modo (Mirror, Blitz, Campaña).
+-- 2. Conciliación aditiva en 'currency_ledger' con soporte de materiales y trigger append-only.
+-- 3. Conciliación aditiva en 'user_chest_slots' con anti-speedhack (unlock_completes_at).
+-- 4. Conciliación aditiva en 'user_cosmetics' con categorías y FK restrictiva.
 -- 5. RPCs de matchmaking seguro con advisory lock, lectura server-side y anti-deck-sniffing.
--- 6. Algoritmo cannico de trofeos Elo con Factor K dinmico, Escudo de Descenso y Season Reset.
+-- 6. Algoritmo canónico de trofeos Elo con Factor K dinámico, Escudo de Descenso y Season Reset.
 -- ==============================================================================
 
 -- 1. TABLA UNIFICADA DE EMPAREJAMIENTO: matchmaking_queue
@@ -3694,7 +3709,7 @@ CREATE TABLE IF NOT EXISTS public.matchmaking_queue (
     expires_at TIMESTAMPTZ NOT NULL DEFAULT (timezone('utc'::text, now()) + interval '90 seconds')
 );
 
--- ndice parcial de alta velocidad para escaneo de rango B-Tree en FOR UPDATE SKIP LOCKED
+-- Índice parcial de alta velocidad para escaneo de rango B-Tree en FOR UPDATE SKIP LOCKED
 CREATE INDEX IF NOT EXISTS idx_matchmaking_active_seek
 ON public.matchmaking_queue (game_mode, trophies, queued_at)
 WHERE matched_match_id IS NULL;
@@ -3715,11 +3730,11 @@ DO $$ BEGIN
     END IF;
 END $$;
 
--- 2. CONCILIACIN ADITIVA: currency_ledger (Libro Contable Inmutable)
+-- 2. CONCILIACIÓN ADITIVA: currency_ledger (Libro Contable Inmutable)
 ALTER TABLE public.currency_ledger 
     ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
 
--- Extender el check de divisas para soportar materiales industriales de la migracin 13
+-- Extender el check de divisas para soportar materiales industriales de la migración 13
 ALTER TABLE public.currency_ledger 
     DROP CONSTRAINT IF EXISTS currency_ledger_currency_check;
 
@@ -3732,7 +3747,7 @@ CREATE OR REPLACE FUNCTION public.trg_prevent_ledger_tampering()
 RETURNS TRIGGER 
 LANGUAGE plpgsql AS $$
 BEGIN
-    RAISE EXCEPTION 'Violacin de Integridad: currency_ledger es estrictamente inmutable y append-only.';
+    RAISE EXCEPTION 'Violación de Integridad: currency_ledger es estrictamente inmutable y append-only.';
 END;
 $$;
 
@@ -3741,7 +3756,7 @@ CREATE TRIGGER trg_currency_ledger_immutable
     BEFORE UPDATE OR DELETE ON public.currency_ledger
     FOR EACH ROW EXECUTE FUNCTION public.trg_prevent_ledger_tampering();
 
--- 3. CONCILIACIN ADITIVA: user_chest_slots (Bveda de Ranuras con Anti Speed-Hack)
+-- 3. CONCILIACIÓN ADITIVA: user_chest_slots (Bóveda de Ranuras con Anti Speed-Hack)
 ALTER TABLE public.user_chest_slots 
     ADD COLUMN IF NOT EXISTS unlock_completes_at TIMESTAMPTZ;
 
@@ -3750,11 +3765,11 @@ ALTER TABLE public.user_chest_slots
 
 REVOKE INSERT, UPDATE, DELETE ON public.user_chest_slots FROM anon, authenticated;
 
--- 4. CONCILIACIN ADITIVA: user_cosmetics
+-- 4. CONCILIACIÓN ADITIVA: user_cosmetics
 ALTER TABLE public.user_cosmetics 
     ADD COLUMN IF NOT EXISTS category VARCHAR(24) NOT NULL DEFAULT 'unit_skin';
 
--- 5. FUNCIN MATEMTICA PURA: calculate_elo_delta
+-- 5. FUNCIÓN MATEMÁTICA PURA: calculate_elo_delta
 CREATE OR REPLACE FUNCTION public.calculate_elo_delta(
     p_player_trophies INTEGER,
     p_opponent_trophies INTEGER,
@@ -3772,10 +3787,10 @@ DECLARE
     v_delta NUMERIC;
     v_score NUMERIC := CASE WHEN p_is_victory THEN 1.0 ELSE 0.0 END;
 BEGIN
-    -- Calibracin escalonada del factor K segn Arena RFC 4.1
+    -- Calibración escalonada del factor K según Arena RFC 4.1
     CASE 
         WHEN p_arena_tier = 1 THEN 
-            v_k_factor := 40; v_loss_multiplier := 0.0; -- Cero prdida novato
+            v_k_factor := 40; v_loss_multiplier := 0.0; -- Cero pérdida novato
         WHEN p_arena_tier BETWEEN 2 AND 3 THEN 
             v_k_factor := 36; v_loss_multiplier := 0.60;
         WHEN p_arena_tier BETWEEN 4 AND 5 THEN 
@@ -3788,7 +3803,7 @@ BEGIN
             v_k_factor := 20; v_loss_multiplier := 1.00; -- Ligas Legendarias
     END CASE;
 
-    -- Funcin logstica estndar Elo
+    -- Función logística estándar Elo
     v_expected := 1.0 / (1.0 + power(10.0, (p_opponent_trophies - p_player_trophies)::numeric / 400.0));
     v_delta := round(v_k_factor * (v_score - v_expected));
 
@@ -3801,7 +3816,7 @@ BEGIN
 END;
 $$;
 
--- 6. RPC CANNICO DE MATCHMAKING UNIFICADO: join_matchmaking_queue
+-- 6. RPC CANÓNICO DE MATCHMAKING UNIFICADO: join_matchmaking_queue
 CREATE OR REPLACE FUNCTION public.join_matchmaking_queue(
     p_game_mode VARCHAR(24),
     p_commander_id VARCHAR(32),
@@ -3852,7 +3867,7 @@ BEGIN
         v_deck_snapshot := jsonb_build_array('infantry', 'mech', 'recon', 'tank_light', 'tank_medium', 'b_copter');
     END IF;
 
-    -- Parmetros segn modo
+    -- Parámetros según modo
     IF p_game_mode = 'mirror_duel' THEN
         v_turn_time_sec := 15;
         v_max_turns := 12;
@@ -3870,7 +3885,7 @@ BEGIN
         v_map_id := 'campaign_theater_combined_28x28';
     END IF;
 
-    -- Bsqueda de oponente con B-Tree Range Scan y SKIP LOCKED
+    -- Búsqueda de oponente con B-Tree Range Scan y SKIP LOCKED
     SELECT * INTO v_opponent
     FROM public.matchmaking_queue
     WHERE game_mode = p_game_mode
@@ -3883,7 +3898,7 @@ BEGIN
     FOR UPDATE SKIP LOCKED;
 
     IF FOUND THEN
-        -- Crear partida atmicamente
+        -- Crear partida atómicamente
         v_room_code := UPPER(SUBSTRING(encode(gen_random_bytes(4), 'hex') FROM 1 FOR 8));
 
         INSERT INTO public.active_matches (
@@ -3955,7 +3970,7 @@ DECLARE
 BEGIN
     IF v_user_id IS NULL THEN RAISE EXCEPTION 'No autenticado'; END IF;
     DELETE FROM public.matchmaking_queue WHERE user_id = v_user_id;
-    RETURN jsonb_build_object('success', true, 'message', 'Bsqueda cancelada.');
+    RETURN jsonb_build_object('success', true, 'message', 'Búsqueda cancelada.');
 END;
 $$;
 
@@ -3973,7 +3988,7 @@ DECLARE
 BEGIN
     IF v_user_id IS NULL THEN RAISE EXCEPTION 'No autenticado'; END IF;
 
-    -- Validar que no haya otro cofre desbloquendose
+    -- Validar que no haya otro cofre desbloqueándose
     IF EXISTS (
         SELECT 1 FROM public.user_chest_slots 
         WHERE user_id = v_user_id AND status = 'unlocking' AND slot_index <> p_slot_index
@@ -3985,7 +4000,7 @@ BEGIN
     WHERE user_id = v_user_id AND slot_index = p_slot_index FOR UPDATE;
 
     IF NOT FOUND THEN
-        RETURN jsonb_build_object('success', false, 'message', 'Ranura de cofre vaca o no encontrada.');
+        RETURN jsonb_build_object('success', false, 'message', 'Ranura de cofre vacía o no encontrada.');
     END IF;
 
     IF v_slot.status <> 'locked' THEN
@@ -4033,7 +4048,7 @@ BEGIN
 
     -- Anti-Speed-Hack estricto: hora de servidor >= unlock_completes_at
     IF v_slot.status = 'unlocking' AND v_slot.unlock_completes_at > v_now THEN
-        RETURN jsonb_build_object('success', false, 'message', 'El tiempo de desbloqueo an no ha concluido.');
+        RETURN jsonb_build_object('success', false, 'message', 'El tiempo de desbloqueo aún no ha concluido.');
     END IF;
 
     -- Recompensas calibradas por tipo
@@ -4047,7 +4062,7 @@ BEGIN
     -- Multiplicador por Arena Tier
     v_reward_credits := FLOOR(v_reward_credits * (1.0 + (v_slot.arena_tier - 1) * 0.15));
 
-    -- Entregar crditos al perfil
+    -- Entregar créditos al perfil
     UPDATE public.profiles
     SET battle_credits = battle_credits + v_reward_credits,
         updated_at = v_now
@@ -4146,7 +4161,7 @@ BEGIN
 END;
 $$;
 
--- 11. RPC: apply_season_trophy_reset (Drenaje Estacional Anti-Inflacin)
+-- 11. RPC: apply_season_trophy_reset (Drenaje Estacional Anti-Inflación)
 CREATE OR REPLACE FUNCTION public.apply_season_trophy_reset()
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -4156,7 +4171,7 @@ AS $$
 DECLARE
     v_affected INTEGER := 0;
 BEGIN
-    -- Compresin estacional del 30% entre 3,200 y 4,000 trofeos; 50% por encima de 4,000
+    -- Compresión estacional del 30% entre 3,200 y 4,000 trofeos; 50% por encima de 4,000
     UPDATE public.profiles
     SET trophies_count = CASE 
         WHEN trophies_count >= 4000 THEN 4000 + FLOOR((trophies_count - 4000) * 0.50)
@@ -4171,21 +4186,22 @@ BEGIN
 END;
 $$;
 
--- >>> FIN MIGRACIN: 20261031000014_unified_matchmaking_and_ranked_ladder.sql <<<
+-- >>> FIN MIGRACIÓN: 20261031000014_unified_matchmaking_and_ranked_ladder.sql <<<
 
--- >>> INICIO MIGRACIN: 20261031000015_offline_progression_and_transport_persistence.sql <<<
+
+-- >>> INICIO MIGRACIÓN: 20261031000015_offline_progression_and_transport_persistence.sql <<<
 -- ==============================================================================
--- MIGRACIN 15: CONTROL DE ECONOMA OFFLINE Y ADAPTACIN DE TRANSPORTES
+-- MIGRACIÓN 15: CONTROL DE ECONOMÍA OFFLINE Y ADAPTACIÓN DE TRANSPORTES
 -- ==============================================================================
 -- Fecha: 2026-10-31
--- Descripcin:
--- 1. Aade control de partidas offline en 'profiles' (daily_offline_matches_count, last_offline_match_date).
+-- Descripción:
+-- 1. Añade control de partidas offline en 'profiles' (daily_offline_matches_count, last_offline_match_date).
 -- 2. Implementa RPC 'grant_match_rewards' con:
 --    - Factor 50% en recompensas offline (vs_bot, offline_practice, tutorial).
 --    - 0 trofeos en modos offline.
---    - Lmite duro de 3 partidas con botn por da (UTC 00:00).
---    - Mdulos de dificultad: easy (0.85x), normal (1.00x), hard/chess (1.20x).
---    - Integracin de auditora en 'currency_ledger'.
+--    - Límite duro de 3 partidas con botín por día (UTC 00:00).
+--    - Módulos de dificultad: easy (0.85x), normal (1.00x), hard/chess (1.20x).
+--    - Integración de auditoría en 'currency_ledger'.
 -- ==============================================================================
 
 -- 1. EXTENDER TABLA: profiles
@@ -4193,7 +4209,7 @@ ALTER TABLE public.profiles
     ADD COLUMN IF NOT EXISTS daily_offline_matches_count INTEGER NOT NULL DEFAULT 0,
     ADD COLUMN IF NOT EXISTS last_offline_match_date DATE NOT NULL DEFAULT CURRENT_DATE;
 
--- 2. RPC ATMICA DE CONCESIN DE RECOMPENSAS
+-- 2. RPC ATÓMICA DE CONCESIÓN DE RECOMPENSAS
 CREATE OR REPLACE FUNCTION public.grant_match_rewards(
     p_user_id UUID,
     p_match_id UUID,
@@ -4223,7 +4239,7 @@ DECLARE
 BEGIN
     v_is_offline := (p_game_mode IN ('vs_bot', 'offline_practice', 'tutorial'));
 
-    -- Comprobacin de lmites offline (Mximo 3 partidas remuneradas por da)
+    -- Comprobación de límites offline (Máximo 3 partidas remuneradas por día)
     IF v_is_offline THEN
         SELECT COALESCE(daily_offline_matches_count, 0), COALESCE(last_offline_match_date, CURRENT_DATE)
         INTO v_daily_count, v_last_date
@@ -4242,9 +4258,9 @@ BEGIN
         END IF;
     END IF;
 
-    -- Si super el lmite offline diario, recompensas se anulan (Modo entrenamiento)
+    -- Si superó el límite offline diario, recompensas se anulan (Modo entrenamiento)
     IF v_reward_capped THEN
-        -- Registrar la partida en perfil sin crditos
+        -- Registrar la partida en perfil sin créditos
         UPDATE public.profiles
         SET total_matches_played = total_matches_played + 1,
             total_victories = total_victories + CASE WHEN p_is_victory THEN 1 ELSE 0 END,
@@ -4256,11 +4272,11 @@ BEGIN
             'battle_credits_awarded', 0,
             'trophies_delta', 0,
             'offline_capped', true,
-            'message', 'Lmite diario de recompensas offline alcanzado (3/3). Partida registrada sin crditos.'
+            'message', 'Límite diario de recompensas offline alcanzado (3/3). Partida registrada sin créditos.'
         );
     END IF;
 
-    -- Clculo del puntaje base
+    -- Cálculo del puntaje base
     v_base_score := 120 + (p_properties_captured * 45) + (p_units_destroyed * 35) + (LEAST(p_turns_count, 30) * 6);
     
     IF p_is_victory THEN
@@ -4277,7 +4293,7 @@ BEGIN
         END IF;
     END IF;
 
-    -- Recompensas estndar base
+    -- Recompensas estándar base
     v_xp_awarded := FLOOR(v_base_score * v_result_mult);
     v_credits_awarded := FLOOR((60 + (p_properties_captured * 20) + (p_units_destroyed * 15)) * v_result_mult);
 
@@ -4307,7 +4323,7 @@ BEGIN
         updated_at = timezone('utc'::text, now())
     WHERE id = p_user_id;
 
-    -- Asentar auditora contable en currency_ledger
+    -- Asentar auditoría contable en currency_ledger
     IF v_credits_awarded > 0 THEN
         INSERT INTO public.currency_ledger (
             user_id, currency, amount, balance_after, reason, reference_id, metadata
@@ -4330,23 +4346,24 @@ BEGIN
 END;
 $$;
 
--- >>> FIN MIGRACIN: 20261031000015_offline_progression_and_transport_persistence.sql <<<
+-- >>> FIN MIGRACIÓN: 20261031000015_offline_progression_and_transport_persistence.sql <<<
 
--- >>> INICIO MIGRACIN: 20261031000016_economy_v2_scrap_and_salvage.sql <<<
+
+-- >>> INICIO MIGRACIÓN: 20261031000016_economy_v2_scrap_and_salvage.sql <<<
 -- ==============================================================================
--- MIGRACIN 16: REINGENIERA MACROECONMICA V2.1, RECICLADOR Y RESOLUCIN SINK CHOKE
+-- MIGRACIÓN 16: REINGENIERÍA MACROECONÓMICA V2.1, RECICLADOR Y RESOLUCIÓN SINK CHOKE
 -- ==============================================================================
--- Especificacin Cannica: docs/09_PROPOSAL_ECONOMY_REBALANCE_V2.md (v2.1.0-CALIBRATED-100D)
+-- Especificación Canónica: docs/09_PROPOSAL_ECONOMY_REBALANCE_V2.md (v2.1.0-CALIBRATED-100D)
 -- Aprobado por: Lead Developer (2026-10-31)
 --
 -- Contenido:
--- 1. Ampliacin de tipos de divisa y razones vlidas en 'currency_ledger'.
--- 2. Correccin atmica del RPC 'grant_match_rewards' (sustitucin de amount por delta).
--- 3. Incorporacin de 'tech_scrap' en 'user_industrial_inventory'.
--- 4. Conciliacin de tesorera corporativa en tabla 'clans' (treasury_gold, treasury_steel).
--- 5. RPC 'scrap_blueprints': reciclaje y desguace de planos a chatarra y crditos.
--- 6. RPC 'transmute_tech_scrap': sntesis de microchips en Sala Limpia.
--- 7. Publicacin en 'supabase_realtime' para emparejamiento y eventos en vivo.
+-- 1. Ampliación de tipos de divisa y razones válidas en 'currency_ledger'.
+-- 2. Corrección atómica del RPC 'grant_match_rewards' (sustitución de amount por delta).
+-- 3. Incorporación de 'tech_scrap' en 'user_industrial_inventory'.
+-- 4. Conciliación de tesorería corporativa en tabla 'clans' (treasury_gold, treasury_steel).
+-- 5. RPC 'scrap_blueprints': reciclaje y desguace de planos a chatarra y créditos.
+-- 6. RPC 'transmute_tech_scrap': síntesis de microchips en Sala Limpia.
+-- 7. Publicación en 'supabase_realtime' para emparejamiento y eventos en vivo.
 -- ==============================================================================
 
 -- 1. AJUSTES EN CURRENCY_LEDGER
@@ -4370,16 +4387,16 @@ ALTER TABLE public.currency_ledger
         'dishonor_fee', 'clan_treasury_deposit'
     ));
 
--- 2. CHATARRA TECNOLGICA EN INVENTARIO INDUSTRIAL
+-- 2. CHATARRA TECNOLÓGICA EN INVENTARIO INDUSTRIAL
 ALTER TABLE public.user_industrial_inventory 
     ADD COLUMN IF NOT EXISTS tech_scrap INTEGER NOT NULL DEFAULT 0 CHECK (tech_scrap >= 0);
 
--- 3. TESORERA EN CLANES
+-- 3. TESORERÍA EN CLANES
 ALTER TABLE public.clans 
     ADD COLUMN IF NOT EXISTS treasury_gold INTEGER NOT NULL DEFAULT 0 CHECK (treasury_gold >= 0),
     ADD COLUMN IF NOT EXISTS treasury_steel INTEGER NOT NULL DEFAULT 0 CHECK (treasury_steel >= 0);
 
--- 4. RECOMPILACIN CORREGIDA DE RPC: grant_match_rewards (REEMPLAZA AMOUNT POR DELTA)
+-- 4. RECOMPILACIÓN CORREGIDA DE RPC: grant_match_rewards (REEMPLAZA AMOUNT POR DELTA)
 CREATE OR REPLACE FUNCTION public.grant_match_rewards(
     p_user_id UUID,
     p_match_id UUID,
@@ -4415,9 +4432,9 @@ BEGIN
     -- Cargar trofeos y arena del jugador
     SELECT COALESCE(trophies_count, 0) INTO v_user_trophies FROM public.profiles WHERE id = p_user_id;
     v_arena_tier := GREATEST(1, LEAST(10, FLOOR(v_user_trophies / 400) + 1));
-    v_arena_mult := 1.0 + (v_arena_tier - 1) * 0.08; -- Calibracin V2.1 (+8% por Arena)
+    v_arena_mult := 1.0 + (v_arena_tier - 1) * 0.08; -- Calibración V2.1 (+8% por Arena)
 
-    -- Comprobacin de lmites offline (Mximo 3 partidas remuneradas por da)
+    -- Comprobación de límites offline (Máximo 3 partidas remuneradas por día)
     IF v_is_offline THEN
         SELECT COALESCE(daily_offline_matches_count, 0), COALESCE(last_offline_match_date, CURRENT_DATE)
         INTO v_daily_count, v_last_date
@@ -4447,11 +4464,11 @@ BEGIN
             'battle_credits_awarded', 0,
             'trophies_delta', 0,
             'offline_capped', true,
-            'message', 'Lmite diario de recompensas offline alcanzado (3/3). Partida registrada sin crditos.'
+            'message', 'Límite diario de recompensas offline alcanzado (3/3). Partida registrada sin créditos.'
         );
     END IF;
 
-    -- Clculo del puntaje base
+    -- Cálculo del puntaje base
     v_base_score := 120 + (p_properties_captured * 45) + (p_units_destroyed * 30) + (LEAST(p_turns_count, 30) * 5);
     
     IF p_is_victory THEN
@@ -4468,11 +4485,11 @@ BEGIN
         END IF;
     END IF;
 
-    -- Recompensas estndar base moduladas por el factor de Arena
+    -- Recompensas estándar base moduladas por el factor de Arena
     v_xp_awarded := FLOOR(v_base_score * v_result_mult * v_arena_mult);
     v_credits_awarded := FLOOR((60 + (p_properties_captured * 20) + (p_units_destroyed * 15)) * v_result_mult * v_arena_mult);
 
-    -- Regla offline: 50% de botn y 0 trofeos
+    -- Regla offline: 50% de botín y 0 trofeos
     IF v_is_offline THEN
         v_xp_awarded := FLOOR(v_xp_awarded * 0.50 * v_difficulty_mult);
         v_credits_awarded := FLOOR(v_credits_awarded * 0.50 * v_difficulty_mult);
@@ -4496,7 +4513,7 @@ BEGIN
         updated_at = timezone('utc'::text, now())
     WHERE id = p_user_id;
 
-    -- Auditora contable en currency_ledger (utilizando 'delta')
+    -- Auditoría contable en currency_ledger (utilizando 'delta')
     IF v_credits_awarded > 0 THEN
         INSERT INTO public.currency_ledger (
             user_id, currency, delta, balance_after, reason, reference_id, metadata
@@ -4519,7 +4536,7 @@ BEGIN
 END;
 $$;
 
--- 5. RPC ATMICO: scrap_blueprints (Desguace de Planos a Chatarra y Crditos)
+-- 5. RPC ATÓMICO: scrap_blueprints (Desguace de Planos a Chatarra y Créditos)
 CREATE OR REPLACE FUNCTION public.scrap_blueprints(
     p_unit_id VARCHAR(32),
     p_quantity INTEGER
@@ -4548,12 +4565,12 @@ BEGIN
         RAISE EXCEPTION 'Planos insuficientes para reciclar.';
     END IF;
 
-    -- Determinar tasa por rareza en catlogo
+    -- Determinar tasa por rareza en catálogo
     SELECT * INTO v_unit FROM public.units_catalog WHERE id = p_unit_id;
     IF v_unit.category = 'indirect' OR v_unit.category = 'aircraft' THEN
         v_scrap_rate := 6; v_credit_rate := 15; -- Raras
     ELSIF v_unit.category = 'naval' THEN
-        v_scrap_rate := 35; v_credit_rate := 100; -- picas
+        v_scrap_rate := 35; v_credit_rate := 100; -- Épicas
     ELSE
         v_scrap_rate := 1; v_credit_rate := 2;   -- Comunes
     END IF;
@@ -4566,17 +4583,17 @@ BEGIN
     SET cards_count = cards_count - p_quantity, updated_at = timezone('utc'::text, now())
     WHERE id = v_user_card.id;
 
-    -- Abonar Chatarra Tecnolgica e inventario industrial
+    -- Abonar Chatarra Tecnológica e inventario industrial
     UPDATE public.user_industrial_inventory 
     SET tech_scrap = tech_scrap + v_total_scrap, updated_at = timezone('utc'::text, now())
     WHERE user_id = v_user_id;
 
-    -- Abonar Crditos de Batalla
+    -- Abonar Créditos de Batalla
     UPDATE public.profiles 
     SET battle_credits = battle_credits + v_total_credits, updated_at = timezone('utc'::text, now())
     WHERE id = v_user_id;
 
-    -- Registrar auditora en ledger
+    -- Registrar auditoría en ledger
     INSERT INTO public.currency_ledger (user_id, currency, delta, balance_after, reason, reference_id, metadata)
     VALUES (
         v_user_id, 'credits', v_total_credits, 
@@ -4595,7 +4612,7 @@ BEGIN
 END;
 $$;
 
--- 6. RPC: transmute_tech_scrap (Sntesis de Microchips con Chatarra)
+-- 6. RPC: transmute_tech_scrap (Síntesis de Microchips con Chatarra)
 CREATE OR REPLACE FUNCTION public.transmute_tech_scrap(p_batches INTEGER DEFAULT 1)
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -4610,13 +4627,13 @@ DECLARE
     v_produced_chips INTEGER := 1 * p_batches;
 BEGIN
     IF v_user_id IS NULL THEN RAISE EXCEPTION 'No autenticado'; END IF;
-    IF p_batches <= 0 THEN RAISE EXCEPTION 'Nmero de lotes invlido.'; END IF;
+    IF p_batches <= 0 THEN RAISE EXCEPTION 'Número de lotes inválido.'; END IF;
 
     SELECT * INTO v_inv FROM public.user_industrial_inventory 
     WHERE user_id = v_user_id FOR UPDATE;
 
     IF NOT FOUND THEN RAISE EXCEPTION 'Inventario industrial no inicializado.'; END IF;
-    IF v_inv.tech_scrap < v_req_scrap THEN RAISE EXCEPTION 'Chatarra tecnolgica insuficiente.'; END IF;
+    IF v_inv.tech_scrap < v_req_scrap THEN RAISE EXCEPTION 'Chatarra tecnológica insuficiente.'; END IF;
     IF v_inv.raw_rare_earth < v_req_rare THEN RAISE EXCEPTION 'Tierras raras insuficientes.'; END IF;
 
     UPDATE public.user_industrial_inventory
@@ -4636,7 +4653,7 @@ BEGIN
 END;
 $$;
 
--- 7. SUSCRIPCIN EN TIEMPO REAL (SUPABASE REALTIME)
+-- 7. SUSCRIPCIÓN EN TIEMPO REAL (SUPABASE REALTIME)
 DO $$ BEGIN
     IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
         ALTER PUBLICATION supabase_realtime ADD TABLE 
@@ -4647,19 +4664,20 @@ DO $$ BEGIN
     END IF;
 END $$;
 
--- >>> FIN MIGRACIN: 20261031000016_economy_v2_scrap_and_salvage.sql <<<
+-- >>> FIN MIGRACIÓN: 20261031000016_economy_v2_scrap_and_salvage.sql <<<
 
--- >>> INICIO MIGRACIN: 20261031000017_monetization_overhaul.sql <<<
+
+-- >>> INICIO MIGRACIÓN: 20261031000017_monetization_overhaul.sql <<<
 -- ==============================================================================
--- MIGRACIN 17: REINGENIERA DE MONETIZACIN, FAIR-PLAY Y HANDICAP DAVID VS GOLIAT
+-- MIGRACIÓN 17: REINGENIERÍA DE MONETIZACIÓN, FAIR-PLAY Y HANDICAP DAVID VS GOLIAT
 -- ==============================================================================
--- Especificacin: PROPUESTA_REINGENIERIA_MONETIZACION_V2.md (v2.0.0-PROD-SPEC)
+-- Especificación: PROPUESTA_REINGENIERIA_MONETIZACION_V2.md (v2.0.0-PROD-SPEC)
 -- Aprobado por: Lead Developer (2026-10-31)
 --
 -- Contenido:
--- 1. Catlogo oficial de micro-transacciones ($0.99 a $4.99) y Command Pass ($5.99).
+-- 1. Catálogo oficial de micro-transacciones ($0.99 a $4.99) y Command Pass ($5.99).
 -- 2. Soporte para Cargamento de Contraataque (12h de reserva) en 'player_tactical_behavior_profile'.
--- 3. RPC 'calculate_underdog_handicap': Algoritmo "David vs. Goliat" con bonificacin Elo/Oro.
+-- 3. RPC 'calculate_underdog_handicap': Algoritmo "David vs. Goliat" con bonificación Elo/Oro.
 -- 4. RPC 'claim_counter_offensive_cargo': Entrega segura server-side de suministros.
 -- ==============================================================================
 
@@ -4691,13 +4709,13 @@ INSERT INTO public.store_products_catalog (
 ) VALUES
     ('command_pass_monthly', 'Command Pass Mensual', 'subscription', 5.99, 35000, 300, 500, 100, 30, 20, 1, 
      '{"auto_chest_queue": true, "daily_safeguard": true, "exclusive_cosmetics": true}'::jsonb),
-    ('pack_shock_ammo_099', 'Caja de Municin de Choque', 'supply_pack', 0.99, 1200, 0, 60, 10, 0, 0, 0,
+    ('pack_shock_ammo_099', 'Caja de Munición de Choque', 'supply_pack', 0.99, 1200, 0, 60, 10, 0, 0, 0,
      '{"target": "novice_impulse"}'::jsonb),
-    ('pack_microchips_briefcase_199', 'Maletn de Chips de Gua', 'supply_pack', 1.99, 2500, 0, 0, 0, 15, 0, 0,
+    ('pack_microchips_briefcase_199', 'Maletín de Chips de Guía', 'supply_pack', 1.99, 2500, 0, 0, 0, 15, 0, 0,
      '{"target": "cleanroom_bottleneck_relief", "campaign_fuel": 5}'::jsonb),
-    ('chest_division_tactical_299', 'Cofre Tctico de Divisin', 'chest', 2.99, 6000, 0, 180, 35, 15, 0, 0,
+    ('chest_division_tactical_299', 'Cofre Táctico de División', 'chest', 2.99, 6000, 0, 180, 35, 15, 0, 0,
      '{"target": "arena_reinforcement", "guaranteed_rares": 20}'::jsonb),
-    ('pack_ballistic_armor_399', 'Kit de Blindaje Balstico', 'supply_pack', 3.99, 8000, 0, 0, 80, 0, 30, 0,
+    ('pack_ballistic_armor_399', 'Kit de Blindaje Balístico', 'supply_pack', 3.99, 8000, 0, 0, 80, 0, 30, 0,
      '{"target": "heavy_armor_builder"}'::jsonb),
     ('arsenal_vanguard_supreme_499', 'Gran Arsenal de Vanguardia', 'chest', 4.99, 15000, 50, 450, 70, 25, 20, 1,
      '{"target": "high_value_anchor", "guaranteed_rares": 50, "guaranteed_epics": 5}'::jsonb)
@@ -4738,13 +4756,13 @@ BEGIN
     IF v_delta_wapl >= 0.8 THEN
         v_is_underdog := true;
         IF p_is_victory THEN
-            -- Bonificacin de hasta +30% Trofeos y +50% Crditos por vencer a un rival superior
+            -- Bonificación de hasta +30% Trofeos y +50% Créditos por vencer a un rival superior
             v_bonus_trophies := ROUND(p_base_trophies * LEAST(0.30, v_delta_wapl * 0.15));
             v_bonus_credits := ROUND(p_base_credits * LEAST(0.50, v_delta_wapl * 0.25));
             v_final_trophies := p_base_trophies + v_bonus_trophies;
             v_final_credits := p_base_credits + v_bonus_credits;
         ELSE
-            -- En derrota, mitiga la prdida de trofeos en un 15-30%
+            -- En derrota, mitiga la pérdida de trofeos en un 15-30%
             v_final_trophies := ROUND(p_base_trophies * GREATEST(0.70, 1.0 - (v_delta_wapl * 0.10)));
         END IF;
     END IF;
@@ -4760,7 +4778,7 @@ BEGIN
 END;
 $$;
 
--- 4. RPC: claim_counter_offensive_cargo (Adquisicin y Reclamacin Segura)
+-- 4. RPC: claim_counter_offensive_cargo (Adquisición y Reclamación Segura)
 CREATE OR REPLACE FUNCTION public.claim_counter_offensive_cargo(p_product_id VARCHAR(48))
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -4780,7 +4798,7 @@ BEGIN
 
     IF NOT FOUND THEN RAISE EXCEPTION 'Producto no encontrado o inactivo.'; END IF;
 
-    -- Entregar crditos y gemas
+    -- Entregar créditos y gemas
     UPDATE public.profiles
     SET battle_credits = battle_credits + v_product.reward_credits,
         command_gems = command_gems + v_product.reward_gems,
@@ -4824,28 +4842,29 @@ BEGIN
 END;
 $$;
 
--- >>> FIN MIGRACIN: 20261031000017_monetization_overhaul.sql <<<
+-- >>> FIN MIGRACIÓN: 20261031000017_monetization_overhaul.sql <<<
 
--- >>> INICIO MIGRACIN: 20261031000018_social_identity_clans_and_territorial_war.sql <<<
+
+-- >>> INICIO MIGRACIÓN: 20261031000018_social_identity_clans_and_territorial_war.sql <<<
 -- ==============================================================================
--- MIGRACIN 000018: ECOSISTEMA SOCIAL, IDENTIDAD DE COMANDANTE Y GUERRA TERRITORIAL
+-- MIGRACIÓN 000018: ECOSISTEMA SOCIAL, IDENTIDAD DE COMANDANTE Y GUERRA TERRITORIAL
 -- ==============================================================================
 -- Proyecto: Tactical Command: Wars of Legacy
--- Especificacin Cannica: docs/PROPUESTA_REINGENIERIA_SOCIAL_Y_CLANES.md
+-- Especificación Canónica: docs/PROPUESTA_REINGENIERIA_SOCIAL_Y_CLANES.md
 -- Fecha: Octubre 2026
 --
 -- Contenido:
 -- 1. Alteraciones en 'profiles' para identidad militar retro-futurista y expedientes.
--- 2. Alteraciones en 'clans' para tesorera multinivel (oro, acero, gemas) y buffs.
--- 3. Catlogo de cosmticos (marcos, banderas, banners, ttulos, paletas, vfx).
+-- 2. Alteraciones en 'clans' para tesorería multinivel (oro, acero, gemas) y buffs.
+-- 3. Catálogo de cosméticos (marcos, banderas, banners, títulos, paletas, vfx).
 -- 4. Sistema transaccional de donaciones de cartas y suministros con recompensas de XP/G.
--- 5. Guerra Territorial de Clanes: 7 sectores estratgicos, temporadas y Puntos de Despliegue (DP).
+-- 5. Guerra Territorial de Clanes: 7 sectores estratégicos, temporadas y Puntos de Despliegue (DP).
 -- 6. RPCs transaccionales con bloqueo FOR UPDATE y SECURITY DEFINER.
--- 7. Tabla hot-tunable 'social_config_params' para calibracin sin despliegues.
+-- 7. Tabla hot-tunable 'social_config_params' para calibración sin despliegues.
 -- ==============================================================================
 
 -- ------------------------------------------------------------------------------
--- 1. TABLA DE CONFIGURACIN DINMICA (HOT-TUNABLE)
+-- 1. TABLA DE CONFIGURACIÓN DINÁMICA (HOT-TUNABLE)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS social_config_params (
   id VARCHAR(50) PRIMARY KEY,
@@ -4935,7 +4954,7 @@ VALUES ('active_v1', '{
 ON CONFLICT (id) DO UPDATE SET config = EXCLUDED.config, updated_at = NOW();
 
 -- ------------------------------------------------------------------------------
--- 2. ALTERACIN DE PROFILES (IDENTIDAD Y EXPEDIENTE MILITAR)
+-- 2. ALTERACIÓN DE PROFILES (IDENTIDAD Y EXPEDIENTE MILITAR)
 -- ------------------------------------------------------------------------------
 ALTER TABLE profiles 
   ADD COLUMN IF NOT EXISTS tag_id VARCHAR(6) DEFAULT LPAD(FLOOR(RANDOM()*10000)::TEXT, 4, '0'),
@@ -4953,7 +4972,7 @@ ALTER TABLE profiles
   ADD COLUMN IF NOT EXISTS pinned_medals JSONB DEFAULT '["medal_recruit", "medal_first_blood", null]'::jsonb;
 
 -- ------------------------------------------------------------------------------
--- 3. ALTERACIN DE CLANS (TESORERA MULTINIVEL Y BUFFS ACTIVOS)
+-- 3. ALTERACIÓN DE CLANS (TESORERÍA MULTINIVEL Y BUFFS ACTIVOS)
 -- ------------------------------------------------------------------------------
 ALTER TABLE clans
   ADD COLUMN IF NOT EXISTS treasury_gold BIGINT DEFAULT 0 CHECK (treasury_gold >= 0),
@@ -4963,7 +4982,7 @@ ALTER TABLE clans
   ADD COLUMN IF NOT EXISTS clan_banner_cosmetic_id VARCHAR(50) DEFAULT 'banner_clan_default';
 
 -- ------------------------------------------------------------------------------
--- 4. CATLOGO DE COSMTICOS Y RELACIN CON USUARIOS
+-- 4. CATÁLOGO DE COSMÉTICOS Y RELACIÓN CON USUARIOS
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS cosmetics_catalog (
   id VARCHAR(50) PRIMARY KEY,
@@ -4985,24 +5004,24 @@ CREATE TABLE IF NOT EXISTS user_cosmetics (
   PRIMARY KEY (user_id, cosmetic_id)
 );
 
--- Semilla de Cosmticos Cannicos
+-- Semilla de Cosméticos Canónicos
 INSERT INTO cosmetics_catalog (id, category, name, description, rarity, price_gems, price_gold, is_pass_exclusive)
 VALUES
-  ('frame_iron_standard', 'frame', 'Bisel de Hierro Forjado', 'Marco estndar de aleacin militar.', 'common', 0, 0, false),
+  ('frame_iron_standard', 'frame', 'Bisel de Hierro Forjado', 'Marco estándar de aleación militar.', 'common', 0, 0, false),
   ('frame_gold_laurel', 'frame', 'Laurel Dorado del Estado Mayor', 'Marco dorado condecorado para altos mandos.', 'epic', 350, 0, true),
-  ('frame_cyber_neon', 'frame', 'Resplandor Nen Retro', 'Borde fluorescente estilo terminal militar de fsforo verde.', 'rare', 200, 1500, false),
-  ('banner_bunker_mesh', 'banner', 'Malla Camuflada de Bnker', 'Fondo de expediente con blindaje y remaches.', 'common', 0, 0, false),
-  ('banner_radar_dish', 'banner', 'Cpula de Radar Estratgico', 'Vista panormica de telemetra de largo alcance.', 'rare', 250, 2000, false),
-  ('title_vanguard', 'title', 'Vanguardia de Combate', 'Ttulo honorfico de primera lnea de fuego.', 'common', 0, 500, false),
+  ('frame_cyber_neon', 'frame', 'Resplandor Neón Retro', 'Borde fluorescente estilo terminal militar de fósforo verde.', 'rare', 200, 1500, false),
+  ('banner_bunker_mesh', 'banner', 'Malla Camuflada de Búnker', 'Fondo de expediente con blindaje y remaches.', 'common', 0, 0, false),
+  ('banner_radar_dish', 'banner', 'Cúpula de Radar Estratégico', 'Vista panorámica de telemetría de largo alcance.', 'rare', 250, 2000, false),
+  ('title_vanguard', 'title', 'Vanguardia de Combate', 'Título honorífico de primera línea de fuego.', 'common', 0, 500, false),
   ('title_iron_strategist', 'title', 'Estratega de Acero', 'Otorgado a quienes superan 50 victorias en Ladder.', 'epic', 500, 0, true),
-  ('vfx_standard_alert', 'lobby_vfx', 'Destello de Klaxon mbar', 'Parpadeo militar al entrar a la sala.', 'common', 0, 0, false),
-  ('vfx_heli_landing', 'lobby_vfx', 'Descenso de Escuadrn', 'Viento y polvo de turbinas en el lobby.', 'legendary', 750, 0, true),
-  ('palette_olive_retro', 'palette', 'Oliva Tctico y xido', 'Paleta clsica del Alto Mando (#46521F / #C46A3A).', 'common', 0, 0, false),
-  ('palette_amber_crt', 'palette', 'Terminal de Fsforo mbar', 'Contraste monocromtico de radar naval.', 'rare', 150, 1000, false)
+  ('vfx_standard_alert', 'lobby_vfx', 'Destello de Klaxon Ámbar', 'Parpadeo militar al entrar a la sala.', 'common', 0, 0, false),
+  ('vfx_heli_landing', 'lobby_vfx', 'Descenso de Escuadrón', 'Viento y polvo de turbinas en el lobby.', 'legendary', 750, 0, true),
+  ('palette_olive_retro', 'palette', 'Oliva Táctico y Óxido', 'Paleta clásica del Alto Mando (#46521F / #C46A3A).', 'common', 0, 0, false),
+  ('palette_amber_crt', 'palette', 'Terminal de Fósforo Ámbar', 'Contraste monocromático de radar naval.', 'rare', 150, 1000, false)
 ON CONFLICT (id) DO NOTHING;
 
 -- ------------------------------------------------------------------------------
--- 5. LOGSTICA DE DONACIN DE CARTAS Y SUMINISTROS
+-- 5. LOGÍSTICA DE DONACIÓN DE CARTAS Y SUMINISTROS
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS clan_card_requests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -5059,16 +5078,16 @@ CREATE TABLE IF NOT EXISTS clan_war_deployments (
   deployed_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Semilla de los 7 Sectores Estratgicos
+-- Semilla de los 7 Sectores Estratégicos
 INSERT INTO clan_territory_sectors (sector_id, name, description, strategic_buff_type)
 VALUES
-  (1, 'Base Area guila Negra', 'Aumenta en un 10% el drop de cartas y planos areos.', 'buff_air_drop'),
-  (2, 'Refinera Petroqumica', 'Incrementa la extraccin pasiva de combustible industrial en +10%.', 'buff_fuel_extraction'),
-  (3, 'Radar Maestro de Cota Cero', 'Telemetra de largo alcance que anticipa la doctrina rival.', 'buff_early_intel'),
-  (4, 'Ciudadela Central (Bastin Supremo)', 'Sector capital. Aporta +500G y 20 Vigas de Acero diarias a la tesorera.', 'buff_capital_tribute'),
-  (5, 'Centro de Ciber-Comando', 'Guerra electrnica: -5% en el costo de forja en el Complejo Industrial.', 'buff_forge_discount'),
-  (6, 'Astillero Fluvial', 'Incrementa recompensas de artillera naval y submarinos.', 'buff_naval_supply'),
-  (7, 'Depsito Ferroviario', 'Logstica pesada sin impuestos para transferencias internas del clan.', 'buff_free_rail_transport')
+  (1, 'Base Aérea Águila Negra', 'Aumenta en un 10% el drop de cartas y planos aéreos.', 'buff_air_drop'),
+  (2, 'Refinería Petroquímica', 'Incrementa la extracción pasiva de combustible industrial en +10%.', 'buff_fuel_extraction'),
+  (3, 'Radar Maestro de Cota Cero', 'Telemetría de largo alcance que anticipa la doctrina rival.', 'buff_early_intel'),
+  (4, 'Ciudadela Central (Bastión Supremo)', 'Sector capital. Aporta +500G y 20 Vigas de Acero diarias a la tesorería.', 'buff_capital_tribute'),
+  (5, 'Centro de Ciber-Comando', 'Guerra electrónica: -5% en el costo de forja en el Complejo Industrial.', 'buff_forge_discount'),
+  (6, 'Astillero Fluvial', 'Incrementa recompensas de artillería naval y submarinos.', 'buff_naval_supply'),
+  (7, 'Depósito Ferroviario', 'Logística pesada sin impuestos para transferencias internas del clan.', 'buff_free_rail_transport')
 ON CONFLICT (sector_id) DO UPDATE SET
   name = EXCLUDED.name,
   description = EXCLUDED.description,
@@ -5080,7 +5099,7 @@ VALUES (1, NOW() - INTERVAL '1 day', NOW() + INTERVAL '2 days', true)
 ON CONFLICT (season_number) DO NOTHING;
 
 -- ------------------------------------------------------------------------------
--- 7. POLTICAS RLS (ROW LEVEL SECURITY)
+-- 7. POLÍTICAS RLS (ROW LEVEL SECURITY)
 -- ------------------------------------------------------------------------------
 ALTER TABLE social_config_params ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cosmetics_catalog ENABLE ROW LEVEL SECURITY;
@@ -5105,7 +5124,7 @@ CREATE POLICY "Public read clan_war_deployments" ON clan_war_deployments FOR SEL
 -- 8. CONTRATOS RPC TRANSACCIONALES (PL/pgSQL)
 -- ------------------------------------------------------------------------------
 
--- RPC 1: Solicitar Donacin de Cartas
+-- RPC 1: Solicitar Donación de Cartas
 CREATE OR REPLACE FUNCTION rpc_request_card_donation(
   p_card_id VARCHAR(50),
   p_rarity VARCHAR(20)
@@ -5132,11 +5151,11 @@ BEGIN
   WHERE user_id = v_user_id;
 
   IF v_clan_id IS NULL THEN
-    RETURN jsonb_build_object('success', false, 'error', 'No perteneces a ningn clan');
+    RETURN jsonb_build_object('success', false, 'error', 'No perteneces a ningún clan');
   END IF;
 
   IF v_joined_at > NOW() - INTERVAL '7 days' THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Requieres al menos 7 das de servicio en el clan');
+    RETURN jsonb_build_object('success', false, 'error', 'Requieres al menos 7 días de servicio en el clan');
   END IF;
 
   SELECT level INTO v_account_level FROM profiles WHERE id = v_user_id;
@@ -5149,7 +5168,7 @@ BEGIN
   WHERE requester_id = v_user_id;
 
   IF v_last_request_at IS NOT NULL AND v_last_request_at > NOW() - INTERVAL '8 hours' THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Lnea de suministros en enfriamiento. Espera 8 horas.');
+    RETURN jsonb_build_object('success', false, 'error', 'Línea de suministros en enfriamiento. Espera 8 horas.');
   END IF;
 
   IF p_rarity = 'common' THEN
@@ -5158,11 +5177,11 @@ BEGIN
     v_max_amount := 2;
   ELSIF p_rarity = 'epic' THEN
     IF EXTRACT(DOW FROM NOW()) <> 0 THEN
-      RETURN jsonb_build_object('success', false, 'error', 'Las cartas picas solo pueden solicitarse los domingos');
+      RETURN jsonb_build_object('success', false, 'error', 'Las cartas épicas solo pueden solicitarse los domingos');
     END IF;
     v_max_amount := 1;
   ELSE
-    RETURN jsonb_build_object('success', false, 'error', 'Rareza de carta invlida para donacin');
+    RETURN jsonb_build_object('success', false, 'error', 'Rareza de carta inválida para donación');
   END IF;
 
   INSERT INTO clan_card_requests (
@@ -5180,7 +5199,7 @@ BEGIN
 END;
 $$;
 
--- RPC 2: Donar Cartas y Recibir Botn
+-- RPC 2: Donar Cartas y Recibir Botín
 CREATE OR REPLACE FUNCTION rpc_donate_cards(
   p_request_id UUID,
   p_amount INT
@@ -5207,7 +5226,7 @@ BEGIN
   FOR UPDATE;
 
   IF NOT FOUND THEN
-    RETURN jsonb_build_object('success', false, 'error', 'La solicitud ya expir o fue completada');
+    RETURN jsonb_build_object('success', false, 'error', 'La solicitud ya expiró o fue completada');
   END IF;
 
   IF v_req.requester_id = v_donor_id THEN
@@ -5225,7 +5244,7 @@ BEGIN
 
   IF (v_req.rarity = 'common' AND v_donated_cards_count + p_amount > 2) OR
      (v_req.rarity IN ('rare', 'epic') AND v_donated_cards_count + p_amount > 1) THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Alcanzaste tu cupo mximo de donacin para esta solicitud');
+    RETURN jsonb_build_object('success', false, 'error', 'Alcanzaste tu cupo máximo de donación para esta solicitud');
   END IF;
 
   IF v_req.rarity = 'common' THEN
@@ -5308,7 +5327,7 @@ BEGIN
 
   SELECT last_embargo_rescue_at INTO v_last_rescue_at FROM profiles WHERE id = p_embargoed_user_id;
   IF v_last_rescue_at IS NOT NULL AND v_last_rescue_at > NOW() - INTERVAL '14 days' THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Este camarada ya recibi un rescate en los ltimos 14 das');
+    RETURN jsonb_build_object('success', false, 'error', 'Este camarada ya recibió un rescate en los últimos 14 días');
   END IF;
 
   SELECT gold, steel_beams INTO v_savior_gold, v_savior_steel
@@ -5387,7 +5406,7 @@ BEGIN
 
   SELECT clan_id INTO v_clan_id FROM clan_members WHERE user_id = v_user_id;
   IF v_clan_id IS NULL THEN
-    RETURN jsonb_build_object('success', false, 'error', 'No perteneces a ningn clan');
+    RETURN jsonb_build_object('success', false, 'error', 'No perteneces a ningún clan');
   END IF;
 
   SELECT id INTO v_active_season_id
@@ -5406,7 +5425,7 @@ BEGIN
       v_dp_earned := 100; -- Victoria regular 1v1
     END IF;
   ELSE
-    v_dp_earned := 25; -- Esfuerzo blico por derrota
+    v_dp_earned := 25; -- Esfuerzo bélico por derrota
   END IF;
 
   INSERT INTO clan_war_deployments (
@@ -5452,7 +5471,7 @@ BEGIN
   WHERE user_id = v_user_id;
 
   IF v_clan_id IS NULL THEN
-    RETURN jsonb_build_object('success', false, 'error', 'No perteneces a ningn clan');
+    RETURN jsonb_build_object('success', false, 'error', 'No perteneces a ningún clan');
   END IF;
 
   IF v_user_role NOT IN ('commander_in_chief', 'officer') THEN
@@ -5474,7 +5493,7 @@ BEGIN
   SELECT * INTO v_clan FROM clans WHERE id = v_clan_id FOR UPDATE;
 
   IF v_clan.treasury_gold < v_gold_cost OR v_clan.treasury_steel < v_steel_cost THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Fondos insuficientes en la Tesorera del Clan');
+    RETURN jsonb_build_object('success', false, 'error', 'Fondos insuficientes en la Tesorería del Clan');
   END IF;
 
   UPDATE clans
@@ -5498,27 +5517,28 @@ BEGIN
 END;
 $$;
 
--- >>> FIN MIGRACIN: 20261031000018_social_identity_clans_and_territorial_war.sql <<<
+-- >>> FIN MIGRACIÓN: 20261031000018_social_identity_clans_and_territorial_war.sql <<<
 
--- >>> INICIO MIGRACIN: 20261031000019_consolidated_architecture_overhaul.sql <<<
+
+-- >>> INICIO MIGRACIÓN: 20261031000019_consolidated_architecture_overhaul.sql <<<
 -- ==============================================================================
--- MIGRACIN 19: REINGENIERA CONSOLIDADA DE ARQUITECTURA SUPABASE Y EQUILIBRIO SISTMICO
+-- MIGRACIÓN 19: REINGENIERÍA CONSOLIDADA DE ARQUITECTURA SUPABASE Y EQUILIBRIO SISTÉMICO
 -- ==============================================================================
 -- Proyecto: Tactical Command: Wars of Legacy
--- Especificacin Cannica: docs/architecture/PROPUESTA_REINGENIERIA_MIGRACION_16.md
+-- Especificación Canónica: docs/architecture/PROPUESTA_REINGENIERIA_MIGRACION_16.md
 -- Fecha: Octubre 2026
 --
 -- Resuelve las 5 Fricciones Fatales:
--- 1. Friccin 5.1 & 5.2: Normalizacin de 'currency_ledger' (delta, metadata, reference_id, razones dinmicas).
--- 2. Friccin 5.3: Jerarqua de 4 rangos militares en 'clan_members' y tesorera corporativa en 'clans'.
--- 3. Refactorizacin atmica e idempotente de RPCs: 'grant_match_rewards', 'claim_chest_reward' y 'pay_dishonor_embargo_fee'.
--- 4. Friccin 5.4: Topologa Realtime de alta eficiencia (REPLICA IDENTITY FULL y adicin a 'supabase_realtime').
+-- 1. Fricción 5.1 & 5.2: Normalización de 'currency_ledger' (delta, metadata, reference_id, razones dinámicas).
+-- 2. Fricción 5.3: Jerarquía de 4 rangos militares en 'clan_members' y tesorería corporativa en 'clans'.
+-- 3. Refactorización atómica e idempotente de RPCs: 'grant_match_rewards', 'claim_chest_reward' y 'pay_dishonor_embargo_fee'.
+-- 4. Fricción 5.4: Topología Realtime de alta eficiencia (REPLICA IDENTITY FULL y adición a 'supabase_realtime').
 -- ==============================================================================
 
 BEGIN;
 
 -- ----------------------------------------------------------------------------
--- 1. TABLA DE CONFIGURACIN DINMICA DE ECONOMA (GAME BALANCING KNOBS)
+-- 1. TABLA DE CONFIGURACIÓN DINÁMICA DE ECONOMÍA (GAME BALANCING KNOBS)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.system_economy_config (
     config_key VARCHAR(64) PRIMARY KEY,
@@ -5539,7 +5559,7 @@ DO $$ BEGIN
     END IF;
 END $$;
 
--- Semilla de Parmetros Dinmicos
+-- Semilla de Parámetros Dinámicos
 INSERT INTO public.system_economy_config (config_key, config_value, description)
 VALUES 
 (
@@ -5556,7 +5576,7 @@ VALUES
         "offline_ratio": 0.50,
         "daily_offline_cap": 3
     }'::jsonb,
-    'Parmetros de recompensas por partida online y lmites diarios offline anti-farming'
+    'Parámetros de recompensas por partida online y límites diarios offline anti-farming'
 ),
 (
     'clan_dishonor_params',
@@ -5570,7 +5590,7 @@ VALUES
         "top3_share_pct": 10,
         "sink_burn_pct": 0
     }'::jsonb,
-    'Frmulas de recaudacin y distribucin aristocrtica del Embargo por Deshonor'
+    'Fórmulas de recaudación y distribución aristocrática del Embargo por Deshonor'
 ),
 (
     'chest_unlock_multipliers',
@@ -5580,17 +5600,17 @@ VALUES
         "legendary_credits": 8000,
         "arena_tier_scale": 0.15
     }'::jsonb,
-    'Escalado de crditos y planos en cofres clasificatorios'
+    'Escalado de créditos y planos en cofres clasificatorios'
 )
 ON CONFLICT (config_key) DO UPDATE 
 SET config_value = EXCLUDED.config_value, updated_at = timezone('utc'::text, now());
 
 -- ----------------------------------------------------------------------------
--- 2. REINGENIERA ESTRUCTURAL DE currency_ledger
+-- 2. REINGENIERÍA ESTRUCTURAL DE currency_ledger
 -- ----------------------------------------------------------------------------
 DO $$ 
 BEGIN
-    -- Asegurar que exista delta (si exista amount por error de migracin previa, renombrar)
+    -- Asegurar que exista delta (si existía amount por error de migración previa, renombrar)
     IF EXISTS (
         SELECT 1 FROM information_schema.columns 
         WHERE table_schema = 'public' AND table_name = 'currency_ledger' AND column_name = 'amount'
@@ -5627,16 +5647,16 @@ BEGIN
     END IF;
 END $$;
 
--- Eliminar check esttico de 'reason' y reemplazar por check flexible de longitud
+-- Eliminar check estático de 'reason' y reemplazar por check flexible de longitud
 ALTER TABLE public.currency_ledger DROP CONSTRAINT IF EXISTS currency_ledger_reason_check;
 ALTER TABLE public.currency_ledger DROP CONSTRAINT IF EXISTS chk_currency_ledger_reason_length;
 ALTER TABLE public.currency_ledger ADD CONSTRAINT chk_currency_ledger_reason_length 
 CHECK (char_length(reason) >= 3 AND char_length(reason) <= 64);
 
 -- ----------------------------------------------------------------------------
--- 3. ESTANDARIZACIN MILITAR DE CLANES Y TESORERA
+-- 3. ESTANDARIZACIÓN MILITAR DE CLANES Y TESORERÍA
 -- ----------------------------------------------------------------------------
--- Agregar columnas de tesorera a public.clans
+-- Agregar columnas de tesorería a public.clans
 ALTER TABLE public.clans 
     ADD COLUMN IF NOT EXISTS treasury_gold BIGINT NOT NULL DEFAULT 0 CHECK (treasury_gold >= 0),
     ADD COLUMN IF NOT EXISTS treasury_steel BIGINT NOT NULL DEFAULT 0 CHECK (treasury_steel >= 0),
@@ -5655,7 +5675,7 @@ ALTER TABLE public.clan_members ADD CONSTRAINT chk_clan_members_military_role
 CHECK (role IN ('commander_in_chief', 'executive_officer', 'field_officer', 'cadet'));
 
 -- ----------------------------------------------------------------------------
--- 4. REFACTORIZACIN ATMICA DE grant_match_rewards
+-- 4. REFACTORIZACIÓN ATÓMICA DE grant_match_rewards
 -- ----------------------------------------------------------------------------
 DROP FUNCTION IF EXISTS public.grant_match_rewards(UUID, VARCHAR, BOOLEAN, VARCHAR, VARCHAR);
 DROP FUNCTION IF EXISTS public.grant_match_rewards(UUID, UUID, TEXT, BOOLEAN, INTEGER, INTEGER, INTEGER, TEXT);
@@ -5686,7 +5706,7 @@ DECLARE
     v_balance_after INTEGER;
 BEGIN
     IF auth.uid() IS NOT NULL AND auth.uid() <> p_user_id THEN
-        RAISE EXCEPTION 'Violacin de seguridad: No puedes reclamar recompensas de otro usuario.';
+        RAISE EXCEPTION 'Violación de seguridad: No puedes reclamar recompensas de otro usuario.';
     END IF;
 
     SELECT config_value INTO v_config 
@@ -5729,7 +5749,7 @@ BEGIN
                 'battle_credits_awarded', 0,
                 'trophies_delta', 0,
                 'offline_capped', true,
-                'message', 'Lmite diario de partidas offline alcanzado (3/3).'
+                'message', 'Límite diario de partidas offline alcanzado (3/3).'
             );
         END IF;
 
@@ -5791,7 +5811,7 @@ END;
 $$;
 
 -- ----------------------------------------------------------------------------
--- 5. REFACTORIZACIN ATMICA DE claim_chest_reward
+-- 5. REFACTORIZACIÓN ATÓMICA DE claim_chest_reward
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.claim_chest_reward(p_slot_index INTEGER)
 RETURNS JSONB
@@ -5820,7 +5840,7 @@ BEGIN
     END IF;
 
     IF v_slot.status = 'unlocking' AND v_slot.unlock_completes_at > v_now THEN
-        RETURN jsonb_build_object('success', false, 'message', 'El tiempo de desbloqueo an no ha concluido.');
+        RETURN jsonb_build_object('success', false, 'message', 'El tiempo de desbloqueo aún no ha concluido.');
     END IF;
 
     CASE v_slot.chest_type
@@ -5867,7 +5887,7 @@ END;
 $$;
 
 -- ----------------------------------------------------------------------------
--- 6. REFACTORIZACIN ATMICA DE pay_dishonor_embargo_fee
+-- 6. REFACTORIZACIÓN ATÓMICA DE pay_dishonor_embargo_fee
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.pay_dishonor_embargo_fee(
     p_clan_id UUID,
@@ -5925,7 +5945,7 @@ BEGIN
     FOR UPDATE;
 
     IF v_member.id IS NULL THEN 
-        RAISE EXCEPTION 'El usuario no pertenece a la corporacin militar especificada.'; 
+        RAISE EXCEPTION 'El usuario no pertenece a la corporación militar especificada.'; 
     END IF;
 
     SELECT array_agg(user_id) INTO v_top_members FROM (
@@ -5944,7 +5964,7 @@ BEGIN
         SELECT refined_steel INTO v_user_steel FROM public.user_industrial_inventory WHERE user_id = v_user_id FOR UPDATE;
 
         IF v_user_credits < v_fee_credits OR v_user_steel < v_fee_steel THEN
-            RAISE EXCEPTION 'Fondos insuficientes: Requieres % crditos y % vigas de acero.', v_fee_credits, v_fee_steel;
+            RAISE EXCEPTION 'Fondos insuficientes: Requieres % créditos y % vigas de acero.', v_fee_credits, v_fee_steel;
         END IF;
 
         UPDATE public.profiles SET battle_credits = battle_credits - v_fee_credits WHERE id = v_user_id;
@@ -5999,7 +6019,7 @@ BEGIN
         channel_type, channel_id, sender_id, message_text, metadata
     ) VALUES (
         'clan', p_clan_id::text, v_user_id,
-        'HONOR RESTABLECIDO! Fianza saldada. 50% depositado en la Tesorera y 50% tributado al Top 3 de vanguardia.',
+        '¡HONOR RESTABLECIDO! Fianza saldada. 50% depositado en la Tesorería y 50% tributado al Top 3 de vanguardia.',
         jsonb_build_object('type', 'dishonor_rehabilitated', 'fee_credits', v_fee_credits)
     );
 
@@ -6013,7 +6033,7 @@ END;
 $$;
 
 -- ----------------------------------------------------------------------------
--- 7. TOPOLOGA DE ALTA EFICIENCIA PARA SUPABASE REALTIME
+-- 7. TOPOLOGÍA DE ALTA EFICIENCIA PARA SUPABASE REALTIME
 -- ----------------------------------------------------------------------------
 ALTER TABLE public.matchmaking_queue REPLICA IDENTITY FULL;
 ALTER TABLE public.active_matches REPLICA IDENTITY FULL;
@@ -6055,9 +6075,10 @@ END $$;
 
 COMMIT;
 
--- >>> FIN MIGRACIN: 20261031000019_consolidated_architecture_overhaul.sql <<<
+-- >>> FIN MIGRACIÓN: 20261031000019_consolidated_architecture_overhaul.sql <<<
 
--- >>> INICIO MIGRACIN: 20261031000020_legendary_decay_and_reconnection.sql <<<
+
+-- >>> INICIO MIGRACIÓN: 20261031000020_legendary_decay_and_reconnection.sql <<<
 -- ============================================================================
 -- MIGRATION: 20261031000020_legendary_decay_and_reconnection.sql
 -- DESCRIPTION: Legendary League Activity Decay & Realtime PvP Reconnection Snapshot
@@ -6065,7 +6086,7 @@ COMMIT;
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
--- 1. EXTENSIN DE PROFILES: DAS DE GRACIA Y TELEMETRA DE DECAY
+-- 1. EXTENSIÓN DE PROFILES: DÍAS DE GRACIA Y TELEMETRÍA DE DECAY
 -- ----------------------------------------------------------------------------
 ALTER TABLE public.profiles
     ADD COLUMN IF NOT EXISTS decay_bank_days INTEGER NOT NULL DEFAULT 3 CHECK (decay_bank_days >= 0 AND decay_bank_days <= 5),
@@ -6073,7 +6094,7 @@ ALTER TABLE public.profiles
     ADD COLUMN IF NOT EXISTS last_competitive_match_at TIMESTAMPTZ DEFAULT NULL;
 
 -- ----------------------------------------------------------------------------
--- 2. EXTENSIN DE PARTICIPANTES: BANCO DE GRACIA DE RED Y ESTADO DE CONEXIN
+-- 2. EXTENSIÓN DE PARTICIPANTES: BANCO DE GRACIA DE RED Y ESTADO DE CONEXIÓN
 -- ----------------------------------------------------------------------------
 ALTER TABLE public.match_participants
     ADD COLUMN IF NOT EXISTS disconnect_grace_bank_sec INTEGER NOT NULL DEFAULT 30 CHECK (disconnect_grace_bank_sec >= 0),
@@ -6081,8 +6102,8 @@ ALTER TABLE public.match_participants
     ADD COLUMN IF NOT EXISTS disconnected_at TIMESTAMPTZ DEFAULT NULL;
 
 -- ----------------------------------------------------------------------------
--- 3. RPC: ACREDITACIN DE ACTIVIDAD COMPETITIVA (DECAY BANK CREDIT)
--- Otorga +1 da de gracia al disputar partidas competitivas (clamped por liga)
+-- 3. RPC: ACREDITACIÓN DE ACTIVIDAD COMPETITIVA (DECAY BANK CREDIT)
+-- Otorga +1 día de gracia al disputar partidas competitivas (clamped por liga)
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.rpc_credit_competitive_activity(p_user_id UUID)
 RETURNS JSONB
@@ -6106,10 +6127,10 @@ BEGIN
         RETURN jsonb_build_object('success', false, 'error', 'USER_NOT_FOUND');
     END IF;
 
-    -- Parmetros cannicos segn Anexo E / RFC:
-    -- Liga I: Contendientes (4,000 - 4,499) -> Cap 5 das
-    -- Liga II: lite Estratgica (4,500 - 4,999) -> Cap 4 das
-    -- Liga III: Gran Mariscal (>= 5,000) -> Cap 3 das
+    -- Parámetros canónicos según Anexo E / RFC:
+    -- Liga I: Contendientes (4,000 - 4,499) -> Cap 5 días
+    -- Liga II: Élite Estratégica (4,500 - 4,999) -> Cap 4 días
+    -- Liga III: Gran Mariscal (>= 5,000) -> Cap 3 días
     IF v_trophies >= 5000 THEN
         v_max_bank := 3;
     ELSIF v_trophies >= 4500 THEN
@@ -6136,7 +6157,7 @@ END;
 $$;
 
 -- ----------------------------------------------------------------------------
--- 4. CRON: PROCESAMIENTO DIARIO DE DEGRADACIN EN LIGAS LEGENDARIAS (00:00 UTC)
+-- 4. CRON: PROCESAMIENTO DIARIO DE DEGRADACIÓN EN LIGAS LEGENDARIAS (00:00 UTC)
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.cron_process_legendary_trophy_decay()
 RETURNS JSONB
@@ -6163,23 +6184,23 @@ BEGIN
         v_affected_count := v_affected_count + 1;
 
         IF v_rec.decay_bank_days > 0 THEN
-            -- Consume un da de gracia sin penalizacin de trofeos
+            -- Consume un día de gracia sin penalización de trofeos
             UPDATE public.profiles
             SET decay_bank_days = v_rec.decay_bank_days - 1,
                 last_decay_processed_at = v_now
             WHERE id = v_rec.id;
         ELSE
-            -- Sin das de gracia: aplicar penalizacin por divisin segn Anexo E
+            -- Sin días de gracia: aplicar penalización por división según Anexo E
             IF v_rec.trophies_count >= 5000 THEN
-                -- Liga III: Gran Mariscal (-60 trofeos/da, piso absoluto 4500)
+                -- Liga III: Gran Mariscal (-60 trofeos/día, piso absoluto 4500)
                 v_penalty := 60;
                 v_floor := 4500;
             ELSIF v_rec.trophies_count >= 4500 THEN
-                -- Liga II: lite Estratgica (-40 trofeos/da, piso inviolable 4500)
+                -- Liga II: Élite Estratégica (-40 trofeos/día, piso inviolable 4500)
                 v_penalty := 40;
                 v_floor := 4500;
             ELSE
-                -- Liga I: Contendientes (-25 trofeos/da, piso inviolable 4000)
+                -- Liga I: Contendientes (-25 trofeos/día, piso inviolable 4000)
                 v_penalty := 25;
                 v_floor := 4000;
             END IF;
@@ -6205,8 +6226,8 @@ END;
 $$;
 
 -- ----------------------------------------------------------------------------
--- 5. RPC: RESINCRONIZACIN ATMICA DE PARTIDA (SNAPSHOT DUMP O(1))
--- Permite al cliente reconectado hidratar unidades, niebla, fondos y cronmetros
+-- 5. RPC: RESINCRONIZACIÓN ATÓMICA DE PARTIDA (SNAPSHOT DUMP O(1))
+-- Permite al cliente reconectado hidratar unidades, niebla, fondos y cronómetros
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.rpc_get_match_snapshot(p_match_id UUID)
 RETURNS JSONB
@@ -6249,12 +6270,12 @@ BEGIN
     FROM public.match_participants mp
     WHERE mp.match_id = p_match_id;
 
-    -- Obtener la proyeccin de niebla autoritativa para el jugador consultante
+    -- Obtener la proyección de niebla autoritativa para el jugador consultante
     SELECT * INTO v_player_view
     FROM public.match_player_views
     WHERE match_id = p_match_id AND player_id = v_user_id;
 
-    -- Obtener estado global de la cuadrcula
+    -- Obtener estado global de la cuadrícula
     SELECT * INTO v_state
     FROM public.match_state
     WHERE match_id = p_match_id;
@@ -6279,26 +6300,27 @@ BEGIN
 END;
 $$;
 
--- >>> FIN MIGRACIN: 20261031000020_legendary_decay_and_reconnection.sql <<<
+-- >>> FIN MIGRACIÓN: 20261031000020_legendary_decay_and_reconnection.sql <<<
 
--- >>> INICIO MIGRACIN: 20261031000021_offline_soft_cap_and_tournament_parity.sql <<<
+
+-- >>> INICIO MIGRACIÓN: 20261031000021_offline_soft_cap_and_tournament_parity.sql <<<
 -- ============================================================================
--- MIGRACIN 21: SOFT CAP ESCALONADO OFFLINE Y PARIDAD DE TORNEO ESPORTS
+-- MIGRACIÓN 21: SOFT CAP ESCALONADO OFFLINE Y PARIDAD DE TORNEO ESPORTS
 -- Proyecto: Tactical Command: Wars of Legacy
 -- Referencia: docs/orchestration/02_ECONOMY_AND_RETENTION_REBALANCE.md
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
--- 1. EXTENSIN DE PROFILES: ELO ESPORTS (CIRCUITO CANNICO SIN P2W)
+-- 1. EXTENSIÓN DE PROFILES: ELO ESPORTS (CIRCUITO CANÓNICO SIN P2W)
 -- ----------------------------------------------------------------------------
 ALTER TABLE public.profiles
     ADD COLUMN IF NOT EXISTS elo_rating_esports INTEGER NOT NULL DEFAULT 1200;
 
 -- ----------------------------------------------------------------------------
 -- 2. RPC TRANSACCIONAL: grant_match_rewards CON SOFT CAP ESCALONADO
--- Reemplaza el hard cap binario por la curva de retencin suave:
+-- Reemplaza el hard cap binario por la curva de retención suave:
 -- mu(k) = [0.60 (k<=3), 0.30 (4<=k<=6), 0.10 (7<=k<=10), 0.02 (k>=11)]
--- Suelo garantizado: +5 XP y +10 Crditos
+-- Suelo garantizado: +5 XP y +10 Créditos
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.grant_match_rewards(
     p_user_id UUID,
@@ -6342,7 +6364,7 @@ BEGIN
         v_daily_count := COALESCE(v_profile.daily_offline_matches_count, 0);
     END IF;
 
-    -- Clculo del puntaje base segn el Core Loop cannico
+    -- Cálculo del puntaje base según el Core Loop canónico
     v_base_score := 120 + (p_properties_captured * 45) + (p_units_destroyed * 35) + (LEAST(p_turns_count, 30) * 6);
     
     IF p_is_victory THEN
@@ -6361,7 +6383,7 @@ BEGIN
         ELSE v_difficulty_mult := 1.00;
         END IF;
 
-        -- Curva de decaimiento Soft Cap en 4 tramos (RFC Seccin 1.2)
+        -- Curva de decaimiento Soft Cap en 4 tramos (RFC Sección 1.2)
         IF v_daily_count < 3 THEN
             v_offline_multiplier := 0.60;
         ELSIF v_daily_count < 6 THEN
@@ -6372,7 +6394,7 @@ BEGIN
             v_offline_multiplier := 0.02;
         END IF;
 
-        -- Suelo de seguridad anti-churn: mnimo +5 XP y +10 Crditos
+        -- Suelo de seguridad anti-churn: mínimo +5 XP y +10 Créditos
         v_xp_awarded := GREATEST(5, FLOOR(v_xp_awarded * v_offline_multiplier * v_difficulty_mult));
         v_credits_awarded := GREATEST(10, FLOOR(v_credits_awarded * v_offline_multiplier * v_difficulty_mult));
         v_trophies_delta := 0;
@@ -6434,18 +6456,19 @@ BEGIN
 END;
 $$;
 
--- >>> FIN MIGRACIN: 20261031000021_offline_soft_cap_and_tournament_parity.sql <<<
+-- >>> FIN MIGRACIÓN: 20261031000021_offline_soft_cap_and_tournament_parity.sql <<<
 
--- >>> INICIO MIGRACIN: 20261031000022_reconnection_snapshots_and_full_catalog.sql <<<
+
+-- >>> INICIO MIGRACIÓN: 20261031000022_reconnection_snapshots_and_full_catalog.sql <<<
 -- ============================================================================
--- MIGRACIN 22: SNAPSHOTS DE RECONEXIN, ACCIONES DELTA Y CATLOGO FABRIL
+-- MIGRACIÓN 22: SNAPSHOTS DE RECONEXIÓN, ACCIONES DELTA Y CATÁLOGO FABRIL
 -- Proyecto: Tactical Command: Wars of Legacy
 -- Referencia: docs/orchestration/03_NETWORKING_AND_TECHNICAL_DEBT.md
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
 -- 1. TABLA: match_turn_snapshots
--- Almacena la fotografa completa de la cuadrcula al inicio de cada turno
+-- Almacena la fotografía completa de la cuadrícula al inicio de cada turno
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.match_turn_snapshots (
     match_id UUID NOT NULL REFERENCES public.active_matches(id) ON DELETE CASCADE,
@@ -6459,7 +6482,7 @@ CREATE INDEX IF NOT EXISTS idx_match_turn_snapshots_match ON public.match_turn_s
 
 -- ----------------------------------------------------------------------------
 -- 2. TABLA: match_action_deltas
--- Buffer de micro-acciones atmicas ejecutadas durante el turno en curso
+-- Buffer de micro-acciones atómicas ejecutadas durante el turno en curso
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.match_action_deltas (
     id BIGSERIAL PRIMARY KEY,
@@ -6473,7 +6496,7 @@ CREATE TABLE IF NOT EXISTS public.match_action_deltas (
 CREATE INDEX IF NOT EXISTS idx_match_action_deltas_match_turn ON public.match_action_deltas(match_id, turn_number, action_index ASC);
 
 -- ----------------------------------------------------------------------------
--- 3. POLTICAS RLS
+-- 3. POLÍTICAS RLS
 -- ----------------------------------------------------------------------------
 ALTER TABLE public.match_turn_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.match_action_deltas ENABLE ROW LEVEL SECURITY;
@@ -6490,7 +6513,7 @@ CREATE POLICY "match_action_deltas_select"
 
 -- ----------------------------------------------------------------------------
 -- 4. RPC: rpc_reconnect_match_state
--- Reconciliacin en caliente para reconectar clientes sin reiniciar turnos
+-- Reconciliación en caliente para reconectar clientes sin reiniciar turnos
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.rpc_reconnect_match_state(
     p_match_id UUID,
@@ -6516,7 +6539,7 @@ BEGIN
 
     v_current_turn := COALESCE(v_match.turn_number, 1);
 
-    -- Obtener ltimo snapshot del turno
+    -- Obtener último snapshot del turno
     SELECT snapshot_data INTO v_snapshot
     FROM public.match_turn_snapshots
     WHERE match_id = p_match_id AND turn_number = v_current_turn;
@@ -6541,17 +6564,3917 @@ BEGIN
 END;
 $$;
 
--- >>> FIN MIGRACIN: 20261031000022_reconnection_snapshots_and_full_catalog.sql <<<
+-- >>> FIN MIGRACIÓN: 20261031000022_reconnection_snapshots_and_full_catalog.sql <<<
+
+
+-- >>> INICIO MIGRACIÓN: 20261103000001_master_metagame_v2_rework.sql <<<
+-- ==============================================================================
+-- MIGRACIÓN 23: MASTER METAGAME V2 REWORK (SOVEREIGNTY, P2P, HANGARS & GARRISONS)
+-- ==============================================================================
+-- Proyecto: Tactical Command: Wars of Legacy — Global Sovereignty Edition
+-- Especificación: METAGAME_DESIGN/MASTER_METAGAME_SPEC_V1.md
+-- Arquitectura: Risk.io + Albion P2P + Victoria 3 Macro-Economy + Advance Wars 1-100 HP
+-- Fecha: Noviembre 2026
+--
+-- Contenido:
+-- 1. Tabla 'world_regions' (3,000 regiones, capitales incapturables y biomas).
+-- 2. Tabla 'territory_control' (Soberanía, Puntos TCP 0-15000 y cooldowns de prioridad).
+-- 3. Tabla 'corporate_subsidiaries' (Federación de clanes, max 10 clanes y tributos).
+-- 4. Tabla 'user_unit_hangar' (Stock físico de unidades crafteadas a escala 1-100 HP).
+-- 5. Tabla 'user_patents' (Patentes tecnológicas permanentes de armas T1-T5).
+-- 6. Tabla 'garrison_deployments' (Búnkeres IA Nv. 1-5, envejecimiento de 21d y relevo).
+-- 7. Actualización de 'p2p_market_listings' (Split 2%: 1% sink deflacionario + 1% regalía).
+-- 8. RPCs Transaccionales ACID con bloqueo FOR UPDATE (Comercio, Upkeep y Asedios).
+-- ==============================================================================
+
+-- ------------------------------------------------------------------------------
+-- 1. TABLA: world_regions (Catálogo de Regiones Planetarias)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.world_regions (
+    id VARCHAR(32) PRIMARY KEY, -- ej. 'ES_MAD_01', 'DE_RUH_03'
+    country_iso VARCHAR(2) NOT NULL, -- ej. 'ES', 'DE', 'US'
+    province_id VARCHAR(32) NOT NULL, -- ej. 'ES_MADRID', 'DE_RENANIA'
+    name VARCHAR(96) NOT NULL,
+    biome_type VARCHAR(32) NOT NULL CHECK (biome_type IN (
+        'temperate_plains', 'boreal_forest', 'arid_desert', 'arctic_tundra',
+        'tropical_jungle', 'mountain_highland', 'coastal_archipelago'
+    )),
+    security_zone VARCHAR(16) NOT NULL CHECK (security_zone IN ('high_sec', 'low_sec', 'null_sec')),
+    is_capital BOOLEAN NOT NULL DEFAULT false,
+    is_capturable BOOLEAN NOT NULL DEFAULT true,
+    max_building_slots INTEGER NOT NULL DEFAULT 8 CHECK (max_building_slots BETWEEN 4 AND 12),
+    primary_resource VARCHAR(32) NOT NULL,
+    secondary_resource VARCHAR(32) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    CONSTRAINT chk_capital_uncapturable CHECK (NOT (is_capital = true AND is_capturable = true))
+);
+
+CREATE INDEX IF NOT EXISTS idx_world_regions_province ON public.world_regions(province_id);
+CREATE INDEX IF NOT EXISTS idx_world_regions_country ON public.world_regions(country_iso);
+CREATE INDEX IF NOT EXISTS idx_world_regions_security ON public.world_regions(security_zone);
+
+ALTER TABLE public.world_regions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "world_regions_view_all" ON public.world_regions;
+CREATE POLICY "world_regions_view_all" ON public.world_regions FOR SELECT USING (true);
+
+-- ------------------------------------------------------------------------------
+-- 2. TABLA: territory_control (Soberanía y Puntos TCP en Tiempo Real)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.territory_control (
+    province_id VARCHAR(32) PRIMARY KEY,
+    controlling_clan_id UUID REFERENCES public.clans(id) ON DELETE SET NULL,
+    controlling_alliance_id UUID DEFAULT NULL,
+    current_tcp INTEGER NOT NULL DEFAULT 10000 CHECK (current_tcp BETWEEN 0 AND 15000),
+    tcp_threshold INTEGER NOT NULL DEFAULT 10000,
+    status VARCHAR(24) NOT NULL DEFAULT 'stable' CHECK (status IN (
+        'stable', 'under_siege', 'disputed', 'cooldown_priority'
+    )),
+    cooldown_expires_at TIMESTAMPTZ DEFAULT NULL,
+    last_battle_at TIMESTAMPTZ DEFAULT NULL,
+    fortress_level INTEGER NOT NULL DEFAULT 0 CHECK (fortress_level BETWEEN 0 AND 5),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_territory_control_clan ON public.territory_control(controlling_clan_id);
+CREATE INDEX IF NOT EXISTS idx_territory_control_status ON public.territory_control(status);
+
+ALTER TABLE public.territory_control ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "territory_control_view_all" ON public.territory_control;
+CREATE POLICY "territory_control_view_all" ON public.territory_control FOR SELECT USING (true);
+
+-- ------------------------------------------------------------------------------
+-- 3. TABLA: corporate_subsidiaries (Alianzas y Subsidiarias Autónomas)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.corporate_subsidiaries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    parent_corp_id UUID NOT NULL REFERENCES public.clans(id) ON DELETE CASCADE,
+    subsidiary_clan_id UUID NOT NULL REFERENCES public.clans(id) ON DELETE CASCADE,
+    tribute_rate_percent NUMERIC(5, 2) NOT NULL DEFAULT 10.00 CHECK (tribute_rate_percent BETWEEN 5.00 AND 25.00),
+    autonomous_market_allowed BOOLEAN NOT NULL DEFAULT true,
+    status VARCHAR(16) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'grace_period', 'seceded')),
+    grace_expires_at TIMESTAMPTZ DEFAULT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    CONSTRAINT uq_subsidiary_clan UNIQUE (subsidiary_clan_id),
+    CONSTRAINT chk_no_self_subsidiary CHECK (parent_corp_id <> subsidiary_clan_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_corporate_subsidiaries_parent ON public.corporate_subsidiaries(parent_corp_id);
+
+ALTER TABLE public.corporate_subsidiaries ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "corporate_subsidiaries_view_all" ON public.corporate_subsidiaries;
+CREATE POLICY "corporate_subsidiaries_view_all" ON public.corporate_subsidiaries FOR SELECT USING (true);
+
+-- ------------------------------------------------------------------------------
+-- 4. TABLA: user_unit_hangar (Stock Físico de Unidades en Escala 1-100 HP)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.user_unit_hangar (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    clan_id UUID REFERENCES public.clans(id) ON DELETE SET NULL,
+    unit_code VARCHAR(32) NOT NULL, -- ej. 'tank_light', 'fighter', 'artillery'
+    tier INTEGER NOT NULL DEFAULT 1 CHECK (tier BETWEEN 1 AND 5),
+    level INTEGER NOT NULL DEFAULT 1 CHECK (level BETWEEN 1 AND 5),
+    hp INTEGER NOT NULL DEFAULT 100 CHECK (hp BETWEEN 1 AND 100),
+    quantity INTEGER NOT NULL DEFAULT 1 CHECK (quantity >= 0),
+    location_province_id VARCHAR(32) DEFAULT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_unit_hangar_user ON public.user_unit_hangar(user_id, unit_code, tier);
+CREATE INDEX IF NOT EXISTS idx_user_unit_hangar_location ON public.user_unit_hangar(location_province_id);
+
+ALTER TABLE public.user_unit_hangar ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "user_unit_hangar_own" ON public.user_unit_hangar;
+CREATE POLICY "user_unit_hangar_own" ON public.user_unit_hangar FOR ALL USING (auth.uid() = user_id);
+
+-- ------------------------------------------------------------------------------
+-- 5. TABLA: user_patents (Patentes Tecnológicas Permanentes T1-T5)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.user_patents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    patent_code VARCHAR(64) NOT NULL,
+    tier INTEGER NOT NULL DEFAULT 1 CHECK (tier BETWEEN 1 AND 5),
+    unlocked_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    CONSTRAINT uq_user_patent UNIQUE (user_id, patent_code, tier)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_patents_user ON public.user_patents(user_id);
+
+ALTER TABLE public.user_patents ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "user_patents_own" ON public.user_patents;
+CREATE POLICY "user_patents_own" ON public.user_patents FOR ALL USING (auth.uid() = user_id);
+
+-- ------------------------------------------------------------------------------
+-- 6. TABLA: garrison_deployments (Búnkeres IA Nivel 1 a 5 con Envejecimiento)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.garrison_deployments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    region_id VARCHAR(32) NOT NULL REFERENCES public.world_regions(id) ON DELETE CASCADE,
+    owning_clan_id UUID NOT NULL REFERENCES public.clans(id) ON DELETE CASCADE,
+    garrison_level INTEGER NOT NULL DEFAULT 1 CHECK (garrison_level BETWEEN 1 AND 5),
+    ai_engine_tier VARCHAR(16) NOT NULL DEFAULT 'easy' CHECK (ai_engine_tier IN (
+        'easy', 'normal', 'hard', 'chess', 'mcts_legendary'
+    )),
+    hourly_upkeep_ec INTEGER NOT NULL DEFAULT 150 CHECK (hourly_upkeep_ec >= 0),
+    is_legendary BOOLEAN NOT NULL DEFAULT false,
+    service_started_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    retirement_due_at TIMESTAMPTZ DEFAULT NULL,
+    current_chassis_stock JSONB NOT NULL DEFAULT '[]'::jsonb,
+    is_under_attack BOOLEAN NOT NULL DEFAULT false,
+    handshake_deadline TIMESTAMPTZ DEFAULT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    CONSTRAINT uq_region_garrison UNIQUE (region_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_garrison_deployments_region ON public.garrison_deployments(region_id);
+CREATE INDEX IF NOT EXISTS idx_garrison_deployments_clan ON public.garrison_deployments(owning_clan_id);
+
+ALTER TABLE public.garrison_deployments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "garrison_deployments_view_all" ON public.garrison_deployments;
+CREATE POLICY "garrison_deployments_view_all" ON public.garrison_deployments FOR SELECT USING (true);
+
+-- ------------------------------------------------------------------------------
+-- 7. ACTUALIZACIÓN DE 'p2p_market_listings' (Split 2% y Categorías V2)
+-- ------------------------------------------------------------------------------
+ALTER TABLE public.p2p_market_listings
+    ADD COLUMN IF NOT EXISTS province_terminal_id VARCHAR(32) DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS item_category VARCHAR(32) DEFAULT 'refined_material',
+    ADD COLUMN IF NOT EXISTS tier INTEGER DEFAULT 1,
+    ADD COLUMN IF NOT EXISTS platform_burn_ec INTEGER DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS province_royalty_ec INTEGER DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS net_seller_revenue_ec INTEGER DEFAULT 0;
+
+-- Asegurar restricción que prohíbe el comercio de tropas militares listas
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'chk_p2p_no_military_units'
+    ) THEN
+        ALTER TABLE public.p2p_market_listings
+            ADD CONSTRAINT chk_p2p_no_military_units 
+            CHECK (item_category IN ('raw_resource', 'refined_material', 'patent_blueprint', 'buff_consumable', 'cosmetic'));
+    END IF;
+END $$;
+
+-- ------------------------------------------------------------------------------
+-- 8. RPC: execute_p2p_trade_v2 (Liquidación P2P con Split 1% Sink + 1% Regalía)
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.execute_p2p_trade_v2(p_listing_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_buyer_id UUID := auth.uid();
+    v_listing public.p2p_market_listings%ROWTYPE;
+    v_buyer_profile public.profiles%ROWTYPE;
+    v_seller_profile public.profiles%ROWTYPE;
+    v_territory public.territory_control%ROWTYPE;
+    v_tax_total INTEGER;
+    v_burn_ec INTEGER;
+    v_royalty_ec INTEGER;
+    v_net_payout INTEGER;
+    v_now TIMESTAMPTZ := timezone('utc'::text, now());
+BEGIN
+    IF v_buyer_id IS NULL THEN 
+        RAISE EXCEPTION 'No autenticado'; 
+    END IF;
+
+    -- 1. Candado FOR UPDATE sobre la orden
+    SELECT * INTO v_listing 
+    FROM public.p2p_market_listings
+    WHERE id = p_listing_id AND status = 'active' 
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Orden de mercado no disponible.');
+    END IF;
+
+    IF v_listing.seller_id = v_buyer_id THEN
+        RETURN jsonb_build_object('success', false, 'error', 'No puedes comprar tu propia orden.');
+    END IF;
+
+    -- 2. Bloqueo determinista de perfiles (evitar deadlocks: menor UUID primero)
+    IF v_buyer_id < v_listing.seller_id THEN
+        SELECT * INTO v_buyer_profile FROM public.profiles WHERE id = v_buyer_id FOR UPDATE;
+        SELECT * INTO v_seller_profile FROM public.profiles WHERE id = v_listing.seller_id FOR UPDATE;
+    ELSE
+        SELECT * INTO v_seller_profile FROM public.profiles WHERE id = v_listing.seller_id FOR UPDATE;
+        SELECT * INTO v_buyer_profile FROM public.profiles WHERE id = v_buyer_id FOR UPDATE;
+    END IF;
+
+    -- 3. Validar solvencia del comprador en Créditos de Batalla / EC
+    IF v_buyer_profile.battle_credits < v_listing.total_price THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Créditos Energéticos insuficientes.');
+    END IF;
+
+    -- 4. Cálculo exacto del split 2% (1% quema deflacionaria + 1% regalía territorial)
+    v_tax_total := FLOOR(v_listing.total_price * 0.02);
+    v_burn_ec := FLOOR(v_listing.total_price * 0.01);
+    v_royalty_ec := v_tax_total - v_burn_ec;
+    v_net_payout := v_listing.total_price - v_tax_total;
+
+    -- 5. Transferencia de divisas
+    PERFORM set_config('app.bypass_profile_guard', 'on', true);
+    
+    UPDATE public.profiles 
+    SET battle_credits = battle_credits - v_listing.total_price, updated_at = v_now
+    WHERE id = v_buyer_id;
+
+    UPDATE public.profiles 
+    SET battle_credits = battle_credits + v_net_payout, updated_at = v_now
+    WHERE id = v_listing.seller_id;
+
+    -- 6. Acreditación de Regalía Territorial a la tesorería del clan dueño de la provincia
+    IF v_listing.province_terminal_id IS NOT NULL AND v_royalty_ec > 0 THEN
+        SELECT * INTO v_territory FROM public.territory_control 
+        WHERE province_id = v_listing.province_terminal_id;
+
+        IF FOUND AND v_territory.controlling_clan_id IS NOT NULL THEN
+            UPDATE public.clans
+            SET treasury_gold = treasury_gold + v_royalty_ec
+            WHERE id = v_territory.controlling_clan_id;
+        END IF;
+    END IF;
+
+    -- 7. Transferencia de bienes al comprador
+    IF v_listing.item_category = 'patent_blueprint' THEN
+        INSERT INTO public.user_patents (user_id, patent_code, tier, unlocked_at)
+        VALUES (v_buyer_id, v_listing.item_code, v_listing.tier, v_now)
+        ON CONFLICT (user_id, patent_code, tier) DO NOTHING;
+    ELSIF v_listing.item_category = 'refined_material' THEN
+        IF v_listing.item_code = 'refined_steel' THEN
+            UPDATE public.user_industrial_inventory SET refined_steel = refined_steel + v_listing.quantity WHERE user_id = v_buyer_id;
+        ELSIF v_listing.item_code = 'refined_concrete' THEN
+            UPDATE public.user_industrial_inventory SET refined_concrete = refined_concrete + v_listing.quantity WHERE user_id = v_buyer_id;
+        ELSIF v_listing.item_code = 'refined_microchip' THEN
+            UPDATE public.user_industrial_inventory SET refined_microchip = refined_microchip + v_listing.quantity WHERE user_id = v_buyer_id;
+        END IF;
+    END IF;
+
+    -- 8. Actualizar orden a 'sold' y asentar contabilidad
+    UPDATE public.p2p_market_listings
+    SET status = 'sold',
+        platform_burn_ec = v_burn_ec,
+        province_royalty_ec = v_royalty_ec,
+        net_seller_revenue_ec = v_net_payout
+    WHERE id = p_listing_id;
+
+    -- Registro en el libro mayor financiero
+    INSERT INTO public.currency_ledger (user_id, currency, delta, balance_after, reason, reference_id)
+    VALUES 
+        (v_buyer_id, 'credits', -v_listing.total_price, v_buyer_profile.battle_credits - v_listing.total_price, 'p2p_buy_v2', p_listing_id::text),
+        (v_listing.seller_id, 'credits', v_net_payout, v_seller_profile.battle_credits + v_net_payout, 'p2p_sell_v2', p_listing_id::text);
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'total_paid', v_listing.total_price,
+        'platform_burn_ec', v_burn_ec,
+        'province_royalty_ec', v_royalty_ec,
+        'seller_received', v_net_payout
+    );
+END;
+$$;
+
+-- ------------------------------------------------------------------------------
+-- 9. RPC: process_battle_territory_outcome (Resolución de Asedio y Cooldown)
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.process_battle_territory_outcome(
+    p_province_id VARCHAR(32),
+    p_winner_clan_id UUID,
+    p_tcp_delta INTEGER
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_territory public.territory_control%ROWTYPE;
+    v_now TIMESTAMPTZ := timezone('utc'::text, now());
+    v_new_tcp INTEGER;
+    v_flipped BOOLEAN := false;
+BEGIN
+    SELECT * INTO v_territory 
+    FROM public.territory_control 
+    WHERE province_id = p_province_id 
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Provincia no encontrada.');
+    END IF;
+
+    -- Si la provincia está bajo cooldown de prioridad, no puede cambiar de dueño
+    IF v_territory.status = 'cooldown_priority' AND v_territory.cooldown_expires_at > v_now THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Provincia bajo escudo temporal post-conquista.');
+    END IF;
+
+    -- Si el ganador es el defensor actual: recupera TCP
+    IF v_territory.controlling_clan_id = p_winner_clan_id THEN
+        v_new_tcp := LEAST(v_territory.tcp_threshold, v_territory.current_tcp + p_tcp_delta);
+        UPDATE public.territory_control
+        SET current_tcp = v_new_tcp,
+            status = CASE WHEN v_new_tcp >= v_territory.tcp_threshold THEN 'stable' ELSE 'disputed' END,
+            last_battle_at = v_now,
+            updated_at = v_now
+        WHERE province_id = p_province_id;
+    ELSE
+        -- Si el ganador es el atacante: drena TCP del defensor
+        v_new_tcp := v_territory.current_tcp - p_tcp_delta;
+        
+        IF v_new_tcp <= 0 THEN
+            -- Volteo de soberanía
+            v_flipped := true;
+            UPDATE public.territory_control
+            SET controlling_clan_id = p_winner_clan_id,
+                current_tcp = 10000,
+                status = 'cooldown_priority',
+                cooldown_expires_at = v_now + interval '4 hours', -- Escudo temporal de 4 horas
+                last_battle_at = v_now,
+                updated_at = v_now
+            WHERE province_id = p_province_id;
+        ELSE
+            UPDATE public.territory_control
+            SET current_tcp = v_new_tcp,
+                status = 'under_siege',
+                last_battle_at = v_now,
+                updated_at = v_now
+            WHERE province_id = p_province_id;
+        END IF;
+    END IF;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'province_id', p_province_id,
+        'current_tcp', CASE WHEN v_flipped THEN 10000 ELSE v_new_tcp END,
+        'sovereignty_flipped', v_flipped,
+        'controlling_clan_id', CASE WHEN v_flipped THEN p_winner_clan_id ELSE v_territory.controlling_clan_id END
+    );
+END;
+$$;
+
+-- >>> FIN MIGRACIÓN: 20261103000001_master_metagame_v2_rework.sql <<<
+
+
+-- >>> INICIO MIGRACIÓN: 20261103000002_territorial_metagame_sovereignty_p2p_aw.sql <<<
+-- ==============================================================================
+-- MIGRACIÓN 24: TERRITORIAL METAGAME SOVEREIGNTY, P2P ALBION & AW RISK TOPOLOGY
+-- ==============================================================================
+-- Proyecto: Tactical Command: Wars of Legacy — Global Sovereignty Edition
+-- Especificación: METAGAME_DESIGN/ (01 a 14) + CANON RATIFICADO
+-- 
+-- Leyes Invariables:
+-- 1. Capitales Capturables de Alto Rendimiento: is_capital = true, is_capturable = true,
+--    multiplicador de producción masivo (1.75x a 2.0x) y slots máximos (12 a 16).
+-- 2. Soberanía Exclusiva de Clanes: los países son divisiones geográficas; el control
+--    pertenece exclusivamente a clanes o corporaciones matrices (controller_clan_id).
+-- 3. Gobernanza Limitada: Máximo estricto de 10 clanes por Corporación Matriz.
+-- 4. Comisión de Mercado P2P del 2%: 1% sink deflacionario quemado + 1% regalía clan.
+-- 5. Refuerzos Tácticos: 1 llamada por combate, latencia estricta de 4 rondas.
+-- ==============================================================================
+
+-- ------------------------------------------------------------------------------
+-- 0. AJUSTE DE RESTRICCIONES PREVIAS (Capitales Capturables)
+-- ------------------------------------------------------------------------------
+ALTER TABLE IF EXISTS public.world_regions 
+    DROP CONSTRAINT IF EXISTS chk_capital_uncapturable;
+
+-- ------------------------------------------------------------------------------
+-- 1. TABLA: world_countries (Estados y Teatros Geopolíticos Soberanos)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.world_countries (
+    iso_code VARCHAR(2) PRIMARY KEY, -- 'ES', 'US', 'JP', 'DE', 'FR', 'GB', 'CN', 'RU', 'EG', 'BR'
+    name VARCHAR(96) NOT NULL,
+    continent VARCHAR(16) NOT NULL CHECK (continent IN ('EU', 'NA', 'SA', 'AS', 'AF', 'OC', 'MECA')),
+    coordinates JSONB NOT NULL DEFAULT '{"lat": 0, "lng": 0}'::jsonb,
+    defense_doctrine VARCHAR(64) NOT NULL DEFAULT 'balanced',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_world_countries_continent ON public.world_countries(continent);
+
+ALTER TABLE public.world_countries ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "world_countries_read_all" ON public.world_countries;
+CREATE POLICY "world_countries_read_all" ON public.world_countries FOR SELECT USING (true);
+
+-- ------------------------------------------------------------------------------
+-- 2. TABLA: world_provinces (Provincias Estratégicas y Capitales de Alto Rendimiento)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.world_provinces (
+    id VARCHAR(32) PRIMARY KEY, -- ej. 'ES_MADRID', 'ES_CATALUNA', 'US_CALIFORNIA'
+    country_iso VARCHAR(2) NOT NULL REFERENCES public.world_countries(iso_code) ON DELETE CASCADE,
+    name VARCHAR(96) NOT NULL,
+    is_capital BOOLEAN NOT NULL DEFAULT false,
+    is_capturable BOOLEAN NOT NULL DEFAULT true, -- Canónicamente capturable
+    base_terrain VARCHAR(32) NOT NULL CHECK (base_terrain IN (
+        'plains', 'mountain', 'desert', 'tundra', 'forest', 'archipelago'
+    )),
+    native_weather VARCHAR(32) NOT NULL CHECK (native_weather IN (
+        'clear', 'rain', 'snow', 'sandstorm'
+    )),
+    resource_multiplier NUMERIC(4, 2) NOT NULL DEFAULT 1.00 CHECK (resource_multiplier >= 1.00),
+    building_slots INTEGER NOT NULL DEFAULT 8 CHECK (building_slots BETWEEN 4 AND 16),
+    pos_x NUMERIC(5, 2) NOT NULL DEFAULT 50.00,
+    pos_y NUMERIC(5, 2) NOT NULL DEFAULT 50.00,
+    width NUMERIC(5, 2) NOT NULL DEFAULT 6.00,
+    height NUMERIC(5, 2) NOT NULL DEFAULT 5.00,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_world_provinces_country ON public.world_provinces(country_iso);
+CREATE INDEX IF NOT EXISTS idx_world_provinces_capital ON public.world_provinces(is_capital);
+
+ALTER TABLE public.world_provinces ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "world_provinces_read_all" ON public.world_provinces;
+CREATE POLICY "world_provinces_read_all" ON public.world_provinces FOR SELECT USING (true);
+
+-- ------------------------------------------------------------------------------
+-- 3. TABLA: territory_nodes (Nodos Estratégicos: Ciudades, Fábricas, Almacenes)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.territory_nodes (
+    id VARCHAR(48) PRIMARY KEY, -- ej. 'NODE_ES_MAD_CITADEL', 'NODE_ES_CAT_FACTORY'
+    province_id VARCHAR(32) NOT NULL REFERENCES public.world_provinces(id) ON DELETE CASCADE,
+    name VARCHAR(96) NOT NULL,
+    node_type VARCHAR(32) NOT NULL CHECK (node_type IN (
+        'capital_citadel', 'city', 'factory', 'refinery', 'warehouse', 'comm_tower', 'radar', 'fortress'
+    )),
+    controller_clan_id UUID REFERENCES public.clans(id) ON DELETE SET NULL,
+    defense_level INTEGER NOT NULL DEFAULT 1 CHECK (defense_level BETWEEN 1 AND 5),
+    energy_upkeep INTEGER NOT NULL DEFAULT 50 CHECK (energy_upkeep >= 0),
+    structural_hp INTEGER NOT NULL DEFAULT 5000 CHECK (structural_hp >= 0),
+    max_hp INTEGER NOT NULL DEFAULT 5000 CHECK (max_hp > 0),
+    output_per_min INTEGER NOT NULL DEFAULT 30 CHECK (output_per_min >= 0),
+    is_under_attack BOOLEAN NOT NULL DEFAULT false,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_territory_nodes_province ON public.territory_nodes(province_id);
+CREATE INDEX IF NOT EXISTS idx_territory_nodes_clan ON public.territory_nodes(controller_clan_id);
+
+ALTER TABLE public.territory_nodes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "territory_nodes_read_all" ON public.territory_nodes;
+CREATE POLICY "territory_nodes_read_all" ON public.territory_nodes FOR SELECT USING (true);
+
+-- ------------------------------------------------------------------------------
+-- 4. TABLA: territory_adjacencies (Grafo Topológico de Expansión Estilo Risk)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.territory_adjacencies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    from_province_id VARCHAR(32) NOT NULL REFERENCES public.world_provinces(id) ON DELETE CASCADE,
+    to_province_id VARCHAR(32) NOT NULL REFERENCES public.world_provinces(id) ON DELETE CASCADE,
+    connection_type VARCHAR(32) NOT NULL CHECK (connection_type IN (
+        'land_open', 'land_choke', 'river', 'strait', 'sea_lane', 'air_corridor'
+    )),
+    is_blocked BOOLEAN NOT NULL DEFAULT false,
+    max_bandwidth_tons INTEGER NOT NULL DEFAULT 500,
+    toll_rate_percent NUMERIC(4, 2) NOT NULL DEFAULT 0.00 CHECK (toll_rate_percent BETWEEN 0.00 AND 10.00),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    CONSTRAINT uq_territory_adjacency UNIQUE (from_province_id, to_province_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_territory_adjacencies_from ON public.territory_adjacencies(from_province_id);
+CREATE INDEX IF NOT EXISTS idx_territory_adjacencies_to ON public.territory_adjacencies(to_province_id);
+
+ALTER TABLE public.territory_adjacencies ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "territory_adjacencies_read_all" ON public.territory_adjacencies;
+CREATE POLICY "territory_adjacencies_read_all" ON public.territory_adjacencies FOR SELECT USING (true);
+
+-- ------------------------------------------------------------------------------
+-- 5. RESTRICCIÓN DE GOBERNANZA: MÁXIMO 10 CLANES POR CORPORACIÓN MATRIZ
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.check_corporate_clan_limit()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_clan_count INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO v_clan_count
+    FROM public.corporate_subsidiaries
+    WHERE parent_corp_id = NEW.parent_corp_id
+      AND status = 'active'
+      AND id <> COALESCE(NEW.id, '00000000-0000-0000-0000-000000000000'::uuid);
+
+    IF v_clan_count >= 10 THEN
+        RAISE EXCEPTION 'Límite de gobernanza alcanzado: Una Corporación Matriz no puede exceder 10 clanes federados (Actual: %)', v_clan_count;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_check_corporate_clan_limit ON public.corporate_subsidiaries;
+CREATE TRIGGER trg_check_corporate_clan_limit
+    BEFORE INSERT OR UPDATE OF parent_corp_id, status
+    ON public.corporate_subsidiaries
+    FOR EACH ROW
+    WHEN (NEW.status = 'active')
+    EXECUTE FUNCTION public.check_corporate_clan_limit();
+
+-- ------------------------------------------------------------------------------
+-- 6. TABLA: p2p_market_orders (Mercado P2P Transaccional V2)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.p2p_market_orders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    seller_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    buyer_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    item_category VARCHAR(32) NOT NULL CHECK (item_category IN (
+        'raw_resource', 'refined_material', 'patent_blueprint', 'buff_consumable', 'unit_chassis', 'cosmetic'
+    )),
+    item_code VARCHAR(64) NOT NULL,
+    tier INTEGER NOT NULL DEFAULT 1 CHECK (tier BETWEEN 1 AND 5),
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    unit_price_ec INTEGER NOT NULL CHECK (unit_price_ec > 0),
+    total_price_ec INTEGER NOT NULL CHECK (total_price_ec > 0),
+    province_terminal_id VARCHAR(32) REFERENCES public.world_provinces(id) ON DELETE SET NULL,
+    platform_burn_ec INTEGER NOT NULL DEFAULT 0,
+    province_royalty_ec INTEGER NOT NULL DEFAULT 0,
+    net_seller_revenue_ec INTEGER NOT NULL DEFAULT 0,
+    status VARCHAR(16) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed', 'cancelled')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    completed_at TIMESTAMPTZ DEFAULT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_p2p_orders_seller ON public.p2p_market_orders(seller_id);
+CREATE INDEX IF NOT EXISTS idx_p2p_orders_category ON public.p2p_market_orders(item_category, tier);
+CREATE INDEX IF NOT EXISTS idx_p2p_orders_terminal ON public.p2p_market_orders(province_terminal_id);
+
+ALTER TABLE public.p2p_market_orders ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "p2p_market_orders_view" ON public.p2p_market_orders;
+CREATE POLICY "p2p_market_orders_view" ON public.p2p_market_orders FOR SELECT USING (true);
+DROP POLICY IF EXISTS "p2p_market_orders_manage_own" ON public.p2p_market_orders;
+CREATE POLICY "p2p_market_orders_manage_own" ON public.p2p_market_orders FOR ALL USING (auth.uid() = seller_id);
+
+-- ------------------------------------------------------------------------------
+-- 7. RPC: execute_territory_attack_declaration (Declaración de Asedio Risk)
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.execute_territory_attack_declaration(
+    p_origin_province_id VARCHAR(32),
+    p_target_province_id VARCHAR(32),
+    p_attacker_clan_id UUID
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_adj_exists BOOLEAN;
+    v_origin_control public.territory_control%ROWTYPE;
+    v_target_control public.territory_control%ROWTYPE;
+    v_target_province public.world_provinces%ROWTYPE;
+    v_now TIMESTAMPTZ := timezone('utc'::text, now());
+BEGIN
+    IF auth.uid() IS NULL THEN
+        RETURN jsonb_build_object('success', false, 'error', 'No autenticado');
+    END IF;
+
+    -- 1. Validar que la provincia destino exista
+    SELECT * INTO v_target_province
+    FROM public.world_provinces
+    WHERE id = p_target_province_id;
+
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Provincia objetivo no encontrada');
+    END IF;
+
+    -- 2. Validar adyacencia topológica (en cualquier sentido no bloqueado)
+    SELECT EXISTS (
+        SELECT 1 FROM public.territory_adjacencies
+        WHERE ((from_province_id = p_origin_province_id AND to_province_id = p_target_province_id)
+            OR (from_province_id = p_target_province_id AND to_province_id = p_origin_province_id))
+          AND is_blocked = false
+    ) INTO v_adj_exists;
+
+    IF NOT v_adj_exists THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Infracción de Adyacencia: Las provincias no están conectadas en el grafo táctico.');
+    END IF;
+
+    -- 3. Validar control soberano sobre la provincia de origen
+    SELECT * INTO v_origin_control
+    FROM public.territory_control
+    WHERE province_id = p_origin_province_id;
+
+    IF v_origin_control.controlling_clan_id IS DISTINCT FROM p_attacker_clan_id THEN
+        RETURN jsonb_build_object('success', false, 'error', 'El clan atacante no posee soberanía sobre la provincia de vanguardia.');
+    END IF;
+
+    -- 4. Bloquear y verificar estado de la provincia objetivo
+    SELECT * INTO v_target_control
+    FROM public.territory_control
+    WHERE province_id = p_target_province_id
+    FOR UPDATE;
+
+    IF v_target_control.status = 'cooldown_priority' AND v_target_control.cooldown_expires_at > v_now THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Provincia bajo escudo temporal anti-steamroll post-conquista.');
+    END IF;
+
+    IF v_target_control.controlling_clan_id = p_attacker_clan_id THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Tu clan ya posee la soberanía de esta provincia.');
+    END IF;
+
+    -- 5. Declarar asedio sobre la provincia
+    UPDATE public.territory_control
+    SET status = 'under_siege',
+        last_battle_at = v_now,
+        updated_at = v_now
+    WHERE province_id = p_target_province_id;
+
+    -- Marcar nodos estratégicos asociados
+    UPDATE public.territory_nodes
+    SET is_under_attack = true,
+        updated_at = v_now
+    WHERE province_id = p_target_province_id;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'message', 'Asedio declarado con éxito.',
+        'target_province_id', p_target_province_id,
+        'is_capital', v_target_province.is_capital,
+        'resource_multiplier', v_target_province.resource_multiplier,
+        'status', 'under_siege'
+    );
+END;
+$$;
+
+-- ------------------------------------------------------------------------------
+-- 8. RPC: execute_p2p_market_transaction (Split 2%: 1% Sink + 1% Regalía)
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.execute_p2p_market_transaction(p_order_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_buyer_id UUID := auth.uid();
+    v_order public.p2p_market_orders%ROWTYPE;
+    v_buyer_profile public.profiles%ROWTYPE;
+    v_seller_profile public.profiles%ROWTYPE;
+    v_territory public.territory_control%ROWTYPE;
+    v_tax_total INTEGER;
+    v_burn_ec INTEGER;
+    v_royalty_ec INTEGER;
+    v_net_payout INTEGER;
+    v_now TIMESTAMPTZ := timezone('utc'::text, now());
+BEGIN
+    IF v_buyer_id IS NULL THEN
+        RETURN jsonb_build_object('success', false, 'error', 'No autenticado');
+    END IF;
+
+    -- Bloqueo de la orden
+    SELECT * INTO v_order
+    FROM public.p2p_market_orders
+    WHERE id = p_order_id AND status = 'active'
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Orden no disponible');
+    END IF;
+
+    IF v_order.seller_id = v_buyer_id THEN
+        RETURN jsonb_build_object('success', false, 'error', 'No puedes comprar tu propia orden');
+    END IF;
+
+    -- Bloqueo ordenado de perfiles para evitar deadlocks
+    IF v_buyer_id < v_order.seller_id THEN
+        SELECT * INTO v_buyer_profile FROM public.profiles WHERE id = v_buyer_id FOR UPDATE;
+        SELECT * INTO v_seller_profile FROM public.profiles WHERE id = v_order.seller_id FOR UPDATE;
+    ELSE
+        SELECT * INTO v_seller_profile FROM public.profiles WHERE id = v_order.seller_id FOR UPDATE;
+        SELECT * INTO v_buyer_profile FROM public.profiles WHERE id = v_buyer_id FOR UPDATE;
+    END IF;
+
+    IF v_buyer_profile.battle_credits < v_order.total_price_ec THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Créditos Energéticos insuficientes');
+    END IF;
+
+    -- Split exacto de comisión del 2%
+    v_tax_total := FLOOR(v_order.total_price_ec * 0.02);
+    v_burn_ec := FLOOR(v_order.total_price_ec * 0.01); -- 1% Sink
+    v_royalty_ec := v_tax_total - v_burn_ec;          -- 1% Regalía Territorial
+    v_net_payout := v_order.total_price_ec - v_tax_total;
+
+    PERFORM set_config('app.bypass_profile_guard', 'on', true);
+
+    -- Actualizar billeteras
+    UPDATE public.profiles
+    SET battle_credits = battle_credits - v_order.total_price_ec, updated_at = v_now
+    WHERE id = v_buyer_id;
+
+    UPDATE public.profiles
+    SET battle_credits = battle_credits + v_net_payout, updated_at = v_now
+    WHERE id = v_order.seller_id;
+
+    -- Acreditar regalía al clan poseedor del terminal
+    IF v_order.province_terminal_id IS NOT NULL AND v_royalty_ec > 0 THEN
+        SELECT * INTO v_territory FROM public.territory_control
+        WHERE province_id = v_order.province_terminal_id;
+
+        IF FOUND AND v_territory.controlling_clan_id IS NOT NULL THEN
+            UPDATE public.clans
+            SET treasury_gold = treasury_gold + v_royalty_ec
+            WHERE id = v_territory.controlling_clan_id;
+        END IF;
+    END IF;
+
+    -- Transferencia de inventario si es unidad de hangar
+    IF v_order.item_category = 'unit_chassis' THEN
+        INSERT INTO public.user_unit_hangar (
+            user_id, unit_code, tier, level, hp, quantity, location_province_id
+        ) VALUES (
+            v_buyer_id, v_order.item_code, v_order.tier, 1, 100, v_order.quantity, v_order.province_terminal_id
+        );
+    END IF;
+
+    -- Asentar estado completado
+    UPDATE public.p2p_market_orders
+    SET buyer_id = v_buyer_id,
+        platform_burn_ec = v_burn_ec,
+        province_royalty_ec = v_royalty_ec,
+        net_seller_revenue_ec = v_net_payout,
+        status = 'completed',
+        completed_at = v_now
+    WHERE id = p_order_id;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'order_id', p_order_id,
+        'total_price_ec', v_order.total_price_ec,
+        'platform_burn_ec', v_burn_ec,
+        'province_royalty_ec', v_royalty_ec,
+        'seller_received', v_net_payout
+    );
+END;
+$$;
+
+-- ------------------------------------------------------------------------------
+-- 9. RPC: deploy_reinforcements_to_battle (1 Solicitud / Latencia 4 Rondas)
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.deploy_reinforcements_to_battle(
+    p_match_id UUID,
+    p_player_id UUID,
+    p_unit_hangar_id UUID,
+    p_current_turn INTEGER
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_hangar public.user_unit_hangar%ROWTYPE;
+    v_arrival_turn INTEGER := p_current_turn + 4; -- Retraso estricto de 4 rondas
+    v_now TIMESTAMPTZ := timezone('utc'::text, now());
+BEGIN
+    IF auth.uid() IS NULL OR auth.uid() <> p_player_id THEN
+        RETURN jsonb_build_object('success', false, 'error', 'No autorizado');
+    END IF;
+
+    -- Bloquear y verificar stock de hangar del jugador
+    SELECT * INTO v_hangar
+    FROM public.user_unit_hangar
+    WHERE id = p_unit_hangar_id AND user_id = p_player_id
+    FOR UPDATE;
+
+    IF NOT FOUND OR v_hangar.quantity < 1 THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Unidad de hangar no disponible.');
+    END IF;
+
+    -- Descontar físicamente 1 unidad del hangar
+    UPDATE public.user_unit_hangar
+    SET quantity = quantity - 1,
+        updated_at = v_now
+    WHERE id = p_unit_hangar_id;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'match_id', p_match_id,
+        'player_id', p_player_id,
+        'unit_code', v_hangar.unit_code,
+        'tier', v_hangar.tier,
+        'requested_turn', p_current_turn,
+        'arrival_turn', v_arrival_turn,
+        'reinforcement_delay', 4,
+        'remaining_quantity', v_hangar.quantity - 1
+    );
+END;
+$$;
+
+-- ------------------------------------------------------------------------------
+-- 10. RPC: calculate_and_apply_territorial_upkeep (Consumo y Penalización)
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.calculate_and_apply_territorial_upkeep(p_clan_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_total_nodes INTEGER := 0;
+    v_total_upkeep_ec INTEGER := 0;
+    v_clan public.clans%ROWTYPE;
+    v_overexpansion_penalty NUMERIC(4, 2) := 0.00;
+    v_now TIMESTAMPTZ := timezone('utc'::text, now());
+BEGIN
+    SELECT * INTO v_clan FROM public.clans WHERE id = p_clan_id FOR UPDATE;
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Clan no encontrado');
+    END IF;
+
+    -- Sumar consumo de todos los nodos territoriales del clan
+    SELECT COUNT(*), COALESCE(SUM(energy_upkeep), 0)
+    INTO v_total_nodes, v_total_upkeep_ec
+    FROM public.territory_nodes
+    WHERE controller_clan_id = p_clan_id;
+
+    -- Penalización de sobre-expansión si supera 10 nodos
+    IF v_total_nodes > 10 THEN
+        v_overexpansion_penalty := LEAST(0.55, 0.05 * (v_total_nodes - 10));
+        v_total_upkeep_ec := FLOOR(v_total_upkeep_ec * (1 + v_overexpansion_penalty));
+    END IF;
+
+    -- Aplicar deducción de tesorería del clan
+    UPDATE public.clans
+    SET treasury_gold = GREATEST(0, treasury_gold - v_total_upkeep_ec),
+        updated_at = v_now
+    WHERE id = p_clan_id;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'clan_id', p_clan_id,
+        'total_nodes', v_total_nodes,
+        'base_upkeep_ec', v_total_upkeep_ec,
+        'overexpansion_penalty', v_overexpansion_penalty,
+        'remaining_treasury', GREATEST(0, v_clan.treasury_gold - v_total_upkeep_ec)
+    );
+END;
+$$;
+
+-- ------------------------------------------------------------------------------
+-- 11. SEMILLAS CARTOGRÁFICAS REALES (Zero-Hallucination Seeding)
+-- ------------------------------------------------------------------------------
+
+-- Inserción de Países Reales
+INSERT INTO public.world_countries (iso_code, name, continent, coordinates, defense_doctrine)
+VALUES
+    ('ES', 'Reino de España', 'EU', '{"lat": 40.4637, "lng": -3.7492}'::jsonb, 'armored_infantry'),
+    ('US', 'Estados Unidos', 'NA', '{"lat": 37.0902, "lng": -95.7129}'::jsonb, 'aerospace_heavy'),
+    ('JP', 'Japón', 'AS', '{"lat": 36.2048, "lng": 138.2529}'::jsonb, 'high_tech_naval'),
+    ('DE', 'Alemania', 'EU', '{"lat": 51.1657, "lng": 10.4515}'::jsonb, 'blitz_mechanized'),
+    ('FR', 'Francia', 'EU', '{"lat": 46.2276, "lng": 2.2137}'::jsonb, 'artillery_doctrinal'),
+    ('GB', 'Reino Unido', 'EU', '{"lat": 55.3781, "lng": -3.4360}'::jsonb, 'naval_supremacy'),
+    ('EG', 'Egipto', 'AF', '{"lat": 26.8206, "lng": 30.8025}'::jsonb, 'chokepoint_fortified'),
+    ('BR', 'Brasil', 'SA', '{"lat": -14.2350, "lng": -51.9253}'::jsonb, 'jungle_commando'),
+    ('AU', 'Australia', 'OC', '{"lat": -25.2744, "lng": 133.7751}'::jsonb, 'desert_recon')
+ON CONFLICT (iso_code) DO UPDATE
+SET name = EXCLUDED.name, continent = EXCLUDED.continent;
+
+-- Inserción de Provincias Reales con Capitales de Alto Rendimiento (is_capital = true, capturables)
+INSERT INTO public.world_provinces (
+    id, country_iso, name, is_capital, is_capturable, base_terrain, native_weather,
+    resource_multiplier, building_slots, pos_x, pos_y, width, height
+)
+VALUES
+    -- ESPAÑA
+    ('ES_MADRID', 'ES', 'Madrid Central', true, true, 'plains', 'clear', 2.00, 16, 46.00, 42.00, 6.00, 5.00),
+    ('ES_CATALUNA', 'ES', 'Cataluña & Ebro', false, true, 'archipelago', 'clear', 1.25, 10, 52.00, 39.00, 7.00, 6.00),
+    ('ES_ANDALUCIA', 'ES', 'Andalucía & Estrecho', false, true, 'desert', 'clear', 1.30, 10, 44.00, 48.00, 8.00, 6.00),
+    ('ES_PAIS_VASCO', 'ES', 'País Vasco & Cantábrico', false, true, 'mountain', 'rain', 1.35, 10, 47.00, 36.00, 6.00, 4.00),
+    ('ES_GALICIA', 'ES', 'Galicia Atlántica', false, true, 'forest', 'rain', 1.15, 8, 38.00, 37.00, 6.00, 5.00),
+
+    -- ESTADOS UNIDOS
+    ('US_WASHINGTON', 'US', 'Washington D.C.', true, true, 'plains', 'clear', 2.00, 16, 26.00, 38.00, 6.00, 5.00),
+    ('US_CALIFORNIA', 'US', 'California & Costa Oeste', false, true, 'archipelago', 'clear', 1.50, 12, 14.00, 40.00, 8.00, 8.00),
+    ('US_TEXAS', 'US', 'Texas Cuenca Energética', false, true, 'desert', 'sandstorm', 1.45, 12, 20.00, 46.00, 8.00, 7.00),
+    ('US_ALASKA', 'US', 'Alaska Ártica', false, true, 'tundra', 'snow', 1.40, 8, 12.00, 20.00, 9.00, 8.00),
+
+    -- ALEMANIA
+    ('DE_BERLIN', 'DE', 'Berlín Metropolitana', true, true, 'plains', 'clear', 2.00, 16, 54.00, 33.00, 6.00, 5.00),
+    ('DE_RUHR', 'DE', 'Renania & Cuenca del Ruhr', false, true, 'forest', 'rain', 1.50, 12, 51.00, 34.00, 6.00, 5.00),
+    ('DE_BAVIERA', 'DE', 'Baviera & Alpes', false, true, 'mountain', 'snow', 1.30, 10, 53.00, 37.00, 7.00, 6.00),
+
+    -- JAPÓN
+    ('JP_TOKYO', 'JP', 'Tokio Central', true, true, 'archipelago', 'clear', 2.00, 16, 82.00, 41.00, 6.00, 5.00),
+    ('JP_OSAKA', 'JP', 'Kansai & Osaka', false, true, 'archipelago', 'clear', 1.35, 10, 80.00, 43.00, 5.00, 5.00),
+    ('JP_HOKKAIDO', 'JP', 'Hokkaido Norte', false, true, 'tundra', 'snow', 1.25, 8, 83.00, 36.00, 6.00, 6.00),
+
+    -- EGIPTO
+    ('EG_CAIRO', 'EG', 'El Cairo & Delta', true, true, 'desert', 'sandstorm', 2.00, 16, 58.00, 46.00, 6.00, 5.00),
+    ('EG_SINAI', 'EG', 'Sinaí & Canal de Suez', false, true, 'desert', 'sandstorm', 1.60, 12, 61.00, 47.00, 6.00, 6.00),
+
+    -- REINO UNIDO
+    ('GB_LONDON', 'GB', 'Gran Londres', true, true, 'plains', 'rain', 2.00, 16, 48.00, 32.00, 5.00, 5.00),
+    ('GB_SCOTLAND', 'GB', 'Escocia & Mar del Norte', false, true, 'mountain', 'snow', 1.25, 8, 47.00, 27.00, 6.00, 6.00),
+
+    -- FRANCIA
+    ('FR_PARIS', 'FR', 'París Isla de Francia', true, true, 'plains', 'clear', 2.00, 16, 48.00, 36.00, 6.00, 5.00),
+    ('FR_MARSELLA', 'FR', 'Provenza & Costa Azul', false, true, 'archipelago', 'clear', 1.20, 10, 50.00, 40.00, 6.00, 5.00),
+
+    -- BRASIL
+    ('BR_BRASILIA', 'BR', 'Distrito Federal Brasilia', true, true, 'plains', 'clear', 2.00, 16, 34.00, 65.00, 6.00, 5.00),
+    ('BR_AMAZONAS', 'BR', 'Amazonas Cuenca Fluvial', false, true, 'forest', 'rain', 1.40, 10, 30.00, 60.00, 9.00, 8.00),
+
+    -- AUSTRALIA
+    ('AU_CANBERRA', 'AU', 'Canberra & Sídney', true, true, 'plains', 'clear', 2.00, 16, 84.00, 75.00, 6.00, 6.00),
+    ('AU_OUTBACK', 'AU', 'Outback Mineral', false, true, 'desert', 'sandstorm', 1.45, 10, 80.00, 72.00, 10.00, 9.00)
+ON CONFLICT (id) DO UPDATE
+SET name = EXCLUDED.name,
+    is_capital = EXCLUDED.is_capital,
+    is_capturable = EXCLUDED.is_capturable,
+    resource_multiplier = EXCLUDED.resource_multiplier,
+    building_slots = EXCLUDED.building_slots,
+    pos_x = EXCLUDED.pos_x,
+    pos_y = EXCLUDED.pos_y,
+    width = EXCLUDED.width,
+    height = EXCLUDED.height;
+
+-- Inserción de Grafo de Adyacencia (Topología de Riesgo y Conexiones Marítimas)
+INSERT INTO public.territory_adjacencies (from_province_id, to_province_id, connection_type, max_bandwidth_tons)
+VALUES
+    -- España interior
+    ('ES_MADRID', 'ES_CATALUNA', 'land_open', 800),
+    ('ES_MADRID', 'ES_ANDALUCIA', 'land_open', 800),
+    ('ES_MADRID', 'ES_PAIS_VASCO', 'land_open', 700),
+    ('ES_MADRID', 'ES_GALICIA', 'land_open', 600),
+    ('ES_CATALUNA', 'ES_PAIS_VASCO', 'land_open', 600),
+    ('ES_ANDALUCIA', 'ES_CATALUNA', 'land_open', 500),
+    ('ES_GALICIA', 'ES_PAIS_VASCO', 'land_open', 500),
+
+    -- Frontera España - Francia
+    ('ES_CATALUNA', 'FR_MARSELLA', 'land_open', 700),
+    ('ES_PAIS_VASCO', 'FR_PARIS', 'land_open', 600),
+
+    -- Francia interior
+    ('FR_PARIS', 'FR_MARSELLA', 'land_open', 900),
+
+    -- Canal de la Mancha (Francia - Reino Unido)
+    ('FR_PARIS', 'GB_LONDON', 'strait', 500),
+
+    -- Reino Unido interior
+    ('GB_LONDON', 'GB_SCOTLAND', 'land_open', 600),
+
+    -- Frontera Francia - Alemania
+    ('FR_PARIS', 'DE_RUHR', 'land_open', 800),
+    ('FR_MARSELLA', 'DE_BAVIERA', 'land_choke', 500),
+
+    -- Alemania interior
+    ('DE_BERLIN', 'DE_RUHR', 'land_open', 800),
+    ('DE_BERLIN', 'DE_BAVIERA', 'land_open', 700),
+    ('DE_RUHR', 'DE_BAVIERA', 'land_open', 750),
+
+    -- Estrecho de Gibraltar (España - Egipto/Mediterráneo)
+    ('ES_ANDALUCIA', 'EG_CAIRO', 'sea_lane', 400),
+
+    -- Egipto interior & Suez
+    ('EG_CAIRO', 'EG_SINAI', 'strait', 600),
+
+    -- Estados Unidos interior
+    ('US_WASHINGTON', 'US_TEXAS', 'land_open', 900),
+    ('US_TEXAS', 'US_CALIFORNIA', 'land_open', 850),
+    ('US_CALIFORNIA', 'US_ALASKA', 'sea_lane', 400),
+
+    -- Japón interior
+    ('JP_TOKYO', 'JP_OSAKA', 'land_open', 900),
+    ('JP_TOKYO', 'JP_HOKKAIDO', 'strait', 600),
+
+    -- Brasil interior
+    ('BR_BRASILIA', 'BR_AMAZONAS', 'river', 500),
+
+    -- Australia interior
+    ('AU_CANBERRA', 'AU_OUTBACK', 'land_open', 600)
+ON CONFLICT (from_province_id, to_province_id) DO NOTHING;
+
+-- Inserción de Nodos Estratégicos dentro de Provincias
+INSERT INTO public.territory_nodes (
+    id, province_id, name, node_type, defense_level, energy_upkeep, structural_hp, max_hp, output_per_min
+)
+VALUES
+    -- Nodos España
+    ('NODE_ES_MAD_CITADEL', 'ES_MADRID', 'Sede Central de Mando Madrid', 'capital_citadel', 5, 120, 12000, 12000, 120),
+    ('NODE_ES_MAD_RADAR', 'ES_MADRID', 'Matriz de Radar C4ISR Central', 'radar', 4, 80, 7000, 7000, 60),
+    ('NODE_ES_CAT_FACTORY', 'ES_CATALUNA', 'Planta Ensambladora Automotriz Ebro', 'factory', 3, 90, 8500, 8500, 75),
+    ('NODE_ES_CAT_PORT', 'ES_CATALUNA', 'Astillero Comercial Barcelona', 'refinery', 3, 70, 7500, 7500, 65),
+    ('NODE_ES_AND_REFINERY', 'ES_ANDALUCIA', 'Refinería del Estrecho Algeciras', 'refinery', 3, 85, 8000, 8000, 70),
+    ('NODE_ES_AND_GARRISON', 'ES_ANDALUCIA', 'Búnker de Mando Guarnición Sur', 'fortress', 4, 110, 9500, 9500, 50),
+    ('NODE_ES_PV_STEEL', 'ES_PAIS_VASCO', 'Altos Hornos del Nervión', 'factory', 4, 100, 9000, 9000, 85),
+    ('NODE_ES_GAL_LOGISTICS', 'ES_GALICIA', 'Depósito Logístico Finisterre', 'warehouse', 2, 40, 5000, 5000, 40),
+
+    -- Nodos Alemania
+    ('NODE_DE_BER_CITADEL', 'DE_BERLIN', 'Palacio de Estado Mayor Berlín', 'capital_citadel', 5, 120, 12000, 12000, 120),
+    ('NODE_DE_RUH_FOUNDRY', 'DE_RUHR', 'Complejo Siderúrgico Essen', 'factory', 5, 130, 11000, 11000, 110),
+    ('NODE_DE_BAV_MUNITIONS', 'DE_BAVIERA', 'Arsenal Alpino de Precisión', 'factory', 3, 80, 8000, 8000, 70),
+
+    -- Nodos USA
+    ('NODE_US_WAS_CITADEL', 'US_WASHINGTON', 'Búnker del Pentágono', 'capital_citadel', 5, 150, 15000, 15000, 150),
+    ('NODE_US_CAL_AEROSPACE', 'US_CALIFORNIA', 'Aeroespacial Mojave', 'factory', 4, 110, 10000, 10000, 95),
+    ('NODE_US_TEX_REFINERY', 'US_TEXAS', 'Complejo Petroquímico Houston', 'refinery', 4, 115, 10500, 10500, 100),
+
+    -- Nodos Japón
+    ('NODE_JP_TOK_CITADEL', 'JP_TOKYO', 'Sede Imperial de Ciberdefensa', 'capital_citadel', 5, 140, 14000, 14000, 140),
+    ('NODE_JP_OSA_CHIPS', 'JP_OSAKA', 'Sala Limpia Cuántica Kansai', 'factory', 4, 105, 9500, 9500, 90),
+
+    -- Nodos Egipto
+    ('NODE_EG_CAI_CITADEL', 'EG_CAIRO', 'Fortaleza Al-Qahira', 'capital_citadel', 5, 120, 12000, 12000, 120),
+    ('NODE_EG_SIN_LOCKS', 'EG_SINAI', 'Esclusas del Canal de Suez', 'fortress', 5, 130, 13000, 13000, 130)
+ON CONFLICT (id) DO UPDATE
+SET name = EXCLUDED.name,
+    defense_level = EXCLUDED.defense_level,
+    energy_upkeep = EXCLUDED.energy_upkeep,
+    output_per_min = EXCLUDED.output_per_min;
+
+-- Inserción de Estados de Control Territorial en 'territory_control' para todas las provincias
+INSERT INTO public.territory_control (
+    province_id, controlling_clan_id, controlling_alliance_id, current_tcp, tcp_threshold, status, fortress_level
+)
+SELECT 
+    p.id,
+    NULL,
+    NULL,
+    10000,
+    10000,
+    'stable',
+    CASE WHEN p.is_capital THEN 5 ELSE 2 END
+FROM public.world_provinces p
+ON CONFLICT (province_id) DO NOTHING;
+
+-- >>> FIN MIGRACIÓN: 20261103000002_territorial_metagame_sovereignty_p2p_aw.sql <<<
+
+
+-- >>> INICIO MIGRACIÓN: 20261103000003_v2_canonical_consolidation.sql <<<
+-- ==============================================================================
+-- MIGRACIÓN 25: V2 CANONICAL CONSOLIDATION (GLOBAL SOVEREIGNTY, P2P, HANGAR, GARRISONS)
+-- ==============================================================================
+-- Proyecto: Tactical Command: Wars of Legacy — Metajuego Soberano V2
+-- Especificación: METAGAME_DESIGN/FINAL_AUDIT_AND_QUESTIONNAIRE.md
+-- ==============================================================================
+
+-- ------------------------------------------------------------------------------
+-- 0. COMPATIBILIDAD DE PERFILES Y CLANES
+-- ------------------------------------------------------------------------------
+ALTER TABLE public.clans
+    ADD COLUMN IF NOT EXISTS emblem_id VARCHAR(64) DEFAULT 'insignia_hawk',
+    ADD COLUMN IF NOT EXISTS banner_color VARCHAR(32) DEFAULT '#E63946';
+
+ALTER TABLE public.profiles
+    ADD COLUMN IF NOT EXISTS wallet_balance INTEGER DEFAULT 18500;
+
+UPDATE public.profiles 
+SET wallet_balance = battle_credits 
+WHERE wallet_balance IS NULL OR wallet_balance = 0;
+
+-- ------------------------------------------------------------------------------
+-- 1. TABLA: world_countries (Estados Geopolíticos Soberanos)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.world_countries (
+    iso_code VARCHAR(2) PRIMARY KEY,
+    name VARCHAR(96) NOT NULL,
+    continent VARCHAR(16) NOT NULL CHECK (continent IN ('EU', 'NA', 'SA', 'AS', 'AF', 'OC', 'MECA')),
+    coordinates JSONB NOT NULL DEFAULT '{"lat": 0, "lng": 0}'::jsonb,
+    defense_doctrine VARCHAR(64) NOT NULL DEFAULT 'balanced',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_world_countries_continent ON public.world_countries(continent);
+
+ALTER TABLE public.world_countries ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "world_countries_read_all" ON public.world_countries;
+CREATE POLICY "world_countries_read_all" ON public.world_countries FOR SELECT USING (true);
+
+-- ------------------------------------------------------------------------------
+-- 2. TABLA: world_provinces (Provincias Estratégicas y Capitales Capturables 2.0x)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.world_provinces (
+    id VARCHAR(32) PRIMARY KEY,
+    country_iso VARCHAR(2) NOT NULL REFERENCES public.world_countries(iso_code) ON DELETE CASCADE,
+    name VARCHAR(96) NOT NULL,
+    is_capital BOOLEAN NOT NULL DEFAULT false,
+    is_capturable BOOLEAN NOT NULL DEFAULT true,
+    base_terrain VARCHAR(32) NOT NULL CHECK (base_terrain IN (
+        'plains', 'mountain', 'desert', 'tundra', 'forest', 'archipelago'
+    )),
+    native_weather VARCHAR(32) NOT NULL CHECK (native_weather IN (
+        'clear', 'rain', 'snow', 'sandstorm'
+    )),
+    resource_multiplier NUMERIC(4, 2) NOT NULL DEFAULT 1.00 CHECK (resource_multiplier >= 1.00),
+    building_slots INTEGER NOT NULL DEFAULT 8 CHECK (building_slots BETWEEN 4 AND 16),
+    pos_x NUMERIC(5, 2) NOT NULL DEFAULT 50.00,
+    pos_y NUMERIC(5, 2) NOT NULL DEFAULT 50.00,
+    width NUMERIC(5, 2) NOT NULL DEFAULT 6.00,
+    height NUMERIC(5, 2) NOT NULL DEFAULT 5.00,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_world_provinces_country ON public.world_provinces(country_iso);
+CREATE INDEX IF NOT EXISTS idx_world_provinces_capital ON public.world_provinces(is_capital);
+
+ALTER TABLE public.world_provinces ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "world_provinces_read_all" ON public.world_provinces;
+CREATE POLICY "world_provinces_read_all" ON public.world_provinces FOR SELECT USING (true);
+
+-- ------------------------------------------------------------------------------
+-- 3. TABLA: territory_nodes (Nodos Estratégicos: Ciadadelas, Refinerías, Fábricas)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.territory_nodes (
+    id VARCHAR(48) PRIMARY KEY,
+    province_id VARCHAR(32) NOT NULL REFERENCES public.world_provinces(id) ON DELETE CASCADE,
+    name VARCHAR(96) NOT NULL,
+    node_type VARCHAR(32) NOT NULL CHECK (node_type IN (
+        'capital_citadel', 'city', 'factory', 'refinery', 'warehouse', 'comm_tower', 'radar', 'fortress'
+    )),
+    controller_clan_id UUID REFERENCES public.clans(id) ON DELETE SET NULL,
+    defense_level INTEGER NOT NULL DEFAULT 1 CHECK (defense_level BETWEEN 1 AND 5),
+    energy_upkeep INTEGER NOT NULL DEFAULT 50 CHECK (energy_upkeep >= 0),
+    structural_hp INTEGER NOT NULL DEFAULT 5000 CHECK (structural_hp >= 0),
+    max_hp INTEGER NOT NULL DEFAULT 5000 CHECK (max_hp > 0),
+    output_per_min INTEGER NOT NULL DEFAULT 30 CHECK (output_per_min >= 0),
+    is_under_attack BOOLEAN NOT NULL DEFAULT false,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_territory_nodes_province ON public.territory_nodes(province_id);
+CREATE INDEX IF NOT EXISTS idx_territory_nodes_clan ON public.territory_nodes(controller_clan_id);
+
+ALTER TABLE public.territory_nodes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "territory_nodes_read_all" ON public.territory_nodes;
+CREATE POLICY "territory_nodes_read_all" ON public.territory_nodes FOR SELECT USING (true);
+
+-- ------------------------------------------------------------------------------
+-- 4. TABLA: territory_adjacencies (Grafo Topológico de Expansión Estilo Risk)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.territory_adjacencies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    from_province_id VARCHAR(32) NOT NULL REFERENCES public.world_provinces(id) ON DELETE CASCADE,
+    to_province_id VARCHAR(32) NOT NULL REFERENCES public.world_provinces(id) ON DELETE CASCADE,
+    connection_type VARCHAR(32) NOT NULL CHECK (connection_type IN (
+        'land_open', 'land_choke', 'river', 'strait', 'sea_lane', 'air_corridor'
+    )),
+    is_blocked BOOLEAN NOT NULL DEFAULT false,
+    max_bandwidth_tons INTEGER NOT NULL DEFAULT 500,
+    toll_rate_percent NUMERIC(4, 2) NOT NULL DEFAULT 0.00 CHECK (toll_rate_percent BETWEEN 0.00 AND 10.00),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    CONSTRAINT uq_territory_adjacency UNIQUE (from_province_id, to_province_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_territory_adjacencies_from ON public.territory_adjacencies(from_province_id);
+CREATE INDEX IF NOT EXISTS idx_territory_adjacencies_to ON public.territory_adjacencies(to_province_id);
+
+ALTER TABLE public.territory_adjacencies ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "territory_adjacencies_read_all" ON public.territory_adjacencies;
+CREATE POLICY "territory_adjacencies_read_all" ON public.territory_adjacencies FOR SELECT USING (true);
+
+-- ------------------------------------------------------------------------------
+-- 5. TABLA: territory_control (Soberanía y Estado de Asedio en Tiempo Real)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.territory_control (
+    province_id VARCHAR(32) PRIMARY KEY REFERENCES public.world_provinces(id) ON DELETE CASCADE,
+    controlling_clan_id UUID REFERENCES public.clans(id) ON DELETE SET NULL,
+    controlling_alliance_id UUID DEFAULT NULL,
+    current_tcp INTEGER NOT NULL DEFAULT 10000 CHECK (current_tcp BETWEEN 0 AND 15000),
+    tcp_threshold INTEGER NOT NULL DEFAULT 10000,
+    status VARCHAR(24) NOT NULL DEFAULT 'stable' CHECK (status IN (
+        'stable', 'under_siege', 'disputed', 'cooldown_priority'
+    )),
+    cooldown_expires_at TIMESTAMPTZ DEFAULT NULL,
+    last_battle_at TIMESTAMPTZ DEFAULT NULL,
+    fortress_level INTEGER NOT NULL DEFAULT 0 CHECK (fortress_level BETWEEN 0 AND 5),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_territory_control_clan ON public.territory_control(controlling_clan_id);
+CREATE INDEX IF NOT EXISTS idx_territory_control_status ON public.territory_control(status);
+
+ALTER TABLE public.territory_control ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "territory_control_view_all" ON public.territory_control;
+CREATE POLICY "territory_control_view_all" ON public.territory_control FOR SELECT USING (true);
+
+-- ------------------------------------------------------------------------------
+-- 6. TABLA: corporate_subsidiaries (Tope de Máximo 10 Clanes por Corporación)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.corporate_subsidiaries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    parent_corp_id UUID NOT NULL REFERENCES public.clans(id) ON DELETE CASCADE,
+    subsidiary_clan_id UUID NOT NULL REFERENCES public.clans(id) ON DELETE CASCADE,
+    tribute_rate_percent NUMERIC(5, 2) NOT NULL DEFAULT 10.00 CHECK (tribute_rate_percent BETWEEN 5.00 AND 25.00),
+    autonomous_market_allowed BOOLEAN NOT NULL DEFAULT true,
+    status VARCHAR(16) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'grace_period', 'seceded')),
+    grace_expires_at TIMESTAMPTZ DEFAULT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    CONSTRAINT uq_subsidiary_clan UNIQUE (subsidiary_clan_id),
+    CONSTRAINT chk_no_self_subsidiary CHECK (parent_corp_id <> subsidiary_clan_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_corporate_subsidiaries_parent ON public.corporate_subsidiaries(parent_corp_id);
+CREATE INDEX IF NOT EXISTS idx_corporate_subsidiaries_sub ON public.corporate_subsidiaries(subsidiary_clan_id);
+
+ALTER TABLE public.corporate_subsidiaries ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "corporate_subsidiaries_view_all" ON public.corporate_subsidiaries;
+CREATE POLICY "corporate_subsidiaries_view_all" ON public.corporate_subsidiaries FOR SELECT USING (true);
+
+CREATE OR REPLACE FUNCTION public.check_corporate_clan_limit()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_clan_count INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO v_clan_count
+    FROM public.corporate_subsidiaries
+    WHERE parent_corp_id = NEW.parent_corp_id
+      AND status = 'active'
+      AND id <> COALESCE(NEW.id, '00000000-0000-0000-0000-000000000000'::uuid);
+
+    IF v_clan_count >= 10 THEN
+        RAISE EXCEPTION 'Límite de gobernanza alcanzado: Una Corporación Matriz no puede exceder 10 clanes federados (Actual: %)', v_clan_count;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_check_corporate_clan_limit ON public.corporate_subsidiaries;
+CREATE TRIGGER trg_check_corporate_clan_limit
+    BEFORE INSERT OR UPDATE OF parent_corp_id, status
+    ON public.corporate_subsidiaries
+    FOR EACH ROW
+    WHEN (NEW.status = 'active')
+    EXECUTE FUNCTION public.check_corporate_clan_limit();
+
+-- ------------------------------------------------------------------------------
+-- 7. TABLA: user_unit_hangar (Stock Físico de Unidades en Escala 1-100 HP)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.user_unit_hangar (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    clan_id UUID REFERENCES public.clans(id) ON DELETE SET NULL,
+    unit_code VARCHAR(32) NOT NULL,
+    tier INTEGER NOT NULL DEFAULT 1 CHECK (tier BETWEEN 1 AND 5),
+    level INTEGER NOT NULL DEFAULT 1 CHECK (level BETWEEN 1 AND 5),
+    hp INTEGER NOT NULL DEFAULT 100 CHECK (hp BETWEEN 1 AND 100),
+    quantity INTEGER NOT NULL DEFAULT 1 CHECK (quantity >= 0),
+    location_province_id VARCHAR(32) REFERENCES public.world_provinces(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_unit_hangar_user ON public.user_unit_hangar(user_id, unit_code, tier);
+CREATE INDEX IF NOT EXISTS idx_user_unit_hangar_location ON public.user_unit_hangar(location_province_id);
+
+ALTER TABLE public.user_unit_hangar ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "user_unit_hangar_own" ON public.user_unit_hangar;
+CREATE POLICY "user_unit_hangar_own" ON public.user_unit_hangar 
+    FOR ALL USING ((SELECT auth.uid()) = user_id);
+
+-- ------------------------------------------------------------------------------
+-- 8. TABLA: user_patents (Patentes Tecnológicas Permanentes T1-T5)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.user_patents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    patent_code VARCHAR(64) NOT NULL,
+    tier INTEGER NOT NULL DEFAULT 1 CHECK (tier BETWEEN 1 AND 5),
+    unlocked_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    CONSTRAINT uq_user_patent UNIQUE (user_id, patent_code, tier)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_patents_user ON public.user_patents(user_id);
+
+ALTER TABLE public.user_patents ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "user_patents_own" ON public.user_patents;
+CREATE POLICY "user_patents_own" ON public.user_patents 
+    FOR ALL USING ((SELECT auth.uid()) = user_id);
+
+-- ------------------------------------------------------------------------------
+-- 9. TABLA: garrison_deployments (Búnkeres IA Nivel 1 a 5 con Envejecimiento)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.garrison_deployments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    province_id VARCHAR(32) NOT NULL REFERENCES public.world_provinces(id) ON DELETE CASCADE,
+    region_id VARCHAR(32) GENERATED ALWAYS AS (province_id) STORED,
+    owning_clan_id UUID NOT NULL REFERENCES public.clans(id) ON DELETE CASCADE,
+    commander_name VARCHAR(96) NOT NULL DEFAULT 'Comandante de Guarnición',
+    garrison_level INTEGER NOT NULL DEFAULT 1 CHECK (garrison_level BETWEEN 1 AND 5),
+    ai_engine_tier VARCHAR(16) NOT NULL DEFAULT 'easy' CHECK (ai_engine_tier IN (
+        'easy', 'normal', 'hard', 'chess', 'mcts_legendary'
+    )),
+    hourly_upkeep_ec INTEGER NOT NULL DEFAULT 150 CHECK (hourly_upkeep_ec >= 0),
+    is_legendary BOOLEAN NOT NULL DEFAULT false,
+    service_started_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    retirement_due_at TIMESTAMPTZ DEFAULT NULL,
+    expires_at TIMESTAMPTZ DEFAULT NULL,
+    current_chassis_stock JSONB NOT NULL DEFAULT '[]'::jsonb,
+    is_under_attack BOOLEAN NOT NULL DEFAULT false,
+    handshake_deadline TIMESTAMPTZ DEFAULT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    CONSTRAINT uq_province_garrison UNIQUE (province_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_garrison_deployments_province ON public.garrison_deployments(province_id);
+CREATE INDEX IF NOT EXISTS idx_garrison_deployments_clan ON public.garrison_deployments(owning_clan_id);
+
+ALTER TABLE public.garrison_deployments ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "garrison_deployments_view_all" ON public.garrison_deployments;
+CREATE POLICY "garrison_deployments_view_all" ON public.garrison_deployments FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "garrison_deployments_modify_clan" ON public.garrison_deployments;
+CREATE POLICY "garrison_deployments_modify_clan" ON public.garrison_deployments 
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM public.clan_members 
+            WHERE clan_members.clan_id = garrison_deployments.owning_clan_id 
+              AND clan_members.user_id = (SELECT auth.uid())
+              AND clan_members.role IN ('leader', 'co_leader', 'officer')
+        )
+    );
+
+-- ------------------------------------------------------------------------------
+-- 10. TABLA: p2p_market_orders (Mercado P2P Transaccional V2)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.p2p_market_orders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    seller_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    buyer_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    origin_province_id VARCHAR(32) REFERENCES public.world_provinces(id) ON DELETE SET NULL,
+    province_terminal_id VARCHAR(32) REFERENCES public.world_provinces(id) ON DELETE SET NULL,
+    item_category VARCHAR(32) NOT NULL CHECK (item_category IN (
+        'raw_resource', 'refined_material', 'patent_blueprint', 'buff_consumable', 'unit_chassis', 'cosmetic'
+    )),
+    item_code VARCHAR(64) NOT NULL,
+    tier INTEGER NOT NULL DEFAULT 1 CHECK (tier BETWEEN 1 AND 5),
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    unit_price_ec INTEGER NOT NULL CHECK (unit_price_ec > 0),
+    total_price_ec INTEGER NOT NULL CHECK (total_price_ec > 0),
+    platform_burn_ec INTEGER NOT NULL DEFAULT 0,
+    province_royalty_ec INTEGER NOT NULL DEFAULT 0,
+    net_seller_revenue_ec INTEGER NOT NULL DEFAULT 0,
+    status VARCHAR(16) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed', 'cancelled')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    completed_at TIMESTAMPTZ DEFAULT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_p2p_orders_seller ON public.p2p_market_orders(seller_id);
+CREATE INDEX IF NOT EXISTS idx_p2p_orders_category ON public.p2p_market_orders(item_category, tier);
+CREATE INDEX IF NOT EXISTS idx_p2p_orders_terminal ON public.p2p_market_orders(province_terminal_id);
+CREATE INDEX IF NOT EXISTS idx_p2p_orders_status ON public.p2p_market_orders(status);
+
+ALTER TABLE public.p2p_market_orders ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "p2p_market_orders_view" ON public.p2p_market_orders;
+CREATE POLICY "p2p_market_orders_view" ON public.p2p_market_orders FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "p2p_market_orders_manage_own" ON public.p2p_market_orders;
+CREATE POLICY "p2p_market_orders_manage_own" ON public.p2p_market_orders 
+    FOR ALL USING ((SELECT auth.uid()) = seller_id);
+
+-- ------------------------------------------------------------------------------
+-- 11. RPC: execute_territory_attack_declaration (Declaración de Asedio Risk)
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.execute_territory_attack_declaration(
+    p_origin_province_id VARCHAR(32),
+    p_target_province_id VARCHAR(32),
+    p_attacker_clan_id UUID
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_adj_exists BOOLEAN;
+    v_origin_control public.territory_control%ROWTYPE;
+    v_target_control public.territory_control%ROWTYPE;
+    v_target_province public.world_provinces%ROWTYPE;
+    v_now TIMESTAMPTZ := timezone('utc'::text, now());
+BEGIN
+    IF (SELECT auth.uid()) IS NULL THEN
+        RETURN jsonb_build_object('success', false, 'error', 'No autenticado');
+    END IF;
+
+    SELECT * INTO v_target_province
+    FROM public.world_provinces
+    WHERE id = p_target_province_id;
+
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Provincia objetivo no encontrada');
+    END IF;
+
+    SELECT EXISTS (
+        SELECT 1 FROM public.territory_adjacencies
+        WHERE ((from_province_id = p_origin_province_id AND to_province_id = p_target_province_id)
+            OR (from_province_id = p_target_province_id AND to_province_id = p_origin_province_id))
+          AND is_blocked = false
+    ) INTO v_adj_exists;
+
+    IF NOT v_adj_exists THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Infracción de Adyacencia: Las provincias no están conectadas en el grafo táctico.');
+    END IF;
+
+    SELECT * INTO v_origin_control
+    FROM public.territory_control
+    WHERE province_id = p_origin_province_id;
+
+    IF v_origin_control.controlling_clan_id IS DISTINCT FROM p_attacker_clan_id THEN
+        RETURN jsonb_build_object('success', false, 'error', 'El clan atacante no posee soberanía sobre la provincia de vanguardia.');
+    END IF;
+
+    SELECT * INTO v_target_control
+    FROM public.territory_control
+    WHERE province_id = p_target_province_id
+    FOR UPDATE;
+
+    IF v_target_control.status = 'cooldown_priority' AND v_target_control.cooldown_expires_at > v_now THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Provincia bajo escudo temporal anti-steamroll post-conquista.');
+    END IF;
+
+    IF v_target_control.controlling_clan_id = p_attacker_clan_id THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Tu clan ya posee la soberanía de esta provincia.');
+    END IF;
+
+    UPDATE public.territory_control
+    SET status = 'under_siege',
+        last_battle_at = v_now,
+        updated_at = v_now
+    WHERE province_id = p_target_province_id;
+
+    UPDATE public.territory_nodes
+    SET is_under_attack = true,
+        updated_at = v_now
+    WHERE province_id = p_target_province_id;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'message', 'Asedio declarado con éxito.',
+        'target_province_id', p_target_province_id,
+        'is_capital', v_target_province.is_capital,
+        'resource_multiplier', v_target_province.resource_multiplier,
+        'status', 'under_siege'
+    );
+END;
+$$;
+
+-- ------------------------------------------------------------------------------
+-- 12. RPC: execute_p2p_market_transaction (Split 2%: 1% Sink + 1% Regalía)
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.execute_p2p_market_transaction(p_order_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_buyer_id UUID := (SELECT auth.uid());
+    v_order public.p2p_market_orders%ROWTYPE;
+    v_buyer_profile public.profiles%ROWTYPE;
+    v_seller_profile public.profiles%ROWTYPE;
+    v_territory public.territory_control%ROWTYPE;
+    v_tax_total INTEGER;
+    v_burn_ec INTEGER;
+    v_royalty_ec INTEGER;
+    v_net_payout INTEGER;
+    v_now TIMESTAMPTZ := timezone('utc'::text, now());
+BEGIN
+    IF v_buyer_id IS NULL THEN
+        RETURN jsonb_build_object('success', false, 'error', 'No autenticado');
+    END IF;
+
+    SELECT * INTO v_order
+    FROM public.p2p_market_orders
+    WHERE id = p_order_id AND status = 'active'
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Orden no disponible o ya finalizada');
+    END IF;
+
+    IF v_order.seller_id = v_buyer_id THEN
+        RETURN jsonb_build_object('success', false, 'error', 'No puedes comprar tu propia orden');
+    END IF;
+
+    IF v_buyer_id < v_order.seller_id THEN
+        SELECT * INTO v_buyer_profile FROM public.profiles WHERE id = v_buyer_id FOR UPDATE;
+        SELECT * INTO v_seller_profile FROM public.profiles WHERE id = v_order.seller_id FOR UPDATE;
+    ELSE
+        SELECT * INTO v_seller_profile FROM public.profiles WHERE id = v_order.seller_id FOR UPDATE;
+        SELECT * INTO v_buyer_profile FROM public.profiles WHERE id = v_buyer_id FOR UPDATE;
+    END IF;
+
+    IF v_buyer_profile.battle_credits < v_order.total_price_ec THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Créditos de batalla insuficientes');
+    END IF;
+
+    v_tax_total := FLOOR(v_order.total_price_ec * 0.02);
+    v_burn_ec := FLOOR(v_order.total_price_ec * 0.01);
+    v_royalty_ec := v_tax_total - v_burn_ec;
+    v_net_payout := v_order.total_price_ec - v_tax_total;
+
+    PERFORM set_config('app.bypass_profile_guard', 'on', true);
+
+    UPDATE public.profiles
+    SET battle_credits = battle_credits - v_order.total_price_ec,
+        wallet_balance = battle_credits - v_order.total_price_ec,
+        updated_at = v_now
+    WHERE id = v_buyer_id;
+
+    UPDATE public.profiles
+    SET battle_credits = battle_credits + v_net_payout,
+        wallet_balance = battle_credits + v_net_payout,
+        updated_at = v_now
+    WHERE id = v_order.seller_id;
+
+    IF v_order.province_terminal_id IS NOT NULL AND v_royalty_ec > 0 THEN
+        SELECT * INTO v_territory FROM public.territory_control
+        WHERE province_id = v_order.province_terminal_id;
+
+        IF FOUND AND v_territory.controlling_clan_id IS NOT NULL THEN
+            UPDATE public.clans
+            SET treasury_gold = treasury_gold + v_royalty_ec
+            WHERE id = v_territory.controlling_clan_id;
+        END IF;
+    END IF;
+
+    IF v_order.item_category = 'unit_chassis' THEN
+        INSERT INTO public.user_unit_hangar (
+            user_id, unit_code, tier, level, hp, quantity, location_province_id
+        ) VALUES (
+            v_buyer_id, v_order.item_code, v_order.tier, 1, 100, v_order.quantity, v_order.province_terminal_id
+        );
+    END IF;
+
+    UPDATE public.p2p_market_orders
+    SET buyer_id = v_buyer_id,
+        platform_burn_ec = v_burn_ec,
+        province_royalty_ec = v_royalty_ec,
+        net_seller_revenue_ec = v_net_payout,
+        status = 'completed',
+        completed_at = v_now
+    WHERE id = p_order_id;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'order_id', p_order_id,
+        'total_price_ec', v_order.total_price_ec,
+        'platform_burn_ec', v_burn_ec,
+        'province_royalty_ec', v_royalty_ec,
+        'seller_received', v_net_payout
+    );
+END;
+$$;
+
+-- ------------------------------------------------------------------------------
+-- 13. RPC: deploy_reinforcements_to_battle (1 Solicitud / Latencia 4 Rondas T+4)
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.deploy_reinforcements_to_battle(
+    p_match_id UUID,
+    p_player_id UUID,
+    p_unit_hangar_id UUID,
+    p_current_turn INTEGER
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_hangar public.user_unit_hangar%ROWTYPE;
+    v_arrival_turn INTEGER := p_current_turn + 4;
+    v_now TIMESTAMPTZ := timezone('utc'::text, now());
+BEGIN
+    IF (SELECT auth.uid()) IS NULL OR (SELECT auth.uid()) <> p_player_id THEN
+        RETURN jsonb_build_object('success', false, 'error', 'No autorizado');
+    END IF;
+
+    SELECT * INTO v_hangar
+    FROM public.user_unit_hangar
+    WHERE id = p_unit_hangar_id AND user_id = p_player_id
+    FOR UPDATE;
+
+    IF NOT FOUND OR v_hangar.quantity < 1 THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Unidad de hangar no disponible.');
+    END IF;
+
+    UPDATE public.user_unit_hangar
+    SET quantity = quantity - 1,
+        updated_at = v_now
+    WHERE id = p_unit_hangar_id;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'match_id', p_match_id,
+        'player_id', p_player_id,
+        'unit_code', v_hangar.unit_code,
+        'tier', v_hangar.tier,
+        'requested_turn', p_current_turn,
+        'arrival_turn', v_arrival_turn,
+        'reinforcement_delay', 4,
+        'remaining_quantity', v_hangar.quantity - 1
+    );
+END;
+$$;
+
+-- ------------------------------------------------------------------------------
+-- 14. RPC: calculate_and_apply_territorial_upkeep (Consumo y Penalización)
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.calculate_and_apply_territorial_upkeep(p_clan_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_total_nodes INTEGER := 0;
+    v_total_upkeep_ec INTEGER := 0;
+    v_clan public.clans%ROWTYPE;
+    v_overexpansion_penalty NUMERIC(4, 2) := 0.00;
+    v_now TIMESTAMPTZ := timezone('utc'::text, now());
+BEGIN
+    SELECT * INTO v_clan FROM public.clans WHERE id = p_clan_id FOR UPDATE;
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Clan no encontrado');
+    END IF;
+
+    SELECT COUNT(*), COALESCE(SUM(energy_upkeep), 0)
+    INTO v_total_nodes, v_total_upkeep_ec
+    FROM public.territory_nodes
+    WHERE controller_clan_id = p_clan_id;
+
+    IF v_total_nodes > 10 THEN
+        v_overexpansion_penalty := LEAST(0.55, 0.05 * (v_total_nodes - 10));
+        v_total_upkeep_ec := FLOOR(v_total_upkeep_ec * (1 + v_overexpansion_penalty));
+    END IF;
+
+    UPDATE public.clans
+    SET treasury_gold = GREATEST(0, treasury_gold - v_total_upkeep_ec),
+        updated_at = v_now
+    WHERE id = p_clan_id;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'clan_id', p_clan_id,
+        'total_nodes', v_total_nodes,
+        'base_upkeep_ec', v_total_upkeep_ec,
+        'overexpansion_penalty', v_overexpansion_penalty,
+        'remaining_treasury', GREATEST(0, v_clan.treasury_gold - v_total_upkeep_ec)
+    );
+END;
+$$;
+
+-- ------------------------------------------------------------------------------
+-- 15. RPC: rpc_spin_daily_wheel (Ruleta Diaria Criptográficamente Segura)
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.rpc_spin_daily_wheel(p_user_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_user public.profiles%ROWTYPE;
+    v_roll NUMERIC;
+    v_reward_type VARCHAR(32);
+    v_reward_amount INTEGER;
+    v_reward_label VARCHAR(64);
+    v_now TIMESTAMPTZ := timezone('utc'::text, now());
+BEGIN
+    IF (SELECT auth.uid()) IS NULL OR (SELECT auth.uid()) <> p_user_id THEN
+        RETURN jsonb_build_object('success', false, 'error', 'No autorizado');
+    END IF;
+
+    SELECT * INTO v_user FROM public.profiles WHERE id = p_user_id FOR UPDATE;
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Perfil no encontrado');
+    END IF;
+
+    v_roll := random() * 100;
+    IF v_roll < 50 THEN
+        v_reward_type := 'credits';
+        v_reward_amount := 500;
+        v_reward_label := '500 Créditos Tácticos';
+    ELSIF v_roll < 80 THEN
+        v_reward_type := 'credits';
+        v_reward_amount := 1200;
+        v_reward_label := '1,200 Créditos Tácticos';
+    ELSIF v_roll < 95 THEN
+        v_reward_type := 'gems';
+        v_reward_amount := 25;
+        v_reward_label := '25 Gemas de Mando';
+    ELSE
+        v_reward_type := 'gems';
+        v_reward_amount := 100;
+        v_reward_label := '100 Gemas Legendarias';
+    END IF;
+
+    PERFORM set_config('app.bypass_profile_guard', 'on', true);
+
+    IF v_reward_type = 'credits' THEN
+        UPDATE public.profiles
+        SET battle_credits = battle_credits + v_reward_amount,
+            wallet_balance = battle_credits + v_reward_amount,
+            updated_at = v_now
+        WHERE id = p_user_id;
+    ELSE
+        UPDATE public.profiles
+        SET command_gems = command_gems + v_reward_amount,
+            updated_at = v_now
+        WHERE id = p_user_id;
+    END IF;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'reward_type', v_reward_type,
+        'reward_amount', v_reward_amount,
+        'reward_label', v_reward_label,
+        'wallet_balance', v_user.battle_credits + (CASE WHEN v_reward_type = 'credits' THEN v_reward_amount ELSE 0 END)
+    );
+END;
+$$;
+
+-- ------------------------------------------------------------------------------
+-- 16. PERMISOS Y REVOCACIONES SEGURAS (Lints 0028/0029)
+-- ------------------------------------------------------------------------------
+REVOKE EXECUTE ON FUNCTION public.execute_territory_attack_declaration FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.execute_territory_attack_declaration TO authenticated;
+
+REVOKE EXECUTE ON FUNCTION public.execute_p2p_market_transaction FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.execute_p2p_market_transaction TO authenticated;
+
+REVOKE EXECUTE ON FUNCTION public.deploy_reinforcements_to_battle FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.deploy_reinforcements_to_battle TO authenticated;
+
+REVOKE EXECUTE ON FUNCTION public.calculate_and_apply_territorial_upkeep FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.calculate_and_apply_territorial_upkeep TO authenticated;
+
+REVOKE EXECUTE ON FUNCTION public.rpc_spin_daily_wheel FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.rpc_spin_daily_wheel TO authenticated;
+
+-- ------------------------------------------------------------------------------
+-- 17. PUBLICACIÓN REALTIME
+-- ------------------------------------------------------------------------------
+DO $$ BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.territory_control, public.p2p_market_orders;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
+
+-- ------------------------------------------------------------------------------
+-- 18. SEMILLAS CANÓNICAS DE MUNDO Y CLANES SOBERANOS
+-- ------------------------------------------------------------------------------
+-- Clanes Canónicos
+INSERT INTO public.clans (id, name, tag, description, emblem_id, banner_color, treasury_gold)
+VALUES
+    ('c0000000-0000-0000-0000-000000000001', 'Iron Vanguard Syndicate', 'IVS', 'Sindicato de Blindados Pesados de la Costa Atlántica', 'insignia_hawk', '#E63946', 50000),
+    ('c0000000-0000-0000-0000-000000000002', 'Solar Energy Combine', 'SEC', 'Monopolio de Reactores de Fusión y Tecnología Sonora', 'insignia_eagle', '#F4A261', 75000),
+    ('c0000000-0000-0000-0000-000000000003', 'Cyber Cossacks League', 'CCL', 'Legión Mecanizada de Vanguardia Siberiana', 'insignia_wolf', '#2A9D8F', 40000)
+ON CONFLICT (id) DO UPDATE
+SET name = EXCLUDED.name, tag = EXCLUDED.tag, treasury_gold = EXCLUDED.treasury_gold;
+
+-- Países
+INSERT INTO public.world_countries (iso_code, name, continent, coordinates, defense_doctrine)
+VALUES
+    ('ES', 'Reino de España', 'EU', '{"lat": 40.4637, "lng": -3.7492}'::jsonb, 'armored_infantry'),
+    ('US', 'Estados Unidos', 'NA', '{"lat": 37.0902, "lng": -95.7129}'::jsonb, 'aerospace_heavy'),
+    ('JP', 'Japón', 'AS', '{"lat": 36.2048, "lng": 138.2529}'::jsonb, 'high_tech_naval'),
+    ('DE', 'Alemania', 'EU', '{"lat": 51.1657, "lng": 10.4515}'::jsonb, 'blitz_mechanized'),
+    ('FR', 'Francia', 'EU', '{"lat": 46.2276, "lng": 2.2137}'::jsonb, 'artillery_doctrinal'),
+    ('GB', 'Reino Unido', 'EU', '{"lat": 55.3781, "lng": -3.4360}'::jsonb, 'naval_supremacy'),
+    ('EG', 'Egipto', 'AF', '{"lat": 26.8206, "lng": 30.8025}'::jsonb, 'chokepoint_fortified'),
+    ('BR', 'Brasil', 'SA', '{"lat": -14.2350, "lng": -51.9253}'::jsonb, 'jungle_commando'),
+    ('AU', 'Australia', 'OC', '{"lat": -25.2744, "lng": 133.7751}'::jsonb, 'desert_recon')
+ON CONFLICT (iso_code) DO UPDATE
+SET name = EXCLUDED.name, continent = EXCLUDED.continent;
+
+-- Provincias con Capitales Capturables 2.0x
+INSERT INTO public.world_provinces (
+    id, country_iso, name, is_capital, is_capturable, base_terrain, native_weather,
+    resource_multiplier, building_slots, pos_x, pos_y, width, height
+)
+VALUES
+    -- ESPAÑA
+    ('ES_MADRID', 'ES', 'Madrid Central', true, true, 'plains', 'clear', 2.00, 16, 46.00, 42.00, 6.00, 5.00),
+    ('ES_CATALUNA', 'ES', 'Cataluña & Ebro', false, true, 'archipelago', 'clear', 1.25, 10, 52.00, 39.00, 7.00, 6.00),
+    ('ES_ANDALUCIA', 'ES', 'Andalucía & Estrecho', false, true, 'desert', 'clear', 1.30, 10, 44.00, 48.00, 8.00, 6.00),
+    ('ES_PAIS_VASCO', 'ES', 'País Vasco & Cantábrico', false, true, 'mountain', 'rain', 1.35, 10, 47.00, 36.00, 6.00, 4.00),
+    ('ES_GALICIA', 'ES', 'Galicia Atlántica', false, true, 'forest', 'rain', 1.15, 8, 38.00, 37.00, 6.00, 5.00),
+
+    -- ESTADOS UNIDOS
+    ('US_WASHINGTON', 'US', 'Washington D.C.', true, true, 'plains', 'clear', 2.00, 16, 26.00, 38.00, 6.00, 5.00),
+    ('US_CALIFORNIA', 'US', 'California & Costa Oeste', false, true, 'archipelago', 'clear', 1.50, 12, 14.00, 40.00, 8.00, 8.00),
+    ('US_TEXAS', 'US', 'Texas Cuenca Energética', false, true, 'desert', 'sandstorm', 1.45, 12, 20.00, 46.00, 8.00, 7.00),
+    ('US_ALASKA', 'US', 'Alaska Ártica', false, true, 'tundra', 'snow', 1.40, 8, 12.00, 20.00, 9.00, 8.00),
+
+    -- ALEMANIA
+    ('DE_BERLIN', 'DE', 'Berlín Metropolitana', true, true, 'plains', 'clear', 2.00, 16, 54.00, 33.00, 6.00, 5.00),
+    ('DE_RUHR', 'DE', 'Renania & Cuenca del Ruhr', false, true, 'forest', 'rain', 1.50, 12, 51.00, 34.00, 6.00, 5.00),
+    ('DE_BAVIERA', 'DE', 'Baviera & Alpes', false, true, 'mountain', 'snow', 1.30, 10, 53.00, 37.00, 7.00, 6.00),
+
+    -- JAPÓN
+    ('JP_TOKYO', 'JP', 'Tokio Central', true, true, 'archipelago', 'clear', 2.00, 16, 82.00, 41.00, 6.00, 5.00),
+    ('JP_OSAKA', 'JP', 'Kansai & Osaka', false, true, 'archipelago', 'clear', 1.35, 10, 80.00, 43.00, 5.00, 5.00),
+    ('JP_HOKKAIDO', 'JP', 'Hokkaido Norte', false, true, 'tundra', 'snow', 1.25, 8, 83.00, 36.00, 6.00, 6.00),
+
+    -- EGIPTO
+    ('EG_CAIRO', 'EG', 'El Cairo & Delta', true, true, 'desert', 'sandstorm', 2.00, 16, 58.00, 46.00, 6.00, 5.00),
+    ('EG_SINAI', 'EG', 'Sinaí & Canal de Suez', false, true, 'desert', 'sandstorm', 1.60, 12, 61.00, 47.00, 6.00, 6.00),
+
+    -- REINO UNIDO
+    ('GB_LONDON', 'GB', 'Gran Londres', true, true, 'plains', 'rain', 2.00, 16, 48.00, 32.00, 5.00, 5.00),
+    ('GB_SCOTLAND', 'GB', 'Escocia & Mar del Norte', false, true, 'mountain', 'snow', 1.25, 8, 47.00, 27.00, 6.00, 6.00),
+
+    -- FRANCIA
+    ('FR_PARIS', 'FR', 'París Isla de Francia', true, true, 'plains', 'clear', 2.00, 16, 48.00, 36.00, 6.00, 5.00),
+    ('FR_MARSELLA', 'FR', 'Provenza & Costa Azul', false, true, 'archipelago', 'clear', 1.20, 10, 50.00, 40.00, 6.00, 5.00),
+
+    -- BRASIL
+    ('BR_BRASILIA', 'BR', 'Distrito Federal Brasilia', true, true, 'plains', 'clear', 2.00, 16, 34.00, 65.00, 6.00, 5.00),
+    ('BR_AMAZONAS', 'BR', 'Amazonas Cuenca Fluvial', false, true, 'forest', 'rain', 1.40, 10, 30.00, 60.00, 9.00, 8.00),
+
+    -- AUSTRALIA
+    ('AU_CANBERRA', 'AU', 'Canberra & Sídney', true, true, 'plains', 'clear', 2.00, 16, 84.00, 75.00, 6.00, 6.00),
+    ('AU_OUTBACK', 'AU', 'Outback Mineral', false, true, 'desert', 'sandstorm', 1.45, 10, 80.00, 72.00, 10.00, 9.00)
+ON CONFLICT (id) DO UPDATE
+SET name = EXCLUDED.name,
+    is_capital = EXCLUDED.is_capital,
+    is_capturable = EXCLUDED.is_capturable,
+    resource_multiplier = EXCLUDED.resource_multiplier,
+    building_slots = EXCLUDED.building_slots,
+    pos_x = EXCLUDED.pos_x,
+    pos_y = EXCLUDED.pos_y,
+    width = EXCLUDED.width,
+    height = EXCLUDED.height;
+
+-- Adyacencias
+INSERT INTO public.territory_adjacencies (from_province_id, to_province_id, connection_type, max_bandwidth_tons)
+VALUES
+    ('ES_MADRID', 'ES_CATALUNA', 'land_open', 800),
+    ('ES_MADRID', 'ES_ANDALUCIA', 'land_open', 800),
+    ('ES_MADRID', 'ES_PAIS_VASCO', 'land_open', 700),
+    ('ES_MADRID', 'ES_GALICIA', 'land_open', 600),
+    ('ES_CATALUNA', 'ES_PAIS_VASCO', 'land_open', 600),
+    ('ES_ANDALUCIA', 'ES_CATALUNA', 'land_open', 500),
+    ('ES_GALICIA', 'ES_PAIS_VASCO', 'land_open', 500),
+    ('ES_CATALUNA', 'FR_MARSELLA', 'land_open', 700),
+    ('ES_PAIS_VASCO', 'FR_PARIS', 'land_open', 600),
+    ('FR_PARIS', 'FR_MARSELLA', 'land_open', 900),
+    ('FR_PARIS', 'GB_LONDON', 'strait', 500),
+    ('GB_LONDON', 'GB_SCOTLAND', 'land_open', 600),
+    ('FR_PARIS', 'DE_RUHR', 'land_open', 800),
+    ('FR_MARSELLA', 'DE_BAVIERA', 'land_choke', 500),
+    ('DE_BERLIN', 'DE_RUHR', 'land_open', 800),
+    ('DE_BERLIN', 'DE_BAVIERA', 'land_open', 700),
+    ('DE_RUHR', 'DE_BAVIERA', 'land_open', 750),
+    ('ES_ANDALUCIA', 'EG_CAIRO', 'sea_lane', 400),
+    ('EG_CAIRO', 'EG_SINAI', 'strait', 600),
+    ('US_WASHINGTON', 'US_TEXAS', 'land_open', 900),
+    ('US_TEXAS', 'US_CALIFORNIA', 'land_open', 850),
+    ('US_CALIFORNIA', 'US_ALASKA', 'sea_lane', 400),
+    ('JP_TOKYO', 'JP_OSAKA', 'land_open', 900),
+    ('JP_TOKYO', 'JP_HOKKAIDO', 'strait', 600)
+ON CONFLICT (from_province_id, to_province_id) DO NOTHING;
+
+-- Control Territorial Inicial
+INSERT INTO public.territory_control (province_id, controlling_clan_id, current_tcp, tcp_threshold, status)
+VALUES
+    ('ES_MADRID', 'c0000000-0000-0000-0000-000000000001', 12000, 10000, 'stable'),
+    ('ES_CATALUNA', 'c0000000-0000-0000-0000-000000000001', 9500, 10000, 'stable'),
+    ('ES_ANDALUCIA', 'c0000000-0000-0000-0000-000000000002', 10000, 10000, 'stable'),
+    ('DE_BERLIN', 'c0000000-0000-0000-0000-000000000002', 14000, 10000, 'stable'),
+    ('DE_RUHR', 'c0000000-0000-0000-0000-000000000002', 11000, 10000, 'stable'),
+    ('JP_TOKYO', 'c0000000-0000-0000-0000-000000000003', 15000, 10000, 'stable'),
+    ('US_WASHINGTON', 'c0000000-0000-0000-0000-000000000001', 13500, 10000, 'stable')
+ON CONFLICT (province_id) DO UPDATE
+SET controlling_clan_id = EXCLUDED.controlling_clan_id,
+    current_tcp = EXCLUDED.current_tcp,
+    status = EXCLUDED.status;
+
+-- >>> FIN MIGRACIÓN: 20261103000003_v2_canonical_consolidation.sql <<<
+
+
+-- >>> INICIO MIGRACIÓN: 20261104000001_geotactics_alpha_siege_and_venezuela_seed.sql <<<
+-- ==============================================================================
+-- MIGRACIÓN 26: GEOTACTICS ALICE ENGINE & TEATRO VENEZUELA (v0.0.1-alfa)
+-- ==============================================================================
+-- Proyecto: GEOTACTICS: ONLINE (v0.0.1-alfa)
+-- Especificación: docs/00_GEOTACTICS_ONLINE_MASTER_SPEC.md & docs/MIGRATION_AND_LEGACY_PURGE_PLAN.md
+-- ==============================================================================
+
+-- ------------------------------------------------------------------------------
+-- 1. ACTUALIZAR / ASEGURAR PAÍSES DEL TEATRO (world_countries)
+-- ------------------------------------------------------------------------------
+INSERT INTO public.world_countries (iso_code, name, continent, coordinates, defense_doctrine)
+VALUES
+    ('VE', 'República de Venezuela', 'SA', '{"lat": 10.4806, "lng": -66.9036}'::jsonb, 'fortress'),
+    ('CO', 'República de Colombia', 'SA', '{"lat": 4.7110, "lng": -74.0721}'::jsonb, 'mobile'),
+    ('BR', 'República Federativa del Brasil', 'SA', '{"lat": -15.7975, "lng": -47.8919}'::jsonb, 'heavy_armor'),
+    ('GY', 'República Cooperativa de Guyana', 'SA', '{"lat": 6.8013, "lng": -58.1551}'::jsonb, 'balanced'),
+    ('TT', 'República de Trinidad y Tobago', 'SA', '{"lat": 10.6918, "lng": -61.2225}'::jsonb, 'maritime'),
+    ('CW', 'Curazao y Antillas Neerlandesas', 'SA', '{"lat": 12.1696, "lng": -68.9900}'::jsonb, 'maritime')
+ON CONFLICT (iso_code) DO UPDATE SET
+    name = EXCLUDED.name,
+    continent = EXCLUDED.continent,
+    coordinates = EXCLUDED.coordinates,
+    defense_doctrine = EXCLUDED.defense_doctrine;
+
+-- ------------------------------------------------------------------------------
+-- 2. TABLA: regions (Topología Geopolítica Alice de GEOTACTICS)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.regions (
+    id TEXT PRIMARY KEY,
+    country_iso VARCHAR(2) NOT NULL REFERENCES public.world_countries(iso_code) ON DELETE RESTRICT,
+    name TEXT NOT NULL,
+    biome TEXT NOT NULL CHECK (biome IN ('BIO-PLA', 'BIO-HGH', 'BIO-URB', 'BIO-ARC-ISL', 'BIO-JGL')),
+    is_playable BOOLEAN NOT NULL DEFAULT TRUE,
+    is_national_capital BOOLEAN NOT NULL DEFAULT FALSE,
+    is_capturable BOOLEAN NOT NULL DEFAULT TRUE CHECK (is_capturable = TRUE),
+    center_x NUMERIC(5,2) NOT NULL CHECK (center_x >= 0.00 AND center_x <= 100.00),
+    center_y NUMERIC(5,2) NOT NULL CHECK (center_y >= 0.00 AND center_y <= 100.00),
+    primary_commodity TEXT NOT NULL DEFAULT 'mineral_metalico',
+    resource_tier SMALLINT NOT NULL DEFAULT 1 CHECK (resource_tier BETWEEN 1 AND 5),
+    base_hourly_yield NUMERIC(10,2) NOT NULL DEFAULT 250.00,
+    base_energy_upkeep_ec NUMERIC(10,2) NOT NULL DEFAULT 100.00,
+    max_building_slots SMALLINT NOT NULL DEFAULT 10 CHECK (max_building_slots BETWEEN 4 AND 16),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc', NOW())
+);
+
+CREATE INDEX IF NOT EXISTS idx_regions_country ON public.regions(country_iso);
+CREATE INDEX IF NOT EXISTS idx_regions_playable ON public.regions(is_playable);
+CREATE INDEX IF NOT EXISTS idx_regions_capital ON public.regions(is_national_capital);
+
+ALTER TABLE public.regions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "regions_read_all" ON public.regions;
+CREATE POLICY "regions_read_all" ON public.regions FOR SELECT USING (true);
+
+-- ------------------------------------------------------------------------------
+-- 3. TABLA: region_adjacencies (Grafo Topológico Comprimido y Estrechos)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.region_adjacencies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    from_region_id TEXT NOT NULL REFERENCES public.regions(id) ON DELETE CASCADE,
+    to_region_id TEXT NOT NULL REFERENCES public.regions(id) ON DELETE CASCADE,
+    topology_flags SMALLINT NOT NULL DEFAULT 1 CHECK (topology_flags >= 1 AND topology_flags <= 63),
+    choke_controlling_region_id TEXT REFERENCES public.regions(id) ON DELETE SET NULL,
+    distance_km REAL NOT NULL DEFAULT 45.0 CHECK (distance_km > 0.0),
+    transit_rounds SMALLINT NOT NULL DEFAULT 1 CHECK (transit_rounds >= 1),
+    toll_fee_percent NUMERIC(4,2) NOT NULL DEFAULT 0.00 CHECK (toll_fee_percent >= 0.00 AND toll_fee_percent <= 10.00),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc', NOW()),
+    CONSTRAINT uq_region_adjacency_pair UNIQUE (from_region_id, to_region_id),
+    CONSTRAINT chk_no_self_adjacency CHECK (from_region_id <> to_region_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_region_adj_from ON public.region_adjacencies(from_region_id);
+CREATE INDEX IF NOT EXISTS idx_region_adj_to ON public.region_adjacencies(to_region_id);
+CREATE INDEX IF NOT EXISTS idx_region_adj_choke ON public.region_adjacencies(choke_controlling_region_id);
+
+ALTER TABLE public.region_adjacencies ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "region_adjacencies_read_all" ON public.region_adjacencies;
+CREATE POLICY "region_adjacencies_read_all" ON public.region_adjacencies FOR SELECT USING (true);
+
+-- ------------------------------------------------------------------------------
+-- 4. TABLA: region_sovereignty (Soberanía Dual: De Jure Owner vs. De Facto Controller)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.region_sovereignty (
+    region_id TEXT PRIMARY KEY REFERENCES public.regions(id) ON DELETE CASCADE,
+    owner_clan_id UUID REFERENCES public.clans(id) ON DELETE SET NULL,
+    controller_clan_id UUID REFERENCES public.clans(id) ON DELETE SET NULL,
+    control_points INTEGER NOT NULL DEFAULT 10000 CHECK (control_points >= 0),
+    max_control_points INTEGER NOT NULL DEFAULT 10000 CHECK (max_control_points IN (10000, 15000)),
+    bunker_level SMALLINT NOT NULL DEFAULT 1 CHECK (bunker_level BETWEEN 1 AND 5),
+    status TEXT NOT NULL DEFAULT 'stable' CHECK (status IN ('stable', 'under_siege', 'occupied_grace')),
+    customs_escrow_locked BOOLEAN NOT NULL GENERATED ALWAYS AS (status = 'occupied_grace') STORED,
+    is_energy_starved BOOLEAN NOT NULL DEFAULT FALSE,
+    active_battle_id UUID,
+    cooldown_expires_at TIMESTAMPTZ,
+    grace_expires_at TIMESTAMPTZ,
+    last_tick_at TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc', NOW()),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc', NOW())
+);
+
+CREATE INDEX IF NOT EXISTS idx_region_sov_owner ON public.region_sovereignty(owner_clan_id);
+CREATE INDEX IF NOT EXISTS idx_region_sov_controller ON public.region_sovereignty(controller_clan_id);
+CREATE INDEX IF NOT EXISTS idx_region_sov_status ON public.region_sovereignty(status);
+
+ALTER TABLE public.region_sovereignty ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "region_sovereignty_read_all" ON public.region_sovereignty;
+CREATE POLICY "region_sovereignty_read_all" ON public.region_sovereignty FOR SELECT USING (true);
+
+-- ------------------------------------------------------------------------------
+-- 5. TABLA: territorial_battle_sessions (Instancias de Asedio y Handshake 120s)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.territorial_battle_sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    region_id TEXT NOT NULL REFERENCES public.regions(id) ON DELETE CASCADE,
+    attacker_clan_id UUID NOT NULL REFERENCES public.clans(id) ON DELETE CASCADE,
+    defender_clan_id UUID REFERENCES public.clans(id) ON DELETE SET NULL,
+    attacker_commander_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    defender_commander_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    mode TEXT NOT NULL DEFAULT 'pve_garrison' CHECK (mode IN ('pve_garrison', 'pvp_realtime')),
+    handshake_expires_at TIMESTAMPTZ NOT NULL DEFAULT (TIMEZONE('utc', NOW()) + INTERVAL '120 seconds'),
+    status TEXT NOT NULL DEFAULT 'handshake_pending' CHECK (status IN ('handshake_pending', 'in_combat', 'concluded', 'aborted')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc', NOW()),
+    concluded_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_battle_sessions_region ON public.territorial_battle_sessions(region_id);
+CREATE INDEX IF NOT EXISTS idx_battle_sessions_attacker ON public.territorial_battle_sessions(attacker_clan_id);
+CREATE INDEX IF NOT EXISTS idx_battle_sessions_defender ON public.territorial_battle_sessions(defender_clan_id);
+
+ALTER TABLE public.territorial_battle_sessions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "battle_sessions_read_all" ON public.territorial_battle_sessions;
+CREATE POLICY "battle_sessions_read_all" ON public.territorial_battle_sessions FOR SELECT USING (true);
+
+-- ------------------------------------------------------------------------------
+-- 6. RPC: settle_territorial_combat_losses (Pérdida Real de Chasis + 35% Tech Scrap)
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.settle_territorial_combat_losses(
+  p_user_id UUID,
+  p_clan_id UUID,
+  p_destroyed_units JSONB
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_item RECORD;
+  v_hangar_row RECORD;
+  v_actual_deducted INTEGER;
+  v_total_units_deducted INTEGER := 0;
+  v_base_scrap INTEGER := 0;
+  v_scrap_recovered INTEGER := 0;
+  v_new_scrap_balance INTEGER := 0;
+BEGIN
+  IF p_user_id IS NULL THEN
+    RAISE EXCEPTION 'p_user_id no puede ser nulo en la liquidación de siniestralidad.';
+  END IF;
+
+  IF p_destroyed_units IS NULL OR jsonb_typeof(p_destroyed_units) <> 'array' OR jsonb_array_length(p_destroyed_units) = 0 THEN
+    RETURN jsonb_build_object('success', true, 'units_deducted', 0, 'scrap_recovered', 0);
+  END IF;
+
+  -- Iterar en orden determinista (unit_code ASC, tier ASC) para prevenir Deadlocks
+  FOR v_item IN
+    SELECT
+      x.unit_code,
+      COALESCE(x.tier, 1) AS tier,
+      SUM(GREATEST(0, COALESCE(x.quantity, 0)))::INTEGER AS total_lost
+    FROM jsonb_to_recordset(p_destroyed_units) AS x(unit_code TEXT, tier INTEGER, quantity INTEGER)
+    WHERE x.unit_code IS NOT NULL
+      -- Kit F2P inagotable: Infantería T1 y Recon T1 están 100% blindados contra pérdida
+      AND NOT (x.unit_code IN ('infantry', 'recon') AND COALESCE(x.tier, 1) = 1)
+      AND COALESCE(x.quantity, 0) > 0
+    GROUP BY x.unit_code, COALESCE(x.tier, 1)
+    ORDER BY x.unit_code ASC, COALESCE(x.tier, 1) ASC
+  LOOP
+    SELECT id, quantity
+    INTO v_hangar_row
+    FROM public.user_unit_hangar
+    WHERE user_id = p_user_id
+      AND unit_code = v_item.unit_code
+      AND tier = v_item.tier
+    ORDER BY quantity DESC
+    LIMIT 1
+    FOR UPDATE;
+
+    IF FOUND AND v_hangar_row.quantity > 0 THEN
+      v_actual_deducted := LEAST(v_hangar_row.quantity, v_item.total_lost);
+
+      UPDATE public.user_unit_hangar
+      SET quantity = quantity - v_actual_deducted,
+          updated_at = timezone('utc', now())
+      WHERE id = v_hangar_row.id;
+
+      v_total_units_deducted := v_total_units_deducted + v_actual_deducted;
+      v_base_scrap := (v_item.tier * 50) * v_actual_deducted;
+      v_scrap_recovered := v_scrap_recovered + FLOOR(v_base_scrap * 0.35)::INTEGER;
+    END IF;
+  END LOOP;
+
+  -- Acreditar chatarra tecnológica en el inventario del usuario
+  IF v_scrap_recovered > 0 THEN
+    UPDATE public.user_industrial_inventory
+    SET tech_scrap = tech_scrap + v_scrap_recovered,
+        updated_at = timezone('utc', now())
+    WHERE user_id = p_user_id
+    RETURNING tech_scrap INTO v_new_scrap_balance;
+  ELSE
+    SELECT COALESCE(tech_scrap, 0) INTO v_new_scrap_balance
+    FROM public.user_industrial_inventory
+    WHERE user_id = p_user_id;
+  END IF;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'units_deducted', v_total_units_deducted,
+    'scrap_recovered', v_scrap_recovered,
+    'new_scrap_balance', COALESCE(v_new_scrap_balance, 0),
+    'equivalent_steel_plates', FLOOR(v_scrap_recovered / 2.0)::INTEGER
+  );
+END;
+$$;
+
+-- ------------------------------------------------------------------------------
+-- 7. SEED: 24 ENTIDADES FEDERALES DE VENEZUELA (is_playable = true)
+-- ------------------------------------------------------------------------------
+INSERT INTO public.regions (
+    id, country_iso, name, biome, is_playable, is_national_capital, is_capturable,
+    center_x, center_y, primary_commodity, resource_tier, base_hourly_yield,
+    base_energy_upkeep_ec, max_building_slots
+) VALUES
+    ('REG_VE_01', 'VE', 'Distrito Capital - Caracas', 'BIO-URB', TRUE, TRUE, TRUE, 50.00, 20.00, 'petroquimica_fina', 5, 800.00, 300.00, 16),
+    ('REG_VE_02', 'VE', 'Zulia - Maracaibo', 'BIO-PLA', TRUE, FALSE, TRUE, 20.00, 25.00, 'crudo_ligero', 4, 600.00, 250.00, 14),
+    ('REG_VE_03', 'VE', 'Bolívar - Ciudad Guayana', 'BIO-HGH', TRUE, FALSE, TRUE, 70.00, 70.00, 'hierro_bauxita', 5, 750.00, 280.00, 14),
+    ('REG_VE_04', 'VE', 'Anzoátegui - Barcelona/PLC', 'BIO-PLA', TRUE, FALSE, TRUE, 65.00, 30.00, 'crudo_pesado', 4, 550.00, 220.00, 12),
+    ('REG_VE_05', 'VE', 'Carabobo - Valencia/Pto. Cabello', 'BIO-URB', TRUE, FALSE, TRUE, 42.00, 24.00, 'ensamblaje_mec', 4, 580.00, 240.00, 14),
+    ('REG_VE_06', 'VE', 'Miranda - Valles del Tuy', 'BIO-PLA', TRUE, FALSE, TRUE, 53.00, 22.00, 'manufactura_ligera', 3, 400.00, 160.00, 10),
+    ('REG_VE_07', 'VE', 'Lara - Barquisimeto', 'BIO-PLA', TRUE, FALSE, TRUE, 34.00, 28.00, 'nudo_ferroviario', 3, 420.00, 170.00, 12),
+    ('REG_VE_08', 'VE', 'Aragua - Maracay', 'BIO-URB', TRUE, FALSE, TRUE, 46.00, 23.00, 'blindaje_aereo', 3, 450.00, 180.00, 12),
+    ('REG_VE_09', 'VE', 'Táchira - San Cristóbal', 'BIO-HGH', TRUE, FALSE, TRUE, 18.00, 48.00, 'carbon_aduanero', 3, 380.00, 150.00, 10),
+    ('REG_VE_10', 'VE', 'Mérida - Cordillera Andina', 'BIO-HGH', TRUE, FALSE, TRUE, 23.00, 42.00, 'silicio_optico', 3, 350.00, 140.00, 8),
+    ('REG_VE_11', 'VE', 'Falcón - Paraguaná', 'BIO-PLA', TRUE, FALSE, TRUE, 32.00, 15.00, 'refinacion_crp', 4, 520.00, 210.00, 12),
+    ('REG_VE_12', 'VE', 'Monagas - Maturín', 'BIO-PLA', TRUE, FALSE, TRUE, 72.00, 32.00, 'gas_natural', 4, 500.00, 200.00, 10),
+    ('REG_VE_13', 'VE', 'Sucre - Cumaná/Golfo de Paria', 'BIO-ARC-ISL', TRUE, FALSE, TRUE, 73.00, 22.00, 'astillero_naval', 3, 420.00, 170.00, 10),
+    ('REG_VE_14', 'VE', 'Nueva Esparta - Margarita', 'BIO-ARC-ISL', TRUE, FALSE, TRUE, 68.00, 14.00, 'radar_zonafranca', 2, 300.00, 120.00, 8),
+    ('REG_VE_15', 'VE', 'Barinas - Llanos Altos', 'BIO-PLA', TRUE, FALSE, TRUE, 28.00, 46.00, 'agropecuaria_crudo', 3, 380.00, 150.00, 10),
+    ('REG_VE_16', 'VE', 'Portuguesa - Acarigua', 'BIO-PLA', TRUE, FALSE, TRUE, 34.00, 38.00, 'biocombustibles', 3, 390.00, 155.00, 10),
+    ('REG_VE_17', 'VE', 'Guárico - Calabozo/San Juan', 'BIO-PLA', TRUE, FALSE, TRUE, 48.00, 38.00, 'satelital_canteras', 3, 410.00, 165.00, 10),
+    ('REG_VE_18', 'VE', 'Trujillo - Andes Centrales', 'BIO-HGH', TRUE, FALSE, TRUE, 26.00, 35.00, 'silice_cemento', 2, 280.00, 110.00, 8),
+    ('REG_VE_19', 'VE', 'Yaracuy - San Felipe', 'BIO-PLA', TRUE, FALSE, TRUE, 38.00, 25.00, 'cobre_fertilizantes', 2, 300.00, 120.00, 8),
+    ('REG_VE_20', 'VE', 'Cojedes - San Carlos', 'BIO-PLA', TRUE, FALSE, TRUE, 40.00, 34.00, 'pastizales_roca', 2, 290.00, 115.00, 8),
+    ('REG_VE_21', 'VE', 'Apure - San Fernando', 'BIO-PLA', TRUE, FALSE, TRUE, 38.00, 58.00, 'eje_fluvial', 2, 310.00, 125.00, 8),
+    ('REG_VE_22', 'VE', 'Delta Amacuro - Caños Orinoco', 'BIO-ARC-ISL', TRUE, FALSE, TRUE, 84.00, 40.00, 'bauxita_delta', 3, 370.00, 150.00, 8),
+    ('REG_VE_23', 'VE', 'Amazonas - Puerto Ayacucho', 'BIO-JGL', TRUE, FALSE, TRUE, 45.00, 82.00, 'tierras_raras', 3, 360.00, 140.00, 6),
+    ('REG_VE_24', 'VE', 'Guayana Esequiba - Zona Reclamación', 'BIO-JGL', TRUE, FALSE, TRUE, 88.00, 55.00, 'oro_diamantes', 4, 520.00, 200.00, 10)
+ON CONFLICT (id) DO UPDATE SET
+    country_iso = EXCLUDED.country_iso,
+    name = EXCLUDED.name,
+    biome = EXCLUDED.biome,
+    is_playable = EXCLUDED.is_playable,
+    is_national_capital = EXCLUDED.is_national_capital,
+    center_x = EXCLUDED.center_x,
+    center_y = EXCLUDED.center_y,
+    primary_commodity = EXCLUDED.primary_commodity,
+    resource_tier = EXCLUDED.resource_tier,
+    base_hourly_yield = EXCLUDED.base_hourly_yield,
+    base_energy_upkeep_ec = EXCLUDED.base_energy_upkeep_ec,
+    max_building_slots = EXCLUDED.max_building_slots;
+
+-- ------------------------------------------------------------------------------
+-- 8. SEED: 7 ZONAS DE AMORTIGUACIÓN FRONTERIZA (is_playable = false)
+-- ------------------------------------------------------------------------------
+INSERT INTO public.regions (
+    id, country_iso, name, biome, is_playable, is_national_capital, is_capturable,
+    center_x, center_y, primary_commodity, resource_tier, base_hourly_yield,
+    base_energy_upkeep_ec, max_building_slots
+) VALUES
+    ('BUF_CO_01', 'CO', 'Norte de Santander (Cúcuta)', 'BIO-HGH', FALSE, FALSE, TRUE, 12.00, 48.00, 'mineral_metalico', 3, 200.00, 100.00, 8),
+    ('BUF_CO_02', 'CO', 'La Guajira (Maicao)', 'BIO-PLA', FALSE, FALSE, TRUE, 15.00, 18.00, 'mineral_metalico', 2, 200.00, 100.00, 8),
+    ('BUF_CO_03', 'CO', 'Arauca (Arauquita)', 'BIO-PLA', FALSE, FALSE, TRUE, 30.00, 62.00, 'mineral_metalico', 2, 200.00, 100.00, 8),
+    ('BUF_BR_01', 'BR', 'Roraima (Pacaraima / Boa Vista)', 'BIO-JGL', FALSE, FALSE, TRUE, 68.00, 88.00, 'tierras_raras', 3, 200.00, 100.00, 8),
+    ('BUF_GY_01', 'GY', 'Demerara (Georgetown)', 'BIO-PLA', FALSE, FALSE, TRUE, 96.00, 52.00, 'bauxita_delta', 3, 200.00, 100.00, 8),
+    ('BUF_TT_01', 'TT', 'Trinidad & Tobago', 'BIO-ARC-ISL', FALSE, FALSE, TRUE, 80.00, 18.00, 'astillero_naval', 3, 200.00, 100.00, 8),
+    ('BUF_CW_01', 'CW', 'Antillas Neerlandesas (Curazao/Aruba)', 'BIO-ARC-ISL', FALSE, FALSE, TRUE, 38.00, 8.00, 'radar_zonafranca', 2, 200.00, 100.00, 8)
+ON CONFLICT (id) DO UPDATE SET
+    country_iso = EXCLUDED.country_iso,
+    name = EXCLUDED.name,
+    biome = EXCLUDED.biome,
+    is_playable = EXCLUDED.is_playable,
+    is_national_capital = EXCLUDED.is_national_capital;
+
+-- ------------------------------------------------------------------------------
+-- 9. SEED: ADYACENCIAS TOPOLÓGICAS Y ESTRECHOS ESTRATÉGICOS
+-- ------------------------------------------------------------------------------
+-- Bandera binaria:
+-- 1 = land_open (terrestre)
+-- 2 = national_border (frontera internacional)
+-- 4 = coastal (anfibio/marítimo)
+-- 16 = strait_choke (estrecho estratégico con peaje)
+-- 32 = river_crossing (cruce fluvial defendible)
+
+INSERT INTO public.region_adjacencies (from_region_id, to_region_id, topology_flags, choke_controlling_region_id, distance_km, transit_rounds, toll_fee_percent)
+VALUES
+    -- Nudo Capital Central
+    ('REG_VE_01', 'REG_VE_06', 1, NULL, 25.0, 1, 0.00), -- Caracas <-> Miranda
+    ('REG_VE_01', 'REG_VE_08', 1, NULL, 45.0, 1, 0.00), -- Caracas <-> Aragua
+    ('REG_VE_08', 'REG_VE_05', 1, NULL, 50.0, 1, 0.00), -- Aragua <-> Carabobo
+    ('REG_VE_08', 'REG_VE_17', 1, NULL, 75.0, 1, 0.00), -- Aragua <-> Guárico
+    ('REG_VE_06', 'REG_VE_17', 1, NULL, 80.0, 1, 0.00), -- Miranda <-> Guárico
+    ('REG_VE_06', 'REG_VE_04', 1, NULL, 120.0, 1, 0.00), -- Miranda <-> Anzoátegui
+
+    -- Centro-Occidente
+    ('REG_VE_05', 'REG_VE_19', 1, NULL, 45.0, 1, 0.00), -- Carabobo <-> Yaracuy
+    ('REG_VE_05', 'REG_VE_20', 1, NULL, 55.0, 1, 0.00), -- Carabobo <-> Cojedes
+    ('REG_VE_19', 'REG_VE_07', 1, NULL, 40.0, 1, 0.00), -- Yaracuy <-> Lara
+    ('REG_VE_19', 'REG_VE_11', 1, NULL, 90.0, 1, 0.00), -- Yaracuy <-> Falcón
+    ('REG_VE_07', 'REG_VE_16', 1, NULL, 60.0, 1, 0.00), -- Lara <-> Portuguesa
+    ('REG_VE_07', 'REG_VE_18', 1, NULL, 70.0, 1, 0.00), -- Lara <-> Trujillo
+    ('REG_VE_07', 'REG_VE_11', 1, NULL, 110.0, 1, 0.00), -- Lara <-> Falcón
+
+    -- Noroccidente y Lago de Maracaibo (CHK-MARACAIBO)
+    ('REG_VE_11', 'REG_VE_02', 20, 'REG_VE_02', 95.0, 1, 5.00), -- Falcón <-> Zulia (Estrecho Lago Maracaibo CHK-MARACAIBO)
+    ('REG_VE_02', 'REG_VE_18', 1, NULL, 85.0, 1, 0.00), -- Zulia <-> Trujillo
+    ('REG_VE_02', 'REG_VE_10', 1, NULL, 110.0, 1, 0.00), -- Zulia <-> Mérida
+    ('REG_VE_02', 'REG_VE_09', 1, NULL, 140.0, 1, 0.00), -- Zulia <-> Táchira
+
+    -- Eje Andino
+    ('REG_VE_18', 'REG_VE_10', 1, NULL, 50.0, 1, 0.00), -- Trujillo <-> Mérida
+    ('REG_VE_18', 'REG_VE_15', 1, NULL, 80.0, 1, 0.00), -- Trujillo <-> Barinas
+    ('REG_VE_10', 'REG_VE_09', 1, NULL, 65.0, 1, 0.00), -- Mérida <-> Táchira
+    ('REG_VE_10', 'REG_VE_15', 1, NULL, 75.0, 1, 0.00), -- Mérida <-> Barinas
+    ('REG_VE_09', 'REG_VE_15', 1, NULL, 90.0, 1, 0.00), -- Táchira <-> Barinas
+
+    -- Llanos Occidentales y Centrales
+    ('REG_VE_16', 'REG_VE_20', 1, NULL, 50.0, 1, 0.00), -- Portuguesa <-> Cojedes
+    ('REG_VE_16', 'REG_VE_15', 1, NULL, 65.0, 1, 0.00), -- Portuguesa <-> Barinas
+    ('REG_VE_20', 'REG_VE_17', 1, NULL, 70.0, 1, 0.00), -- Cojedes <-> Guárico
+    ('REG_VE_15', 'REG_VE_21', 33, NULL, 110.0, 1, 0.00), -- Barinas <-> Apure (Cruce Río Apure)
+    ('REG_VE_17', 'REG_VE_21', 33, NULL, 95.0, 1, 0.00), -- Guárico <-> Apure (Cruce Río Apure)
+    ('REG_VE_17', 'REG_VE_04', 1, NULL, 130.0, 1, 0.00), -- Guárico <-> Anzoátegui
+    ('REG_VE_17', 'REG_VE_03', 33, NULL, 150.0, 1, 0.00), -- Guárico <-> Bolívar (Cruce Río Orinoco)
+
+    -- Oriente, Sur y Delta
+    ('REG_VE_04', 'REG_VE_12', 1, NULL, 70.0, 1, 0.00), -- Anzoátegui <-> Monagas
+    ('REG_VE_04', 'REG_VE_13', 1, NULL, 85.0, 1, 0.00), -- Anzoátegui <-> Sucre
+    ('REG_VE_04', 'REG_VE_03', 33, NULL, 90.0, 1, 0.00), -- Anzoátegui <-> Bolívar (Puente Angostura / Orinoco)
+    ('REG_VE_12', 'REG_VE_13', 1, NULL, 65.0, 1, 0.00), -- Monagas <-> Sucre
+    ('REG_VE_12', 'REG_VE_22', 1, NULL, 75.0, 1, 0.00), -- Monagas <-> Delta Amacuro
+    ('REG_VE_12', 'REG_VE_03', 33, NULL, 85.0, 1, 0.00), -- Monagas <-> Bolívar
+    ('REG_VE_13', 'REG_VE_14', 4, NULL, 40.0, 1, 0.00), -- Sucre <-> Nueva Esparta (Enlace marítimo)
+    ('REG_VE_22', 'REG_VE_03', 1, NULL, 95.0, 1, 0.00), -- Delta Amacuro <-> Bolívar
+    ('REG_VE_22', 'REG_VE_24', 1, NULL, 130.0, 1, 0.00), -- Delta Amacuro <-> Guayana Esequiba
+    ('REG_VE_03', 'REG_VE_24', 1, NULL, 160.0, 1, 0.00), -- Bolívar <-> Guayana Esequiba
+    ('REG_VE_03', 'REG_VE_23', 1, NULL, 180.0, 1, 0.00), -- Bolívar <-> Amazonas
+    ('REG_VE_21', 'REG_VE_23', 33, NULL, 140.0, 1, 0.00), -- Apure <-> Amazonas (Cruce Río Orinoco Medio)
+
+    -- Adyacencias Internacionales / Zonas de Amortiguación
+    ('REG_VE_09', 'BUF_CO_01', 3, NULL, 25.0, 1, 0.00), -- Táchira <-> Cúcuta (Frontera internacional)
+    ('REG_VE_02', 'BUF_CO_02', 3, NULL, 40.0, 1, 0.00), -- Zulia <-> Maicao (Frontera internacional)
+    ('REG_VE_21', 'BUF_CO_03', 3, NULL, 30.0, 1, 0.00), -- Apure <-> Arauca (Frontera internacional)
+    ('REG_VE_03', 'BUF_BR_01', 3, NULL, 80.0, 1, 0.00), -- Bolívar <-> Pacaraima / Roraima (Frontera Brasil)
+    ('REG_VE_24', 'BUF_GY_01', 3, NULL, 90.0, 1, 0.00), -- Guayana Esequiba <-> Demerara
+    ('REG_VE_13', 'BUF_TT_01', 20, 'REG_VE_13', 45.0, 1, 4.00), -- Sucre <-> Trinidad (Estrecho Bocas del Dragón CHK-PARIA)
+    ('REG_VE_11', 'BUF_CW_01', 4, NULL, 70.0, 1, 0.00) -- Falcón <-> Curazao
+ON CONFLICT (from_region_id, to_region_id) DO UPDATE SET
+    topology_flags = EXCLUDED.topology_flags,
+    choke_controlling_region_id = EXCLUDED.choke_controlling_region_id,
+    distance_km = EXCLUDED.distance_km,
+    transit_rounds = EXCLUDED.transit_rounds,
+    toll_fee_percent = EXCLUDED.toll_fee_percent;
+
+-- ------------------------------------------------------------------------------
+-- 10. SEED: SOBERANÍA INICIAL PARA LAS 31 REGIONES (region_sovereignty)
+-- ------------------------------------------------------------------------------
+INSERT INTO public.region_sovereignty (
+    region_id, owner_clan_id, controller_clan_id, control_points,
+    max_control_points, bunker_level, status, is_energy_starved
+)
+SELECT
+    r.id,
+    NULL,
+    NULL,
+    CASE WHEN r.is_national_capital THEN 15000 ELSE 10000 END,
+    CASE WHEN r.is_national_capital THEN 15000 ELSE 10000 END,
+    CASE WHEN r.is_national_capital THEN 3 ELSE 1 END,
+    'stable',
+    FALSE
+FROM public.regions r
+ON CONFLICT (region_id) DO UPDATE SET
+    control_points = EXCLUDED.control_points,
+    max_control_points = EXCLUDED.max_control_points,
+    bunker_level = EXCLUDED.bunker_level,
+    status = EXCLUDED.status;
+
+-- ------------------------------------------------------------------------------
+-- 11. SINCRONIZACIÓN DE COMPATIBILIDAD CON world_provinces
+-- ------------------------------------------------------------------------------
+INSERT INTO public.world_provinces (
+    id, country_iso, name, is_capital, is_capturable, base_terrain,
+    native_weather, resource_multiplier, building_slots, pos_x, pos_y, width, height
+)
+SELECT
+    r.id,
+    r.country_iso,
+    r.name,
+    r.is_national_capital,
+    r.is_capturable,
+    CASE 
+        WHEN r.biome = 'BIO-URB' THEN 'plains'
+        WHEN r.biome = 'BIO-HGH' THEN 'mountain'
+        WHEN r.biome = 'BIO-ARC-ISL' THEN 'archipelago'
+        WHEN r.biome = 'BIO-JGL' THEN 'forest'
+        ELSE 'plains'
+    END,
+    'clear',
+    CASE WHEN r.is_national_capital THEN 2.00 ELSE 1.00 END,
+    r.max_building_slots,
+    r.center_x,
+    r.center_y,
+    6.00,
+    5.00
+FROM public.regions r
+ON CONFLICT (id) DO UPDATE SET
+    country_iso = EXCLUDED.country_iso,
+    name = EXCLUDED.name,
+    is_capital = EXCLUDED.is_capital,
+    is_capturable = EXCLUDED.is_capturable,
+    building_slots = EXCLUDED.building_slots,
+    pos_x = EXCLUDED.pos_x,
+    pos_y = EXCLUDED.pos_y;
+
+-- >>> FIN MIGRACIÓN: 20261104000001_geotactics_alpha_siege_and_venezuela_seed.sql <<<
+
+
+-- >>> INICIO MIGRACIÓN: 20261105000001_geotactics_strategic_nodes_and_queues.sql <<<
+-- ==============================================================================
+-- MIGRACIÓN 27: NODOS ESTRATÉGICOS, HANGAR DE FACCIÓN Y COLA DE PRODUCCIÓN
+-- ==============================================================================
+-- Especificación Canónica: docs/00_GEOTACTICS_ONLINE_MASTER_SPEC.md
+-- Plan Maestro: PLAN_MAESTRO_IMPLEMENTACION_GEOTACTICS_ALICE_CERO_INCERTIDUMBRE.md
+-- ==============================================================================
+
+-- 1. TABLA: strategic_nodes (Nodos Estratégicos Provinciales)
+CREATE TABLE IF NOT EXISTS public.strategic_nodes (
+    id TEXT PRIMARY KEY,
+    region_id TEXT NOT NULL REFERENCES public.regions(id) ON DELETE CASCADE,
+    node_type TEXT NOT NULL CHECK (node_type IN ('capital_hq', 'refinery_hub', 'strait_canal', 'radar_c4isr', 'missile_silo')),
+    name TEXT NOT NULL,
+    buff_type TEXT NOT NULL CHECK (buff_type IN ('hegemonic_capital', 'energy_extraction', 'toll_chokepoint', 'radar_recon', 'area_denial')),
+    buff_value NUMERIC(6,2) NOT NULL DEFAULT 1.00,
+    controlling_clan_id UUID REFERENCES public.clans(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc', NOW())
+);
+
+CREATE INDEX IF NOT EXISTS idx_strategic_nodes_region ON public.strategic_nodes(region_id);
+CREATE INDEX IF NOT EXISTS idx_strategic_nodes_clan ON public.strategic_nodes(controlling_clan_id);
+CREATE INDEX IF NOT EXISTS idx_strategic_nodes_type ON public.strategic_nodes(node_type);
+
+ALTER TABLE public.strategic_nodes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "strategic_nodes_read_all" ON public.strategic_nodes;
+CREATE POLICY "strategic_nodes_read_all" ON public.strategic_nodes FOR SELECT USING (true);
+
+-- 2. TABLA: faction_unit_hangar (Hangar Colectivo Comunitario del Clan)
+CREATE TABLE IF NOT EXISTS public.faction_unit_hangar (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    clan_id UUID NOT NULL REFERENCES public.clans(id) ON DELETE CASCADE,
+    unit_code TEXT NOT NULL,
+    tier SMALLINT NOT NULL DEFAULT 1 CHECK (tier BETWEEN 1 AND 5),
+    stock_quantity INTEGER NOT NULL DEFAULT 0 CHECK (stock_quantity >= 0),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc', NOW()),
+    CONSTRAINT uq_faction_hangar_clan_unit_tier UNIQUE (clan_id, unit_code, tier)
+);
+
+CREATE INDEX IF NOT EXISTS idx_faction_hangar_clan ON public.faction_unit_hangar(clan_id);
+CREATE INDEX IF NOT EXISTS idx_faction_hangar_unit_tier ON public.faction_unit_hangar(unit_code, tier);
+
+ALTER TABLE public.faction_unit_hangar ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "faction_hangar_read_all" ON public.faction_unit_hangar;
+CREATE POLICY "faction_hangar_read_all" ON public.faction_unit_hangar FOR SELECT USING (true);
+
+-- 3. TABLA: unit_production_queue (Cola de Ensamblaje con Tiempos de Espera)
+CREATE TABLE IF NOT EXISTS public.unit_production_queue (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    clan_id UUID REFERENCES public.clans(id) ON DELETE SET NULL,
+    destination TEXT NOT NULL DEFAULT 'user' CHECK (destination IN ('user', 'faction')),
+    unit_code TEXT NOT NULL,
+    tier SMALLINT NOT NULL DEFAULT 1 CHECK (tier BETWEEN 1 AND 5),
+    duration_seconds INTEGER NOT NULL CHECK (duration_seconds >= 0),
+    started_at TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc', NOW()),
+    ready_at TIMESTAMPTZ NOT NULL,
+    is_claimed BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc', NOW())
+);
+
+CREATE INDEX IF NOT EXISTS idx_unit_prod_queue_user ON public.unit_production_queue(user_id);
+CREATE INDEX IF NOT EXISTS idx_unit_prod_queue_clan ON public.unit_production_queue(clan_id);
+CREATE INDEX IF NOT EXISTS idx_unit_prod_queue_ready ON public.unit_production_queue(ready_at, is_claimed);
+
+ALTER TABLE public.unit_production_queue ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "unit_prod_queue_read_own" ON public.unit_production_queue;
+CREATE POLICY "unit_prod_queue_read_own" ON public.unit_production_queue
+    FOR SELECT USING (auth.uid() = user_id OR auth.uid() IN (
+        SELECT user_id FROM public.clan_members WHERE clan_id = unit_production_queue.clan_id
+    ));
+
+-- 4. RPC: queue_unit_production
+CREATE OR REPLACE FUNCTION public.queue_unit_production(
+    p_unit_code TEXT,
+    p_tier INT DEFAULT 1,
+    p_destination TEXT DEFAULT 'user',
+    p_clan_id UUID DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_user_id UUID := auth.uid();
+    v_duration_seconds INTEGER;
+    v_now TIMESTAMPTZ := TIMEZONE('utc', NOW());
+    v_ready_at TIMESTAMPTZ;
+    v_queue_id UUID;
+    v_cost_energy INTEGER := 100 * p_tier;
+    v_cost_funds INTEGER := 250 * p_tier;
+    v_user_funds INTEGER;
+BEGIN
+    IF v_user_id IS NULL THEN
+        RAISE EXCEPTION 'Usuario no autenticado.';
+    END IF;
+
+    IF p_destination = 'faction' AND p_clan_id IS NULL THEN
+        RAISE EXCEPTION 'Se requiere p_clan_id para destino de facción.';
+    END IF;
+
+    -- Cálculo de duración base determinista
+    CASE p_unit_code
+        WHEN 'infantry' THEN v_duration_seconds := CASE WHEN p_tier = 1 THEN 0 ELSE 30 * p_tier END;
+        WHEN 'recon' THEN v_duration_seconds := CASE WHEN p_tier = 1 THEN 0 ELSE 45 * p_tier END;
+        WHEN 'mech' THEN v_duration_seconds := 60 * p_tier;
+        WHEN 'tank' THEN v_duration_seconds := 180 * p_tier;
+        WHEN 'medium_tank' THEN v_duration_seconds := 480 * p_tier;
+        WHEN 'artillery' THEN v_duration_seconds := 360 * p_tier;
+        WHEN 'b_copter' THEN v_duration_seconds := 600 * p_tier;
+        WHEN 'fighter' THEN v_duration_seconds := 900 * p_tier;
+        WHEN 'bomber' THEN v_duration_seconds := 1200 * p_tier;
+        ELSE v_duration_seconds := 120 * p_tier;
+    END CASE;
+
+    v_ready_at := v_now + (v_duration_seconds || ' seconds')::INTERVAL;
+
+    INSERT INTO public.unit_production_queue (
+        user_id, clan_id, destination, unit_code, tier, duration_seconds, started_at, ready_at, is_claimed
+    ) VALUES (
+        v_user_id, p_clan_id, p_destination, p_unit_code, p_tier, v_duration_seconds, v_now, v_ready_at, FALSE
+    )
+    RETURNING id INTO v_queue_id;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'queue_id', v_queue_id,
+        'unit_code', p_unit_code,
+        'tier', p_tier,
+        'duration_seconds', v_duration_seconds,
+        'ready_at', v_ready_at
+    );
+END;
+$$;
+
+-- 5. RPC: claim_finished_unit
+CREATE OR REPLACE FUNCTION public.claim_finished_unit(p_queue_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_user_id UUID := auth.uid();
+    v_queue_row RECORD;
+BEGIN
+    IF v_user_id IS NULL THEN
+        RAISE EXCEPTION 'Usuario no autenticado.';
+    END IF;
+
+    SELECT * INTO v_queue_row
+    FROM public.unit_production_queue
+    WHERE id = p_queue_id AND user_id = v_user_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Elemento de cola no encontrado.';
+    END IF;
+
+    IF v_queue_row.is_claimed THEN
+        RAISE EXCEPTION 'Esta unidad ya ha sido entregada al hangar.';
+    END IF;
+
+    IF TIMEZONE('utc', NOW()) < v_queue_row.ready_at THEN
+        RAISE EXCEPTION 'La unidad aún está en proceso de ensamblaje en los talleres.';
+    END IF;
+
+    UPDATE public.unit_production_queue
+    SET is_claimed = TRUE
+    WHERE id = p_queue_id;
+
+    IF v_queue_row.destination = 'faction' AND v_queue_row.clan_id IS NOT NULL THEN
+        INSERT INTO public.faction_unit_hangar (clan_id, unit_code, tier, stock_quantity)
+        VALUES (v_queue_row.clan_id, v_queue_row.unit_code, v_queue_row.tier, 1)
+        ON CONFLICT (clan_id, unit_code, tier)
+        DO UPDATE SET
+            stock_quantity = public.faction_unit_hangar.stock_quantity + 1,
+            updated_at = TIMEZONE('utc', NOW());
+    ELSE
+        INSERT INTO public.user_unit_hangar (user_id, unit_code, tier, quantity)
+        VALUES (v_queue_row.user_id, v_queue_row.unit_code, v_queue_row.tier, 1)
+        ON CONFLICT (user_id, unit_code, tier)
+        DO UPDATE SET
+            quantity = public.user_unit_hangar.quantity + 1,
+            updated_at = TIMEZONE('utc', NOW());
+    END IF;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'destination', v_queue_row.destination,
+        'unit_code', v_queue_row.unit_code,
+        'tier', v_queue_row.tier
+    );
+END;
+$$;
+
+-- 6. SEED: NODOS ESTRATÉGICOS DEL TEATRO VENEZUELA
+INSERT INTO public.strategic_nodes (id, region_id, node_type, name, buff_type, buff_value)
+VALUES
+    ('NODE_VE_CAPITAL', 'REG_VE_01', 'capital_hq', 'Cuartel General Central - Fuerte Tiuna Caracas', 'hegemonic_capital', 1.15),
+    ('NODE_VE_MARACAIBO_CHOKE', 'REG_VE_02', 'strait_canal', 'Canal de Navegación del Lago de Maracaibo', 'toll_chokepoint', 5.00),
+    ('NODE_VE_PARAGUANA_CRP', 'REG_VE_11', 'refinery_hub', 'Centro de Refinación Paraguaná (CRP Amuay)', 'energy_extraction', 1.25),
+    ('NODE_VE_PARIA_CHOKE', 'REG_VE_13', 'strait_canal', 'Estrecho del Golfo de Paria / Bocas del Dragón', 'toll_chokepoint', 4.00),
+    ('NODE_VE_GURI_HYDRO', 'REG_VE_03', 'refinery_hub', 'Central Hidroeléctrica Simón Bolívar (Guri)', 'energy_extraction', 1.30),
+    ('NODE_VE_MARGARITA_RADAR', 'REG_VE_14', 'radar_c4isr', 'Estación Radar C4ISR Isla de Margarita', 'radar_recon', 3.00),
+    ('NODE_VE_BAEL_AIRBASE', 'REG_VE_08', 'missile_silo', 'Base Aérea El Libertador / Batería SAM Maracay', 'area_denial', 30.00)
+ON CONFLICT (id) DO UPDATE SET
+    region_id = EXCLUDED.region_id,
+    node_type = EXCLUDED.node_type,
+    name = EXCLUDED.name,
+    buff_type = EXCLUDED.buff_type,
+    buff_value = EXCLUDED.buff_value;
+
+-- >>> FIN MIGRACIÓN: 20261105000001_geotactics_strategic_nodes_and_queues.sql <<<
+
+
+-- >>> INICIO MIGRACIÓN: 20261106_state_sovereignty_rbac.sql <<<
+-- ==============================================================================
+-- MIGRACIÓN CANÓNICA: SOBERANÍA TERRITORIAL DE ESTADOS Y CONTROL RBAC C4ISR
+-- ==============================================================================
+-- Especificación: docs/PROPUESTA_INGENIERIA_MAPA_METAPOLITICA_ALICE_CABIMAS.md
+-- Tabla: public.state_sovereignty
+-- RLS: Lectura pública; Escritura restringida a Líderes de Clan y Gestores de Facción
+-- ==============================================================================
+
+CREATE TABLE IF NOT EXISTS public.state_sovereignty (
+  state_id VARCHAR(64) PRIMARY KEY,
+  country_id VARCHAR(64) NOT NULL DEFAULT 'COUNTRY_VEN',
+  canonical_country_name TEXT NOT NULL DEFAULT 'República de Venezuela',
+  custom_country_name TEXT NOT NULL DEFAULT 'República Soberana de Venezuela',
+  canonical_state_name TEXT NOT NULL,
+  custom_state_name TEXT NOT NULL,
+  controlling_faction_id VARCHAR(32) NOT NULL DEFAULT 'blue_moon',
+  controlling_clan_id VARCHAR(64) NOT NULL DEFAULT 'clan-ferro',
+  tcp_current INTEGER NOT NULL DEFAULT 10000 CHECK (tcp_current >= 0 AND tcp_current <= 10000),
+  tcp_max INTEGER NOT NULL DEFAULT 10000,
+  gdp_war_credits_per_hour INTEGER NOT NULL DEFAULT 5000,
+  defense_level INTEGER NOT NULL DEFAULT 3 CHECK (defense_level >= 1 AND defense_level <= 5),
+  custom_motto TEXT,
+  sovereign_proclamation TEXT,
+  updated_by_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- Habilitar Row Level Security (RLS)
+ALTER TABLE public.state_sovereignty ENABLE ROW LEVEL SECURITY;
+
+-- Índice para consultas rápidas por facción y país
+CREATE INDEX IF NOT EXISTS idx_state_sovereignty_faction ON public.state_sovereignty(controlling_faction_id);
+CREATE INDEX IF NOT EXISTS idx_state_sovereignty_country ON public.state_sovereignty(country_id);
+
+-- Política 1: Lectura libre para todos los comandantes y observadores en el mapa
+CREATE POLICY "state_sovereignty_public_read"
+  ON public.state_sovereignty
+  FOR SELECT
+  USING (true);
+
+-- Función de ayuda de seguridad para comprobar rol de líder de clan o gestor de facción
+CREATE OR REPLACE FUNCTION public.is_sovereignty_authorized(target_clan_id VARCHAR(64))
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.clan_members cm
+    WHERE cm.user_id = auth.uid()
+      AND (cm.clan_id = target_clan_id OR cm.role IN ('leader', 'officer'))
+  )
+  OR EXISTS (
+    SELECT 1 FROM public.profiles pp
+    WHERE pp.id = auth.uid()
+      AND (pp.is_admin = true OR pp.metadata->>'is_faction_manager' = 'true')
+  );
+$$;
+
+-- Política 2: Inserción y Actualización exclusiva para comandantes autorizados
+CREATE POLICY "state_sovereignty_leader_update"
+  ON public.state_sovereignty
+  FOR ALL
+  TO authenticated
+  USING (
+    public.is_sovereignty_authorized(controlling_clan_id)
+  )
+  WITH CHECK (
+    public.is_sovereignty_authorized(controlling_clan_id)
+  );
+
+-- Comentarios explicativos canónicos
+COMMENT ON TABLE public.state_sovereignty IS 'SSOT de soberanía estatal, nombres proclamados de países/estados y control territorial en GEOTACTICS.';
+
+-- >>> FIN MIGRACIÓN: 20261106_state_sovereignty_rbac.sql <<<
+
+
+-- >>> INICIO MIGRACIÓN: 20261107_theatre_cabimas_realtime.sql <<<
+-- ==============================================================================
+-- MIGRACIÓN CANÓNICA: PERSISTENCIA REALTIME Y TEATRO OPERACIONAL CABIMAS (REG_VE_02)
+-- ==============================================================================
+-- Especificación: docs/DATABASE_ARCHITECTURE_AUDIT.md & docs/04_MASTER_DATABASE_AND_SECURITY_SPEC.md
+-- Tablas:
+--   1. public.tactical_spatial_deployments (Unidades militares desplegadas en celdas O(1))
+--   2. public.tactical_fief_constructions (Estructuras in-situ en feudos y vías)
+--   3. public.region_operational_state (Telemetría viva y control del teatro REG_VE_02)
+-- Publicación Realtime: suscrita a 'supabase_realtime' con CDC de alta fidelidad
+-- ==============================================================================
+
+-- ------------------------------------------------------------------------------
+-- 1. TABLA: tactical_spatial_deployments (Celdas Espaciales 20m O(1))
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.tactical_spatial_deployments (
+    id VARCHAR(64) PRIMARY KEY,
+    region_id TEXT NOT NULL REFERENCES public.regions(id) ON DELETE CASCADE,
+    cell_key VARCHAR(64) NOT NULL,
+    sector_x INTEGER NOT NULL,
+    sector_y INTEGER NOT NULL,
+    cell_x INTEGER NOT NULL,
+    cell_y INTEGER NOT NULL,
+    lat NUMERIC(9,6) NOT NULL,
+    lng NUMERIC(9,6) NOT NULL,
+    unit_code VARCHAR(32) NOT NULL,
+    unit_name VARCHAR(64) NOT NULL,
+    clan_id VARCHAR(64) NOT NULL,
+    clan_tag VARCHAR(16) NOT NULL,
+    faction_id VARCHAR(32) NOT NULL,
+    callsign VARCHAR(64) NOT NULL,
+    tier SMALLINT NOT NULL DEFAULT 1 CHECK (tier BETWEEN 1 AND 5),
+    hp SMALLINT NOT NULL DEFAULT 100 CHECK (hp >= 0 AND hp <= 100),
+    max_hp SMALLINT NOT NULL DEFAULT 100 CHECK (max_hp > 0),
+    status VARCHAR(24) NOT NULL DEFAULT 'holding' CHECK (status IN ('patrol', 'holding', 'in_transit', 'combat')),
+    color_hex VARCHAR(10) NOT NULL DEFAULT '#1D4ED8',
+    deployed_by_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc', now()),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc', now()),
+    CONSTRAINT uq_spatial_cell_deployment UNIQUE (region_id, cell_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_spatial_dep_region ON public.tactical_spatial_deployments(region_id);
+CREATE INDEX IF NOT EXISTS idx_spatial_dep_cell_key ON public.tactical_spatial_deployments(cell_key);
+CREATE INDEX IF NOT EXISTS idx_spatial_dep_clan ON public.tactical_spatial_deployments(clan_id);
+CREATE INDEX IF NOT EXISTS idx_spatial_dep_faction ON public.tactical_spatial_deployments(faction_id);
+
+ALTER TABLE public.tactical_spatial_deployments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "spatial_dep_public_read" ON public.tactical_spatial_deployments;
+CREATE POLICY "spatial_dep_public_read"
+    ON public.tactical_spatial_deployments
+    FOR SELECT
+    USING (true);
+
+DROP POLICY IF EXISTS "spatial_dep_auth_insert_update" ON public.tactical_spatial_deployments;
+CREATE POLICY "spatial_dep_auth_insert_update"
+    ON public.tactical_spatial_deployments
+    FOR ALL
+    TO authenticated
+    USING (auth.uid() IS NOT NULL)
+    WITH CHECK (auth.uid() IS NOT NULL);
+
+-- ------------------------------------------------------------------------------
+-- 2. TABLA: tactical_fief_constructions (Construcciones In-Situ)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.tactical_fief_constructions (
+    id VARCHAR(64) PRIMARY KEY,
+    fief_id VARCHAR(64) NOT NULL,
+    region_id TEXT NOT NULL REFERENCES public.regions(id) ON DELETE CASCADE,
+    cell_key VARCHAR(64) NOT NULL,
+    sector_x INTEGER NOT NULL,
+    sector_y INTEGER NOT NULL,
+    cell_x INTEGER NOT NULL,
+    cell_y INTEGER NOT NULL,
+    lat NUMERIC(9,6) NOT NULL,
+    lng NUMERIC(9,6) NOT NULL,
+    building_type VARCHAR(32) NOT NULL,
+    clan_id VARCHAR(64) NOT NULL,
+    adjacent_road_segment_id VARCHAR(64),
+    level SMALLINT NOT NULL DEFAULT 1 CHECK (level BETWEEN 1 AND 5),
+    current_hp INTEGER NOT NULL DEFAULT 10000 CHECK (current_hp >= 0),
+    max_hp INTEGER NOT NULL DEFAULT 10000 CHECK (max_hp > 0),
+    hourly_upkeep_ec INTEGER NOT NULL DEFAULT 100 CHECK (hourly_upkeep_ec >= 0),
+    constructed_by_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc', now()),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc', now()),
+    CONSTRAINT uq_spatial_cell_construction UNIQUE (region_id, cell_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_fief_const_region ON public.tactical_fief_constructions(region_id);
+CREATE INDEX IF NOT EXISTS idx_fief_const_cell_key ON public.tactical_fief_constructions(cell_key);
+CREATE INDEX IF NOT EXISTS idx_fief_const_clan ON public.tactical_fief_constructions(clan_id);
+CREATE INDEX IF NOT EXISTS idx_fief_const_fief ON public.tactical_fief_constructions(fief_id);
+
+ALTER TABLE public.tactical_fief_constructions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "fief_const_public_read" ON public.tactical_fief_constructions;
+CREATE POLICY "fief_const_public_read"
+    ON public.tactical_fief_constructions
+    FOR SELECT
+    USING (true);
+
+DROP POLICY IF EXISTS "fief_const_auth_insert_update" ON public.tactical_fief_constructions;
+CREATE POLICY "fief_const_auth_insert_update"
+    ON public.tactical_fief_constructions
+    FOR ALL
+    TO authenticated
+    USING (auth.uid() IS NOT NULL)
+    WITH CHECK (auth.uid() IS NOT NULL);
+
+-- ------------------------------------------------------------------------------
+-- 3. TABLA: region_operational_state (Telemetría de Teatro de Operaciones)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.region_operational_state (
+    region_id TEXT PRIMARY KEY REFERENCES public.regions(id) ON DELETE CASCADE,
+    controlling_faction_id VARCHAR(32) NOT NULL DEFAULT 'blue_moon',
+    controlling_clan_id VARCHAR(64) NOT NULL DEFAULT 'clan-ferro',
+    tcp_current INTEGER NOT NULL DEFAULT 10000 CHECK (tcp_current >= 0 AND tcp_current <= 15000),
+    tcp_max INTEGER NOT NULL DEFAULT 10000,
+    bunker_level SMALLINT NOT NULL DEFAULT 4 CHECK (bunker_level BETWEEN 1 AND 5),
+    active_deployments_count INTEGER NOT NULL DEFAULT 0,
+    active_buildings_count INTEGER NOT NULL DEFAULT 0,
+    operational_status VARCHAR(24) NOT NULL DEFAULT 'stable' CHECK (operational_status IN ('stable', 'under_siege', 'contested', 'liberated')),
+    last_heartbeat_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc', now()),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc', now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_region_op_faction ON public.region_operational_state(controlling_faction_id);
+CREATE INDEX IF NOT EXISTS idx_region_op_status ON public.region_operational_state(operational_status);
+
+ALTER TABLE public.region_operational_state ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "region_op_public_read" ON public.region_operational_state;
+CREATE POLICY "region_op_public_read"
+    ON public.region_operational_state
+    FOR SELECT
+    USING (true);
+
+DROP POLICY IF EXISTS "region_op_auth_update" ON public.region_operational_state;
+CREATE POLICY "region_op_auth_update"
+    ON public.region_operational_state
+    FOR ALL
+    TO authenticated
+    USING (auth.uid() IS NOT NULL)
+    WITH CHECK (auth.uid() IS NOT NULL);
+
+-- ------------------------------------------------------------------------------
+-- 4. REPLICA IDENTITY FULL Y ALTA EN SUPABASE_REALTIME
+-- ------------------------------------------------------------------------------
+ALTER TABLE public.tactical_spatial_deployments REPLICA IDENTITY FULL;
+ALTER TABLE public.tactical_fief_constructions REPLICA IDENTITY FULL;
+ALTER TABLE public.region_operational_state REPLICA IDENTITY FULL;
+ALTER TABLE public.state_sovereignty REPLICA IDENTITY FULL;
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_publication_tables 
+      WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'state_sovereignty'
+    ) THEN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.state_sovereignty;
+    END IF;
+
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_publication_tables 
+      WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'tactical_spatial_deployments'
+    ) THEN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.tactical_spatial_deployments;
+    END IF;
+
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_publication_tables 
+      WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'tactical_fief_constructions'
+    ) THEN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.tactical_fief_constructions;
+    END IF;
+
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_publication_tables 
+      WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'region_operational_state'
+    ) THEN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.region_operational_state;
+    END IF;
+  END IF;
+END $$;
+
+-- ------------------------------------------------------------------------------
+-- 5. SEED DETERMINISTA: TEATRO CABIMAS / ZULIA (REG_VE_02)
+-- ------------------------------------------------------------------------------
+-- Asegurar Soberanía de REG_VE_02
+INSERT INTO public.state_sovereignty (
+    state_id,
+    country_id,
+    canonical_country_name,
+    custom_country_name,
+    canonical_state_name,
+    custom_state_name,
+    controlling_faction_id,
+    controlling_clan_id,
+    tcp_current,
+    tcp_max,
+    gdp_war_credits_per_hour,
+    defense_level,
+    custom_motto,
+    sovereign_proclamation
+) VALUES (
+    'REG_VE_02',
+    'COUNTRY_VEN',
+    'República de Venezuela',
+    'Hegemonía Petrolera de Maracaibo',
+    'Zulia',
+    'Estado Zulia (Teatro Cabimas)',
+    'blue_moon',
+    'clan-ferro',
+    10000,
+    10000,
+    12400,
+    4,
+    'Acero Frío y Petróleo Pesado',
+    'El Lago de Maracaibo y la Costa Oriental operan bajo jurisdicción militar del Clan Ferro.'
+) ON CONFLICT (state_id) DO UPDATE SET
+    custom_country_name = EXCLUDED.custom_country_name,
+    custom_state_name = EXCLUDED.custom_state_name,
+    controlling_faction_id = EXCLUDED.controlling_faction_id,
+    controlling_clan_id = EXCLUDED.controlling_clan_id,
+    tcp_current = EXCLUDED.tcp_current,
+    tcp_max = EXCLUDED.tcp_max,
+    gdp_war_credits_per_hour = EXCLUDED.gdp_war_credits_per_hour,
+    defense_level = EXCLUDED.defense_level,
+    custom_motto = EXCLUDED.custom_motto,
+    sovereign_proclamation = EXCLUDED.sovereign_proclamation,
+    updated_at = timezone('utc', now());
+
+-- Estado operacional de REG_VE_02
+INSERT INTO public.region_operational_state (
+    region_id,
+    controlling_faction_id,
+    controlling_clan_id,
+    tcp_current,
+    tcp_max,
+    bunker_level,
+    active_deployments_count,
+    active_buildings_count,
+    operational_status
+) VALUES (
+    'REG_VE_02',
+    'blue_moon',
+    'clan-ferro',
+    10000,
+    10000,
+    4,
+    2,
+    1,
+    'stable'
+) ON CONFLICT (region_id) DO UPDATE SET
+    controlling_faction_id = EXCLUDED.controlling_faction_id,
+    controlling_clan_id = EXCLUDED.controlling_clan_id,
+    tcp_current = EXCLUDED.tcp_current,
+    bunker_level = EXCLUDED.bunker_level,
+    operational_status = EXCLUDED.operational_status,
+    updated_at = timezone('utc', now());
+
+-- Semilla de Despliegue Espacial: División Blindada Ferro A-1 (Cabimas: Eje Terminal La Salina)
+INSERT INTO public.tactical_spatial_deployments (
+    id,
+    region_id,
+    cell_key,
+    sector_x,
+    sector_y,
+    cell_x,
+    cell_y,
+    lat,
+    lng,
+    unit_code,
+    unit_name,
+    clan_id,
+    clan_tag,
+    faction_id,
+    callsign,
+    tier,
+    hp,
+    max_hp,
+    status,
+    color_hex
+) VALUES (
+    'unit-cab-01',
+    'REG_VE_02',
+    '9880_15432_0_11',
+    9880,
+    15432,
+    0,
+    11,
+    10.395000,
+    -71.458000,
+    'md_tank',
+    'División Blindada Ferro A-1',
+    'clan-ferro',
+    'FERR',
+    'blue_moon',
+    'FERRO-TITÁN-01',
+    2,
+    100,
+    100,
+    'holding',
+    '#1D4ED8'
+) ON CONFLICT (region_id, cell_key) DO UPDATE SET
+    hp = EXCLUDED.hp,
+    status = EXCLUDED.status,
+    updated_at = timezone('utc', now());
+
+-- Semilla de Despliegue Espacial: Patrulla Ligera de Reconocimiento (Cabimas: Intersección Av. Intercomunal con Carretera H)
+INSERT INTO public.tactical_spatial_deployments (
+    id,
+    region_id,
+    cell_key,
+    sector_x,
+    sector_y,
+    cell_x,
+    cell_y,
+    lat,
+    lng,
+    unit_code,
+    unit_name,
+    clan_id,
+    clan_tag,
+    faction_id,
+    callsign,
+    tier,
+    hp,
+    max_hp,
+    status,
+    color_hex
+) VALUES (
+    'unit-cab-02',
+    'REG_VE_02',
+    '9880_15433_4_18',
+    9880,
+    15433,
+    4,
+    18,
+    10.405000,
+    -71.454000,
+    'recon',
+    'Patrulla Ligera de Reconocimiento',
+    'clan-ferro',
+    'FERR',
+    'blue_moon',
+    'HALCÓN-SALINA',
+    1,
+    85,
+    100,
+    'patrol',
+    '#3B82F6'
+) ON CONFLICT (region_id, cell_key) DO UPDATE SET
+    hp = EXCLUDED.hp,
+    status = EXCLUDED.status,
+    updated_at = timezone('utc', now());
+
+-- Semilla de Construcción In-Situ: Puerto y Terminal La Salina
+INSERT INTO public.tactical_fief_constructions (
+    id,
+    fief_id,
+    region_id,
+    cell_key,
+    sector_x,
+    sector_y,
+    cell_x,
+    cell_y,
+    lat,
+    lng,
+    building_type,
+    clan_id,
+    adjacent_road_segment_id,
+    level,
+    current_hp,
+    max_hp,
+    hourly_upkeep_ec
+) VALUES (
+    'bld-salina-seaport',
+    'fief-cabimas-salina',
+    'REG_VE_02',
+    '9880_15432_0_11_bld',
+    9880,
+    15432,
+    0,
+    11,
+    10.395000,
+    -71.458000,
+    'seaport_terminal',
+    'clan-ferro',
+    'seg-intercomunal-ambrosio-salina',
+    3,
+    12000,
+    12000,
+    450
+) ON CONFLICT (region_id, cell_key) DO UPDATE SET
+    current_hp = EXCLUDED.current_hp,
+    level = EXCLUDED.level,
+    updated_at = timezone('utc', now());
+
+-- >>> FIN MIGRACIÓN: 20261107_theatre_cabimas_realtime.sql <<<
+
+
+-- >>> INICIO MIGRACIÓN: 20261108_system_catalog_manifest.sql <<<
+-- ==============================================================================
+-- MIGRACIÓN CANÓNICA: MANIFIESTO DE CATÁLOGOS ESTÁTICOS Y GOBERNANZA DE BALANCE
+-- ==============================================================================
+-- Especificación: plan_catalog_ssot_synchronization.md
+-- Tablas: public.system_catalog_manifest
+-- RPC: public.get_catalog_manifest_header(), public.refresh_catalog_manifest()
+-- ==============================================================================
+
+CREATE TABLE IF NOT EXISTS public.system_catalog_manifest (
+    id VARCHAR(32) PRIMARY KEY DEFAULT 'current',
+    version_tag VARCHAR(32) NOT NULL DEFAULT 'v1.0.0-canonical',
+    content_hash VARCHAR(64) NOT NULL,
+    bundle_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+    tables_included TEXT[] NOT NULL DEFAULT ARRAY[
+        'units_catalog',
+        'terrain_catalog',
+        'commanders_catalog',
+        'unit_weapon_damage_matrix',
+        'world_countries',
+        'cosmetics_catalog',
+        'store_products_catalog'
+    ]::TEXT[],
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc', now())
+);
+
+ALTER TABLE public.system_catalog_manifest ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "system_catalog_manifest_read_all" ON public.system_catalog_manifest;
+CREATE POLICY "system_catalog_manifest_read_all"
+    ON public.system_catalog_manifest
+    FOR SELECT
+    USING (true);
+
+DROP POLICY IF EXISTS "system_catalog_manifest_auth_write" ON public.system_catalog_manifest;
+CREATE POLICY "system_catalog_manifest_auth_write"
+    ON public.system_catalog_manifest
+    FOR ALL
+    TO authenticated
+    USING (auth.uid() IS NOT NULL)
+    WITH CHECK (auth.uid() IS NOT NULL);
+
+-- ------------------------------------------------------------------------------
+-- 1. RPC: get_catalog_manifest_header (Chequeo ultrarrápido < 15ms en Boot Screen)
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.get_catalog_manifest_header()
+RETURNS TABLE (
+    version_tag VARCHAR,
+    content_hash VARCHAR,
+    updated_at TIMESTAMPTZ
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+    SELECT 
+        scm.version_tag, 
+        scm.content_hash, 
+        scm.updated_at 
+    FROM public.system_catalog_manifest scm 
+    WHERE scm.id = 'current'
+    LIMIT 1;
+$$;
+
+-- ------------------------------------------------------------------------------
+-- 2. RPC: refresh_catalog_manifest (Compilación y Hashing SHA-256 en Servidor)
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.refresh_catalog_manifest(p_version_tag TEXT DEFAULT NULL)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_units JSONB;
+    v_terrains JSONB;
+    v_commanders JSONB;
+    v_damage_matrix JSONB;
+    v_countries JSONB;
+    v_cosmetics JSONB;
+    v_store_products JSONB;
+    v_bundle JSONB;
+    v_bundle_text TEXT;
+    v_hash TEXT;
+    v_version TEXT;
+BEGIN
+    -- 1. Extraer unidades
+    SELECT jsonb_agg(u ORDER BY u.id) INTO v_units
+    FROM public.units_catalog u;
+
+    -- 2. Extraer terrenos
+    SELECT jsonb_agg(t ORDER BY t.id) INTO v_terrains
+    FROM public.terrain_catalog t;
+
+    -- 3. Extraer comandantes
+    SELECT jsonb_agg(c ORDER BY c.id) INTO v_commanders
+    FROM public.commanders_catalog c;
+
+    -- 4. Extraer matriz de daño balístico
+    SELECT jsonb_agg(d ORDER BY d.id) INTO v_damage_matrix
+    FROM public.unit_weapon_damage_matrix d;
+
+    -- 5. Extraer países
+    SELECT jsonb_agg(wc ORDER BY wc.iso_code) INTO v_countries
+    FROM public.world_countries wc;
+
+    -- 6. Extraer cosméticos
+    SELECT COALESCE(jsonb_agg(co ORDER BY co.id), '[]'::jsonb) INTO v_cosmetics
+    FROM public.cosmetics_catalog co;
+
+    -- 7. Extraer tienda
+    SELECT COALESCE(jsonb_agg(sp ORDER BY sp.id), '[]'::jsonb) INTO v_store_products
+    FROM public.store_products_catalog sp;
+
+    -- Consolidar el bundle canónico
+    v_bundle := jsonb_build_object(
+        'units', COALESCE(v_units, '[]'::jsonb),
+        'terrains', COALESCE(v_terrains, '[]'::jsonb),
+        'commanders', COALESCE(v_commanders, '[]'::jsonb),
+        'damage_matrix', COALESCE(v_damage_matrix, '[]'::jsonb),
+        'countries', COALESCE(v_countries, '[]'::jsonb),
+        'cosmetics', v_cosmetics,
+        'store_products', v_store_products
+    );
+
+    v_bundle_text := v_bundle::text;
+    v_hash := encode(digest(v_bundle_text, 'sha256'), 'hex');
+    v_version := COALESCE(p_version_tag, 'v1.0.0-' || substring(v_hash from 1 for 8));
+
+    INSERT INTO public.system_catalog_manifest (
+        id, version_tag, content_hash, bundle_json, updated_at
+    ) VALUES (
+        'current', v_version, v_hash, v_bundle, timezone('utc', now())
+    ) ON CONFLICT (id) DO UPDATE SET
+        version_tag = EXCLUDED.version_tag,
+        content_hash = EXCLUDED.content_hash,
+        bundle_json = EXCLUDED.bundle_json,
+        updated_at = timezone('utc', now());
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'version_tag', v_version,
+        'content_hash', v_hash,
+        'updated_at', timezone('utc', now())
+    );
+END;
+$$;
+
+-- ------------------------------------------------------------------------------
+-- 3. SEED DETERMINISTA INICIAL DEL MANIFIESTO
+-- ------------------------------------------------------------------------------
+SELECT public.refresh_catalog_manifest('v1.0.0-canonical-genesis');
+
+-- >>> FIN MIGRACIÓN: 20261108_system_catalog_manifest.sql <<<
+
+
+-- >>> INICIO MIGRACIÓN: 20261109_territorial_vulnerability_windows.sql <<<
+-- ==============================================================================
+-- MIGRACIÓN CANÓNICA: VENTANAS FIJAS DE VULNERABILIDAD Y ECONOMÍA DE BAJAS
+-- ==============================================================================
+-- Especificación: docs/03_TACTICAL_STRATEGY_SYSTEM_DESIGN.md §4.1, §4.2, §5.3
+-- - Ventanas fijas de 2 a 4 horas diarias para mitigación de Offline Raiding.
+-- - Cooldown constitucional anti-evasión de 48 horas al reconfigurar la ventana.
+-- - Liquidación de siniestros de combate: 65% sumidero / 35% chatarra (tech_scrap).
+-- ==============================================================================
+
+CREATE TABLE IF NOT EXISTS public.territorial_vulnerability_windows (
+  region_id VARCHAR(64) PRIMARY KEY REFERENCES public.state_sovereignty(state_id) ON DELETE CASCADE,
+  clan_id VARCHAR(64) NOT NULL,
+  window_start_utc TIME NOT NULL DEFAULT '20:00:00',
+  window_end_utc TIME NOT NULL DEFAULT '23:00:00',
+  cooldown_until_utc TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT valid_window_duration CHECK (
+    -- Permite ventanas directas (ej. 20:00 a 23:00 = 3h) o que crucen medianoche (ej. 23:00 a 02:00 = 3h)
+    (window_end_utc > window_start_utc AND (window_end_utc - window_start_utc) BETWEEN INTERVAL '2 hours' AND INTERVAL '4 hours')
+    OR
+    (window_end_utc < window_start_utc AND ((INTERVAL '24 hours' - (window_start_utc - window_end_utc)) BETWEEN INTERVAL '2 hours' AND INTERVAL '4 hours'))
+  )
+);
+
+-- Habilitar RLS
+ALTER TABLE public.territorial_vulnerability_windows ENABLE ROW LEVEL SECURITY;
+
+-- Política 1: Lectura libre para todos los comandantes y observadores en el mapa
+CREATE POLICY "vulnerability_windows_public_read"
+  ON public.territorial_vulnerability_windows
+  FOR SELECT
+  USING (true);
+
+-- ------------------------------------------------------------------------------
+-- RPC 1: check_territorial_vulnerability
+-- Comprueba si una región soberana está dentro de su ventana de asedio permitida
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.check_territorial_vulnerability(
+  p_region_id VARCHAR(64),
+  p_check_time TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+STABLE
+AS $$
+DECLARE
+  v_rec RECORD;
+  v_current_time_utc TIME;
+  v_is_vulnerable BOOLEAN := false;
+  v_hours_remaining NUMERIC := 0;
+BEGIN
+  SELECT * INTO v_rec
+  FROM public.territorial_vulnerability_windows
+  WHERE region_id = p_region_id AND is_active = true;
+
+  -- Si no tiene ventana configurada, se aplica la ventana canónica por defecto (20:00 - 23:00 UTC)
+  IF NOT FOUND THEN
+    v_current_time_utc := (p_check_time AT TIME ZONE 'UTC')::TIME;
+    IF v_current_time_utc >= '20:00:00'::TIME AND v_current_time_utc < '23:00:00'::TIME THEN
+      v_is_vulnerable := true;
+    END IF;
+    RETURN jsonb_build_object(
+      'region_id', p_region_id,
+      'is_vulnerable', v_is_vulnerable,
+      'window_start_utc', '20:00:00',
+      'window_end_utc', '23:00:00',
+      'is_default_fallback', true,
+      'cooldown_active', false
+    );
+  END IF;
+
+  v_current_time_utc := (p_check_time AT TIME ZONE 'UTC')::TIME;
+
+  -- Evaluación de ventana
+  IF v_rec.window_end_utc > v_rec.window_start_utc THEN
+    IF v_current_time_utc >= v_rec.window_start_utc AND v_current_time_utc < v_rec.window_end_utc THEN
+      v_is_vulnerable := true;
+    END IF;
+  ELSE
+    -- Ventana que cruza la medianoche (ej. 23:00 a 02:00)
+    IF v_current_time_utc >= v_rec.window_start_utc OR v_current_time_utc < v_rec.window_end_utc THEN
+      v_is_vulnerable := true;
+    END IF;
+  END IF;
+
+  IF v_rec.cooldown_until_utc > p_check_time THEN
+    v_hours_remaining := ROUND(EXTRACT(EPOCH FROM (v_rec.cooldown_until_utc - p_check_time)) / 3600.0, 1);
+  END IF;
+
+  RETURN jsonb_build_object(
+    'region_id', p_region_id,
+    'clan_id', v_rec.clan_id,
+    'is_vulnerable', v_is_vulnerable,
+    'window_start_utc', v_rec.window_start_utc,
+    'window_end_utc', v_rec.window_end_utc,
+    'cooldown_until_utc', v_rec.cooldown_until_utc,
+    'cooldown_active', (v_hours_remaining > 0),
+    'cooldown_hours_remaining', v_hours_remaining,
+    'is_default_fallback', false
+  );
+END;
+$$;
+
+-- ------------------------------------------------------------------------------
+-- RPC 2: update_territorial_vulnerability_window
+-- Permite al clan soberano programar su ventana defensiva con cooldown anti-evasión de 48h
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.update_territorial_vulnerability_window(
+  p_region_id VARCHAR(64),
+  p_clan_id VARCHAR(64),
+  p_window_start TIME,
+  p_window_end TIME
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_existing RECORD;
+  v_now TIMESTAMPTZ := timezone('utc'::text, now());
+  v_new_cooldown TIMESTAMPTZ := v_now + INTERVAL '48 hours';
+BEGIN
+  -- 1. Validar que la región pertenezca o esté controlada por el clan
+  IF NOT EXISTS (
+    SELECT 1 FROM public.state_sovereignty
+    WHERE state_id = p_region_id AND controlling_clan_id = p_clan_id
+  ) THEN
+    RAISE EXCEPTION 'UNAUTHORIZED_SOVEREIGNTY: El clan % no controla la soberanía de la región %', p_clan_id, p_region_id;
+  END IF;
+
+  -- 2. Validar cooldown constitucional anti-evasión de 48 horas
+  SELECT * INTO v_existing
+  FROM public.territorial_vulnerability_windows
+  WHERE region_id = p_region_id;
+
+  IF FOUND AND v_existing.cooldown_until_utc > v_now THEN
+    RAISE EXCEPTION 'VULNERABILITY_WINDOW_COOLDOWN_ACTIVE: Debe esperar 48 horas entre cambios de horario defensivo (expira en: %)', v_existing.cooldown_until_utc;
+  END IF;
+
+  -- 3. Upsert de la ventana
+  INSERT INTO public.territorial_vulnerability_windows (
+    region_id,
+    clan_id,
+    window_start_utc,
+    window_end_utc,
+    cooldown_until_utc,
+    updated_at
+  ) VALUES (
+    p_region_id,
+    p_clan_id,
+    p_window_start,
+    p_window_end,
+    v_new_cooldown,
+    v_now
+  )
+  ON CONFLICT (region_id) DO UPDATE SET
+    clan_id = EXCLUDED.clan_id,
+    window_start_utc = EXCLUDED.window_start_utc,
+    window_end_utc = EXCLUDED.window_end_utc,
+    cooldown_until_utc = EXCLUDED.cooldown_until_utc,
+    updated_at = EXCLUDED.updated_at;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'region_id', p_region_id,
+    'clan_id', p_clan_id,
+    'window_start_utc', p_window_start,
+    'window_end_utc', p_window_end,
+    'cooldown_until_utc', v_new_cooldown
+  );
+END;
+$$;
+
+-- ------------------------------------------------------------------------------
+-- RPC 3: settle_territorial_combat_losses
+-- Liquidación de bajas en combate RTS: 65% sumidero deflacionario / 35% tech_scrap
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.settle_territorial_combat_losses(
+  p_user_id UUID,
+  p_unit_code VARCHAR(32),
+  p_tier INTEGER DEFAULT 1
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_base_cost INTEGER := 1000;
+  v_total_loss INTEGER;
+  v_burned_sink INTEGER;
+  v_scrap_awarded INTEGER;
+  v_tier_mult NUMERIC := 1.0;
+BEGIN
+  -- Determinar coste según matriz de unidades
+  CASE p_unit_code
+    WHEN 'infantry' THEN v_base_cost := 1000;
+    WHEN 'mech' THEN v_base_cost := 3000;
+    WHEN 'recon' THEN v_base_cost := 4000;
+    WHEN 'tank_light' THEN v_base_cost := 7000;
+    WHEN 'anti_air' THEN v_base_cost := 8000;
+    WHEN 'chopper_battle' THEN v_base_cost := 9000;
+    WHEN 'artillery' THEN v_base_cost := 6000;
+    WHEN 'tank_medium' THEN v_base_cost := 12000;
+    WHEN 'missile' THEN v_base_cost := 12000;
+    WHEN 'rocket' THEN v_base_cost := 15000;
+    ELSE v_base_cost := 2000;
+  END CASE;
+
+  v_tier_mult := 1.0 + (GREATEST(1, LEAST(5, p_tier)) - 1) * 0.10;
+  v_total_loss := ROUND(v_base_cost * v_tier_mult);
+
+  -- 65% sumidero deflacionario permanente
+  v_burned_sink := ROUND(v_total_loss * 0.65);
+  -- 35% reciclaje balístico (1 scrap por cada 100 G de valor rescatado)
+  v_scrap_awarded := GREATEST(1, ROUND((v_total_loss * 0.35) / 100.0));
+
+  -- Acreditar la chatarra balística (tech_scrap) en el perfil industrial del usuario
+  UPDATE public.profiles
+  SET battle_credits = GREATEST(0, battle_credits),
+      metadata = jsonb_set(
+        COALESCE(metadata, '{}'::jsonb),
+        '{tech_scrap}',
+        (COALESCE((metadata->>'tech_scrap')::integer, 0) + v_scrap_awarded)::text::jsonb
+      ),
+      updated_at = timezone('utc'::text, now())
+  WHERE id = p_user_id;
+
+  RETURN jsonb_build_object(
+    'user_id', p_user_id,
+    'unit_code', p_unit_code,
+    'tier', p_tier,
+    'total_loss_value', v_total_loss,
+    'burned_sink_65_pct', v_burned_sink,
+    'tech_scrap_awarded_35_pct', v_scrap_awarded
+  );
+END;
+$$;
+
+-- >>> FIN MIGRACIÓN: 20261109_territorial_vulnerability_windows.sql <<<
+
+
+-- >>> INICIO MIGRACIÓN: 20261110_fix_database_audit_regressions.sql <<<
+-- ==============================================================================
+-- MIGRACIÓN CANÓNICA: ENDURECIMIENTO DE AUDITORÍA, INTEGRIDAD DE HANGAR Y SANEAMIENTO
+-- ==============================================================================
+-- Especificación: docs/DIAGNOSTICO_META_Y_ROADMAP_BETA.md §4.1
+-- 1. Restricción única en user_unit_hangar (user_id, unit_code, tier).
+-- 2. Trigger de cumplimiento del Pilar 1: Capacidad física máxima de 16 tropas en Hangar.
+-- 3. Inclusión de territorial_battle_sessions en replicación Realtime CDC.
+-- 4. Corrección de acreditación de compras en execute_p2p_market_transaction para recursos y chasis.
+-- 5. RPC canónica settle_territorial_combat_losses con soporte batch y chatarra 35%.
+-- ==============================================================================
+
+-- ------------------------------------------------------------------------------
+-- 1. RESTRICCIÓN ÚNICA EN USER_UNIT_HANGAR (Deduplicación segura previa)
+-- ------------------------------------------------------------------------------
+DELETE FROM public.user_unit_hangar a
+USING public.user_unit_hangar b
+WHERE a.id < b.id
+  AND a.user_id = b.user_id
+  AND a.unit_code = b.unit_code
+  AND a.tier = b.tier;
+
+ALTER TABLE public.user_unit_hangar DROP CONSTRAINT IF EXISTS uq_user_unit_hangar;
+ALTER TABLE public.user_unit_hangar ADD CONSTRAINT uq_user_unit_hangar UNIQUE (user_id, unit_code, tier);
+
+-- ------------------------------------------------------------------------------
+-- 2. TRIGGER: CONTROL DE CAPACIDAD FÍSICA (MÁXIMO 16 TROPAS - PILAR CANÓNICO 1)
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.check_user_hangar_capacity_limit()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_current_total INTEGER := 0;
+  v_new_addition INTEGER := 0;
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    v_new_addition := NEW.quantity;
+  ELSIF TG_OP = 'UPDATE' THEN
+    v_new_addition := NEW.quantity - OLD.quantity;
+  END IF;
+
+  IF v_new_addition <= 0 THEN
+    RETURN NEW;
+  END IF;
+
+  SELECT COALESCE(SUM(quantity), 0) INTO v_current_total
+  FROM public.user_unit_hangar
+  WHERE user_id = NEW.user_id;
+
+  IF (v_current_total + v_new_addition) > 16 THEN
+    RAISE EXCEPTION 'Capacidad física del hangar excedida: Máximo 16 tropas en stock (Pilar Canónico 1). Total proyectado: %', (v_current_total + v_new_addition);
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_enforce_user_hangar_capacity ON public.user_unit_hangar;
+CREATE TRIGGER trg_enforce_user_hangar_capacity
+  BEFORE INSERT OR UPDATE OF quantity ON public.user_unit_hangar
+  FOR EACH ROW
+  EXECUTE FUNCTION public.check_user_hangar_capacity_limit();
+
+-- ------------------------------------------------------------------------------
+-- 3. REPLICACIÓN REALTIME CDC PARA TERRITORIAL_BATTLE_SESSIONS
+-- ------------------------------------------------------------------------------
+ALTER TABLE public.territorial_battle_sessions REPLICA IDENTITY FULL;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime'
+  ) THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_publication_tables 
+      WHERE pubname = 'supabase_realtime' 
+        AND schemaname = 'public' 
+        AND tablename = 'territorial_battle_sessions'
+    ) THEN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.territorial_battle_sessions;
+    END IF;
+  END IF;
+END;
+$$;
+
+-- ------------------------------------------------------------------------------
+-- 4. RPC: EXECUTE_P2P_MARKET_TRANSACTION (ACREDITACIÓN COMPLETA DE RECURSOS Y CHASIS)
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.execute_p2p_market_transaction(p_order_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_buyer_id UUID := (SELECT auth.uid());
+    v_order public.p2p_market_orders%ROWTYPE;
+    v_buyer_profile public.profiles%ROWTYPE;
+    v_seller_profile public.profiles%ROWTYPE;
+    v_territory public.territory_control%ROWTYPE;
+    v_tax_total INTEGER;
+    v_burn_ec INTEGER;
+    v_royalty_ec INTEGER;
+    v_net_payout INTEGER;
+    v_now TIMESTAMPTZ := timezone('utc'::text, now());
+BEGIN
+    IF v_buyer_id IS NULL THEN
+        RETURN jsonb_build_object('success', false, 'error', 'No autenticado');
+    END IF;
+
+    SELECT * INTO v_order
+    FROM public.p2p_market_orders
+    WHERE id = p_order_id AND status = 'active'
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Orden no disponible o ya finalizada');
+    END IF;
+
+    IF v_order.seller_id = v_buyer_id THEN
+        RETURN jsonb_build_object('success', false, 'error', 'No puedes comprar tu propia orden');
+    END IF;
+
+    -- Orden determinista de bloqueo por UUID para evitar deadlocks en transacciones concurrentes
+    IF v_buyer_id < v_order.seller_id THEN
+        SELECT * INTO v_buyer_profile FROM public.profiles WHERE id = v_buyer_id FOR UPDATE;
+        SELECT * INTO v_seller_profile FROM public.profiles WHERE id = v_order.seller_id FOR UPDATE;
+    ELSE
+        SELECT * INTO v_seller_profile FROM public.profiles WHERE id = v_order.seller_id FOR UPDATE;
+        SELECT * INTO v_buyer_profile FROM public.profiles WHERE id = v_buyer_id FOR UPDATE;
+    END IF;
+
+    IF v_buyer_profile.battle_credits < v_order.total_price_ec THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Créditos de batalla insuficientes');
+    END IF;
+
+    v_tax_total := FLOOR(v_order.total_price_ec * 0.02);
+    v_burn_ec := FLOOR(v_order.total_price_ec * 0.01);
+    v_royalty_ec := v_tax_total - v_burn_ec;
+    v_net_payout := v_order.total_price_ec - v_tax_total;
+
+    PERFORM set_config('app.bypass_profile_guard', 'on', true);
+
+    UPDATE public.profiles
+    SET battle_credits = battle_credits - v_order.total_price_ec,
+        wallet_balance = battle_credits - v_order.total_price_ec,
+        updated_at = v_now
+    WHERE id = v_buyer_id;
+
+    UPDATE public.profiles
+    SET battle_credits = battle_credits + v_net_payout,
+        wallet_balance = battle_credits + v_net_payout,
+        updated_at = v_now
+    WHERE id = v_order.seller_id;
+
+    IF v_order.province_terminal_id IS NOT NULL AND v_royalty_ec > 0 THEN
+        SELECT * INTO v_territory FROM public.territory_control
+        WHERE province_id = v_order.province_terminal_id;
+
+        IF FOUND AND v_territory.controlling_clan_id IS NOT NULL THEN
+            UPDATE public.clans
+            SET treasury_gold = treasury_gold + v_royalty_ec
+            WHERE id = v_territory.controlling_clan_id;
+        END IF;
+    END IF;
+
+    -- Entrega del activo físico al comprador
+    IF v_order.item_category = 'unit_chassis' THEN
+        INSERT INTO public.user_unit_hangar (
+            user_id, unit_code, tier, level, hp, quantity, location_province_id, created_at, updated_at
+        ) VALUES (
+            v_buyer_id, v_order.item_code, v_order.tier, 1, 100, v_order.quantity, v_order.province_terminal_id, v_now, v_now
+        )
+        ON CONFLICT (user_id, unit_code, tier) DO UPDATE
+        SET quantity = public.user_unit_hangar.quantity + EXCLUDED.quantity,
+            updated_at = v_now;
+    ELSIF v_order.item_category IN ('raw_resource', 'refined_material') THEN
+        INSERT INTO public.user_industrial_inventory (user_id)
+        VALUES (v_buyer_id)
+        ON CONFLICT (user_id) DO NOTHING;
+
+        CASE v_order.item_code
+            WHEN 'raw_iron' THEN
+                UPDATE public.user_industrial_inventory SET raw_iron = raw_iron + v_order.quantity, updated_at = v_now WHERE user_id = v_buyer_id;
+            WHEN 'raw_stone' THEN
+                UPDATE public.user_industrial_inventory SET raw_stone = raw_stone + v_order.quantity, updated_at = v_now WHERE user_id = v_buyer_id;
+            WHEN 'raw_rare_earth' THEN
+                UPDATE public.user_industrial_inventory SET raw_rare_earth = raw_rare_earth + v_order.quantity, updated_at = v_now WHERE user_id = v_buyer_id;
+            WHEN 'refined_steel' THEN
+                UPDATE public.user_industrial_inventory SET refined_steel = refined_steel + v_order.quantity, updated_at = v_now WHERE user_id = v_buyer_id;
+            WHEN 'refined_concrete' THEN
+                UPDATE public.user_industrial_inventory SET refined_concrete = refined_concrete + v_order.quantity, updated_at = v_now WHERE user_id = v_buyer_id;
+            WHEN 'refined_microchip' THEN
+                UPDATE public.user_industrial_inventory SET refined_microchip = refined_microchip + v_order.quantity, updated_at = v_now WHERE user_id = v_buyer_id;
+            WHEN 'campaign_fuel' THEN
+                UPDATE public.user_industrial_inventory SET campaign_fuel = campaign_fuel + v_order.quantity, updated_at = v_now WHERE user_id = v_buyer_id;
+            WHEN 'fuel' THEN
+                UPDATE public.user_industrial_inventory SET campaign_fuel = campaign_fuel + v_order.quantity, updated_at = v_now WHERE user_id = v_buyer_id;
+            WHEN 'tech_scrap' THEN
+                UPDATE public.user_industrial_inventory SET tech_scrap = tech_scrap + v_order.quantity, updated_at = v_now WHERE user_id = v_buyer_id;
+            ELSE
+                UPDATE public.profiles
+                SET metadata = jsonb_set(
+                    COALESCE(metadata, '{}'::jsonb),
+                    ARRAY[v_order.item_code],
+                    (COALESCE((metadata->>v_order.item_code)::integer, 0) + v_order.quantity)::text::jsonb
+                )
+                WHERE id = v_buyer_id;
+        END CASE;
+    END IF;
+
+    UPDATE public.p2p_market_orders
+    SET buyer_id = v_buyer_id,
+        platform_burn_ec = v_burn_ec,
+        province_royalty_ec = v_royalty_ec,
+        net_seller_revenue_ec = v_net_payout,
+        status = 'completed',
+        completed_at = v_now
+    WHERE id = p_order_id;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'order_id', p_order_id,
+        'total_price_ec', v_order.total_price_ec,
+        'platform_burn_ec', v_burn_ec,
+        'province_royalty_ec', v_royalty_ec,
+        'seller_received', v_net_payout
+    );
+END;
+$$;
+
+-- ------------------------------------------------------------------------------
+-- 5. RPC CANÓNICA: SETTLE_TERRITORIAL_COMBAT_LOSSES (INDIVIDUAL Y EN LOTE)
+-- ------------------------------------------------------------------------------
+-- Overload 1: Individual por código y tier
+CREATE OR REPLACE FUNCTION public.settle_territorial_combat_losses(
+  p_user_id UUID,
+  p_unit_code VARCHAR(32),
+  p_tier INTEGER DEFAULT 1
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_base_cost INTEGER := 1000;
+  v_total_loss INTEGER;
+  v_burned_sink INTEGER;
+  v_scrap_awarded INTEGER;
+  v_tier_mult NUMERIC := 1.0;
+  v_now TIMESTAMPTZ := timezone('utc'::text, now());
+BEGIN
+  -- Infantería y Recon T1 están 100% blindados (Pilar 1: F2P inagotable)
+  IF (p_unit_code IN ('infantry', 'recon') AND COALESCE(p_tier, 1) = 1) THEN
+    RETURN jsonb_build_object(
+      'user_id', p_user_id,
+      'unit_code', p_unit_code,
+      'tier', p_tier,
+      'is_f2p_protected', true,
+      'tech_scrap_awarded_35_pct', 0
+    );
+  END IF;
+
+  CASE p_unit_code
+    WHEN 'infantry' THEN v_base_cost := 1000;
+    WHEN 'mech' THEN v_base_cost := 3000;
+    WHEN 'recon' THEN v_base_cost := 4000;
+    WHEN 'tank_light' THEN v_base_cost := 7000;
+    WHEN 'anti_air' THEN v_base_cost := 8000;
+    WHEN 'chopper_battle' THEN v_base_cost := 9000;
+    WHEN 'artillery' THEN v_base_cost := 6000;
+    WHEN 'tank_medium' THEN v_base_cost := 12000;
+    WHEN 'missile' THEN v_base_cost := 12000;
+    WHEN 'rocket' THEN v_base_cost := 15000;
+    WHEN 'neotank' THEN v_base_cost := 22000;
+    WHEN 'fighter' THEN v_base_cost := 20000;
+    WHEN 'bomber' THEN v_base_cost := 22000;
+    WHEN 'battleship' THEN v_base_cost := 28000;
+    ELSE v_base_cost := 2000;
+  END CASE;
+
+  -- Pilar 4: Multiplicador de +2% por Tier
+  v_tier_mult := 1.0 + (GREATEST(1, LEAST(5, COALESCE(p_tier, 1))) - 1) * 0.02;
+  v_total_loss := ROUND(v_base_cost * v_tier_mult);
+  -- 65% sumidero deflacionario permanente
+  v_burned_sink := ROUND(v_total_loss * 0.65);
+  -- 35% chatarra balística (1 scrap por cada 100 EC de valor recuperado)
+  v_scrap_awarded := GREATEST(1, ROUND((v_total_loss * 0.35) / 100.0));
+
+  -- Descontar del stock físico en hangar
+  UPDATE public.user_unit_hangar
+  SET quantity = GREATEST(0, quantity - 1),
+      updated_at = v_now
+  WHERE user_id = p_user_id
+    AND unit_code = p_unit_code
+    AND tier = COALESCE(p_tier, 1)
+    AND quantity > 0;
+
+  -- Acreditar chatarra en user_industrial_inventory
+  INSERT INTO public.user_industrial_inventory (user_id, tech_scrap)
+  VALUES (p_user_id, v_scrap_awarded)
+  ON CONFLICT (user_id) DO UPDATE
+  SET tech_scrap = public.user_industrial_inventory.tech_scrap + EXCLUDED.tech_scrap,
+      updated_at = v_now;
+
+  -- Espejo en metadatos para reactividad de interfaz
+  UPDATE public.profiles
+  SET metadata = jsonb_set(
+        COALESCE(metadata, '{}'::jsonb),
+        '{tech_scrap}',
+        (COALESCE((metadata->>'tech_scrap')::integer, 0) + v_scrap_awarded)::text::jsonb
+      ),
+      updated_at = v_now
+  WHERE id = p_user_id;
+
+  RETURN jsonb_build_object(
+    'user_id', p_user_id,
+    'unit_code', p_unit_code,
+    'tier', p_tier,
+    'total_loss_value', v_total_loss,
+    'burned_sink_65_pct', v_burned_sink,
+    'tech_scrap_awarded_35_pct', v_scrap_awarded
+  );
+END;
+$$;
+
+-- Overload 2: En lote (Batch Settle)
+CREATE OR REPLACE FUNCTION public.settle_territorial_combat_losses(
+  p_user_id UUID,
+  p_clan_id UUID,
+  p_destroyed_units JSONB
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_item RECORD;
+  v_hangar_row RECORD;
+  v_actual_deducted INTEGER;
+  v_total_units_deducted INTEGER := 0;
+  v_base_scrap INTEGER := 0;
+  v_scrap_recovered INTEGER := 0;
+  v_new_scrap_balance INTEGER := 0;
+  v_now TIMESTAMPTZ := timezone('utc'::text, now());
+BEGIN
+  IF p_user_id IS NULL THEN
+    RAISE EXCEPTION 'p_user_id no puede ser nulo en la liquidación de siniestralidad.';
+  END IF;
+
+  IF p_destroyed_units IS NULL OR jsonb_typeof(p_destroyed_units) <> 'array' OR jsonb_array_length(p_destroyed_units) = 0 THEN
+    RETURN jsonb_build_object('success', true, 'units_deducted', 0, 'scrap_recovered', 0);
+  END IF;
+
+  -- Iterar en orden determinista para prevenir deadlocks
+  FOR v_item IN
+    SELECT
+      x.unit_code,
+      COALESCE(x.tier, 1) AS tier,
+      SUM(GREATEST(0, COALESCE(x.quantity, 0)))::INTEGER AS total_lost
+    FROM jsonb_to_recordset(p_destroyed_units) AS x(unit_code TEXT, tier INTEGER, quantity INTEGER)
+    WHERE x.unit_code IS NOT NULL
+      AND NOT (x.unit_code IN ('infantry', 'recon') AND COALESCE(x.tier, 1) = 1)
+      AND COALESCE(x.quantity, 0) > 0
+    GROUP BY x.unit_code, COALESCE(x.tier, 1)
+    ORDER BY x.unit_code ASC, COALESCE(x.tier, 1) ASC
+  LOOP
+    SELECT id, quantity
+    INTO v_hangar_row
+    FROM public.user_unit_hangar
+    WHERE user_id = p_user_id
+      AND unit_code = v_item.unit_code
+      AND tier = v_item.tier
+    ORDER BY quantity DESC
+    LIMIT 1
+    FOR UPDATE;
+
+    IF FOUND AND v_hangar_row.quantity > 0 THEN
+      v_actual_deducted := LEAST(v_hangar_row.quantity, v_item.total_lost);
+
+      UPDATE public.user_unit_hangar
+      SET quantity = quantity - v_actual_deducted,
+          updated_at = v_now
+      WHERE id = v_hangar_row.id;
+
+      v_total_units_deducted := v_total_units_deducted + v_actual_deducted;
+      v_base_scrap := (v_item.tier * 50) * v_actual_deducted;
+      v_scrap_recovered := v_scrap_recovered + FLOOR(v_base_scrap * 0.35)::INTEGER;
+    END IF;
+  END LOOP;
+
+  IF v_scrap_recovered > 0 THEN
+    INSERT INTO public.user_industrial_inventory (user_id, tech_scrap)
+    VALUES (p_user_id, v_scrap_recovered)
+    ON CONFLICT (user_id) DO UPDATE
+    SET tech_scrap = public.user_industrial_inventory.tech_scrap + EXCLUDED.tech_scrap,
+        updated_at = v_now
+    RETURNING tech_scrap INTO v_new_scrap_balance;
+
+    UPDATE public.profiles
+    SET metadata = jsonb_set(
+          COALESCE(metadata, '{}'::jsonb),
+          '{tech_scrap}',
+          (COALESCE((metadata->>'tech_scrap')::integer, 0) + v_scrap_recovered)::text::jsonb
+        ),
+        updated_at = v_now
+    WHERE id = p_user_id;
+  ELSE
+    SELECT COALESCE(tech_scrap, 0) INTO v_new_scrap_balance
+    FROM public.user_industrial_inventory
+    WHERE user_id = p_user_id;
+  END IF;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'user_id', p_user_id,
+    'clan_id', p_clan_id,
+    'total_units_deducted', v_total_units_deducted,
+    'tech_scrap_recovered_35_pct', v_scrap_recovered,
+    'current_tech_scrap_balance', v_new_scrap_balance
+  );
+END;
+$$;
+
+-- >>> FIN MIGRACIÓN: 20261110_fix_database_audit_regressions.sql <<<
+
 
 -- >>> INICIO SEED DATA: seed.sql <<<
 -- ============================================================================
--- SCRIPT CANNICO DE SEMILLAS (SEED DATA)
+-- SCRIPT CANÓNICO DE SEMILLAS (SEED DATA)
 -- Proyecto: Tactical Command: Wars of Legacy
--- Especificacin: docs/orchestration/00_MASTER_EXECUTION_PLAN.md (Fase 3)
+-- Especificación: docs/orchestration/00_MASTER_EXECUTION_PLAN.md (Fase 3)
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
--- 1. USUARIOS DE AUTENTICACIN LOCAL / DESARROLLO (auth.users)
+-- 1. USUARIOS DE AUTENTICACIÓN LOCAL / DESARROLLO (auth.users)
 -- ----------------------------------------------------------------------------
 INSERT INTO auth.users (
     id,

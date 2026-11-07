@@ -1,40 +1,46 @@
 ---
 name: game-dev-quality-gate
-description: Orquestador de calidad total, pruebas integradas y sincronización de documentación para Tactical Command. Ejecuta un algoritmo de 6 fases post-implementación que combina pruebas de juego E2E (/game-qa-playtester), auditoría táctil y psicológica de Game Feel (/indie-game-ui-architect), validación de datos y seguridad Postgres (/supabase-postgres-best-practices), sincronización viva de /docs y actualización verídica de CHANGELOG.md.
+description: Orquestador de calidad total, pruebas deterministas de los 4 dominios (@domains/world, @domains/tactics, @domains/economy, @domains/game-feel, @shared), validación de los 7 Pilares Canónicos y sincronización viva de /docs y CHANGELOG.md para GEOTACTICS ONLINE. Ejecuta un algoritmo de 6 fases post-implementación combinando compilación limpia, suites deterministas (test:all y test:geotactics), playtest E2E (/game-qa-playtester), auditoría táctil (/tactical-command-intel) y seguridad Postgres (/supabase-postgres-best-practices).
 ---
 
-# GAME DEV QUALITY GATE & AUDIT SENTINEL
-*Algoritmo Integral de Validación de Software, Psicología Lúdica, Integridad de Datos y Gobernanza de Documentación.*
+# GAME DEV QUALITY GATE & AUDIT SENTINEL (v2.0 Modular Architecture)
+*Algoritmo Integral de Validación de Software, Invariantes de los 7 Pilares, Psicología Lúdica, Integridad de Datos y Gobernanza Documental.*
 
 Usa esta skill obligatoriamente siempre que:
-- Se complete una implementación, refactorización o corrección en el juego.
-- El usuario pida: *"Verifica la calidad"*, *"Audita la implementación"*, *"Corre el quality gate"*, *"Alinea los docs y el changelog"*, *"Simula la experiencia de usuario y errores prematuros"*.
+- Se complete una implementación, refactorización o corrección en cualquiera de los 4 dominios (`src/domains/world`, `src/domains/tactics`, `src/domains/economy`, `src/domains/game-feel`) o `src/shared`.
+- El usuario pida: *"Verifica la calidad"*, *"Audita la implementación"*, *"Corre el quality gate"*, *"Alinea los docs y el changelog"*, *"Certifica el cierre"*.
 - Se prepare un pull request, merge o release a producción.
 
 ---
 
 ## 1. PRINCIPIOS Y FILOSOFÍA DE CALIDAD
 
-1. **Cero Tolerancia a Parches a Ciegas**: Ningún cambio se da por finalizado si no pasa por un oráculo determinista (compilador + tests) y una validación en navegador real.
-2. **Cero "Documentation Drift"**: El código y la documentación técnica en `docs/` son gemelos simbióticos. Si el código muta, las especificaciones maestras se actualizan en el mismo commit.
-3. **Registro Verídico (Verifiable Changelog)**: `CHANGELOG.md` no contiene promesas ni alucinaciones; solo hechos respaldados por telemetría y pruebas superadas.
-4. **Game Feel y Psicología como Requisito Técnico**: Un botón que no rebota, una respuesta de clic que tarda más de 16ms o una regla opaca que induce frustración injusta son tratados como **bugs de severidad alta**, no simples preferencias cosméticas.
+1. **Cero Tolerancia a Parches a Ciegas**: Ningún cambio se da por finalizado sin superar los 3 oráculos deterministas (`npm run build`, `npm run test:all`, `npm run test:geotactics`).
+2. **Inmutabilidad de los 7 Pilares Canónicos**:
+   - **Pilar 1**: CERO CARTAS (Almacén Físico de 16 tropas máx: 4 activas + 12 reserva).
+   - **Pilar 2**: Escala balística continua de 1 a 100 HP enteros.
+   - **Pilar 3**: Derrota inapelable al quedar con 0 tropas supervivientes en el tablero.
+   - **Pilar 4**: Tiers T1 a T5 con bono horizontal estricto de +2% por tier (máx. +8% en T5).
+   - **Pilar 5**: Conquista de Capitales (`15,000 TCP`) con Buff Regional (+5% recursos/logística en la región + bonos hegemónicos).
+   - **Pilar 6**: Pérdida física real de chasis destruidos con recuperación del 35% en `tech_scrap`.
+   - **Pilar 7**: Human Handshake de 120 segundos en asedios antes de activar la IA de Guarnición (Niveles 1 a 5).
+   - **Regla Financiera P2P**: Impuesto total del 2% (1% quemado en Sink + 1% regalía al Clan dueño del Hub regional) y bandas dinámicas VWAP Collar ±25%.
+3. **Aislamiento de los 4 Dominios Modulares**: Todo código nuevo vive en `src/domains/{world,tactics,economy,game-feel}/` o `src/shared/` y se expone a través del `index.ts` de su dominio (`@domains/*`, `@shared/*`).
+4. **Cero "Documentation Drift"**: Si el código muta, las especificaciones maestras en `docs/` y `docs/AUDITORIA_DISCREPANCIAS_V0.0.2_ALFA.md` se actualizan en la misma sesión.
 
 ---
 
 ## 2. EL ALGORITMO DE AUDITORÍA EN 6 FASES (EXECUTION PIPELINE)
 
-Cada vez que se aplica un cambio en el codebase, ejecuta secuencialmente este algoritmo:
-
 ```mermaid
 flowchart TD
-    A[Inicio: Implementación Completada] --> B[Fase 1: Oráculo Determinista Types & Units]
+    A[Inicio: Implementación Completada] --> B[Fase 1: Triple Oráculo Determinista & Fronteras de Dominio]
     B -- Pasa --> C[Fase 2: Playtest E2E Multimodal Chromium]
     B -- Falla --> X[Reparación Inmediata]
-    C -- Pasa --> D[Fase 3: Auditoría Táctil & Anti-SaaS Game Feel]
+    C -- Pasa --> D[Fase 3: Auditoría Táctil C4ISR & 7 Pilares Canónicos]
     C -- Falla Crash/BlackScreen --> X
     D --> E[Fase 4: Simulación Psicológica & Fricción Cognitiva]
-    E --> F[Fase 5: Seguridad Postgres & Buenas Prácticas Supabase]
+    E --> F[Fase 5: Seguridad Postgres, 31+ Migraciones & RLS]
     F --> G[Fase 6: Sincronización de /docs y CHANGELOG.md]
     G --> H[Entrega Aprobada / Quality Pass]
     X --> B
@@ -42,150 +48,102 @@ flowchart TD
 
 ---
 
-### FASE 1: ORÁCULO DETERMINISTA DE MOTOR Y TIPOS
-*Verifica la solidez matemática y contractual del código sin efectos colaterales.*
+### FASE 1: TRIPLE ORÁCULO DETERMINISTA Y FRONTERAS DE DOMINIO
+*Verifica la solidez matemática, contractual y de empaquetado del código.*
 
-1. **Tipado Estricto**:
+1. **Tipado Estricto y Compilación de Producción**:
    ```powershell
-   npx tsc --noEmit
+   npm run lint
+   npm run build
    ```
-   - Cero errores de TypeScript.
-   - Prohibido el uso de `any` no justificado o tipos huérfanos.
-2. **Suite de Motores Tácticos**:
+   - `npm run lint` (`tsc --noEmit`) y `npm run build` (`vite build`) deben finalizar con código de salida `0`.
+   - Verifica que los barriles `src/domains/{world,tactics,economy,game-feel}/index.ts` y `src/shared/index.ts` exporten limpiamente cualquier símbolo nuevo.
+2. **Suite Global de Motores Deterministas (13/13 Suites)**:
    ```powershell
    npm run test:all
    ```
-   - Valida la integridad del motor determinista de 1-100 HP, la economía de combustible, niebla de guerra, IA de asedio y cálculo de daño.
+3. **Suite del Metajuego Geopolítico e Industrial (93/93 Pruebas)**:
+   ```powershell
+   npm run test:geotactics
+   ```
 
 ---
 
 ### FASE 2: PLAYTEST E2E MULTIMODAL (`/game-qa-playtester`)
-*Experimenta el juego en un runtime real para detectar cuelgues o bloqueos de interacción.*
+*Experimenta el juego en un navegador Chromium real cuando se tocan componentes visuales o de mapa.*
 
 1. **Lanzar la Suite Playwright**:
    ```powershell
    npm run test:qa
    ```
-2. **Inspección de Telemetría**:
+2. **Inspección de Telemetría y Puente QA (`src/shared/utils/qaHarness.ts`)**:
    - Revisa `test-results/qa-run-latest.json`.
-   - Verifica que `fatalErrorsCount == 0`, `pageErrors == []` y `networkFailures == []`.
+   - Verifica que `fatalErrorsCount == 0`, `pageErrors == []` y `networkFailures == []` (incluyendo los GeoJSON locales `/map/world_land.json`, `/map/theatre_regions.json`, `/map/theatre_roads.json`, `/map/theatre_urban_roads.json` y `/map/theatre_cities.json`).
 3. **Auditoría Visual de Capturas (`test-results/screenshots/`)**:
-   - `01_war_lobby_boot.png`: Montaje limpio de `#root`, cero pantallas blancas/negras.
-   - `02_combat_theater.png`: Renderizado completo de la cuadrícula táctica, shaders y sprites (sin texturas rotas ni 404).
-   - `03_tile_interaction.png`: Reactividad de selección de casilla y despliegue del menú contextual sin desbordamiento de viewport.
+   - Arranque limpio en `WarLobbyHub.tsx` y renderizado WebGL de `TacticalWorldMap.tsx`.
 
 ---
 
-### FASE 3: AUDITORÍA TÁCTIL Y "GAME FEEL" (`/indie-game-ui-architect`)
-*Garantiza que la interfaz se sienta como un juego indie de autor y no como un dashboard empresarial.*
-
-Evalúa los componentes afectados frente a los 5 Invariantes de Juego Táctil:
+### FASE 3: AUDITORÍA TÁCTIL Y "GAME FEEL" (`/tactical-command-intel` & `/indie-game-ui-architect`)
+*Garantiza que la interfaz respete la estética C4ISR Comic War-Room y los 7 Pilares.*
 
 | Invariante | Requisito Técnico Obligatorio | Verificación |
 | :--- | :--- | :--- |
-| **1. Anti-SaaS Silhouette** | Siluetas poligonales (`clip-path`), bordes biselados o estética cómic C4ISR. Prohibidas tarjetas planas con `border-radius: 8px` y tipografía corporativa. | Inspección CSS / JSX de componentes nuevos. |
-| **2. Respuesta en 1 Frame (<16ms)** | Micro-interacción inmediata al `pointerdown` (sin esperar a `pointerup` o transiciones lentas). | Comprobar ausencia de `transition: all 0.3s ease` genérico. |
-| **3. Física de Resortes** | Uso de curvas con rebote `cubic-bezier(0.34, 1.56, 0.64, 1)` y desaceleración `cubic-bezier(0.22, 1, 0.36, 1)`. | Revisar animaciones y transiciones de Framer Motion / CSS. |
-| **4. Squash & Stretch** | Los botones y tokens interactivos deben comprimirse en `:active` (`scale(1.12, 0.88)`) antes de expandirse. | Comprobar micro-física en botones y cartas. |
-| **5. Barras de Doble Capa** | Toda barra de HP, progreso de asedio o recursos debe tener *Ghost Trail* amortiguado tras la barra frontal. | Comprobar que no haya saltos de barra de una sola capa. |
-| **6. Audio Procedural Web Audio** | Cada clic, hover de tecla o confirmación debe emitir sonido procedural con variación de pitch (`AudioContext`), evitando el juego sordo. | Verificar integración con `@src/engine/audioManager.ts` o síntesis procedural. |
+| **1. Cero Cartas / Hangar Físico** | Prohibido hablar de cartas/mazos. Uso de Bahías de Chasis (16 tropas máx, 1–100 HP, Tiers T1–T5 +2%/tier). | Inspección de textos y props en `src/domains/economy/components/`. |
+| **2. Anti-SaaS Silhouette** | Siluetas `rounded-[14px_4px_14px_4px]`, chaflanes a 45° (`clip-path`) y sombras duras `4px 4px 0px #0A0B08`. | Inspección CSS / JSX de componentes nuevos. |
+| **3. Física de Resortes y Squash** | Uso de `--ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1)` y `.tactical-btn-heavy`. | Revisar transiciones de `motion/react` y clases CSS. |
+| **4. Barras de Doble Capa** | Toda barra de HP (1–100), progreso de forja o TCP (`10,000`/`15,000`) usa `TacticalGhostBar` (`src/shared/ui/TacticalGhostBar.tsx`). | Comprobar que no haya barras simples sin *Ghost Trail*. |
+| **5. Audio Procedural + Háptica** | Integración con `audioManager` (`src/domains/game-feel/core/audioManager.ts`) y `triggerHaptic` (`src/domains/game-feel/core/hapticFeedback.ts`). | Verificar llamadas desde `@domains/game-feel`. |
 
 ---
 
 ### FASE 4: SIMULACIÓN DE EFECTOS PSICOLÓGICOS Y HEURÍSTICAS COGNITIVAS
-*Auditoría pre-mortem para detectar frustración, fatiga o desinterés del jugador antes de que ocurran.*
-
-Analiza la mecánica o interfaz bajo el modelo de 4 filtros psicológicos:
-
-1. **Carga Cognitiva y Ancho de Banda de Trabajo**:
-   - *Filtro*: ¿La pantalla exige recordar más de 4 variables simultáneas para tomar una decisión táctica?
-   - *Acción*: Telegrafiar información en el propio mapa (capa espacial) en vez de obligar a consultar múltiples submenús.
-2. **Claridad Causal y Duelo Justo (Anti-Frustración)**:
-   - *Filtro*: Si el jugador sufre una emboscada en niebla (`TRAP`) o pierde un edificio, ¿comprende exactamente por qué ocurrió?
-   - *Acción*: Confirmar que existan onomatopeyas visuales Pop-Art (`¡ALERT!`, `¡TRAP!`, `¡BOOM!`) y líneas de diálogo del Bark Engine que expliquen la causa.
-3. **Efecto Zeigarnik y Tensión de Retención (Metagame Loop)**:
-   - *Filtro*: ¿La sesión deja al jugador con un objetivo inconcluso apetecible (un territorio al 80% de asedio, un chasis a punto de construirse, una racha activa)?
-   - *Acción*: Asegurar que el cierre de partida o HUD muestre la barra de progreso persistente en estado "casi completado".
-4. **Fatiga de Clics y Ergonomía (Fitts's Law)**:
-   - *Filtro*: ¿Una acción recurrente (como terminar turno o reabastecer tropas) requiere desplazamientos excesivos de cursor?
-   - *Acción*: Integrar atajos de teclado primarios (`[SPACE]`, `[E]`, `[Q]`, `[ESC]`) y botones de radio de acción amplio.
+1. **Carga Cognitiva y Semantic Zoom**: Respetar los 3 estratos de zoom (`ZOOM_GLOBAL = 3.5`, `ZOOM_OPERACIONAL = 10.0`, `ZOOM_TACTICO = 15.0` en `src/domains/world/core/coordinates.ts`) sin saturar el mapa macro con detalles micro.
+2. **Claridad Causal (Anti-Frustración)**: Toda emboscada (`¡TRAP!`), bloqueo de zona buffer o alerta de sobre-expansión debe disparar su contexto en `barkEngine.ts` (`src/domains/game-feel/core/barkEngine.ts`) con sello pop-art.
+3. **Efecto Zeigarnik**: Visibilidad de colas de ensamblaje en tiempo real, barras TCP y temporizador de 120s en asedios.
+4. **Ergonomía y Hotkeys**: Insignias de atajos de teclado alineadas con los listeners reales de `WarLobbyHub.tsx` y `CombatTheaterView.tsx`.
 
 ---
 
-### FASE 5: SEGURIDAD POSTGRES Y BUENAS PRÁCTICAS SUPABASE (`/supabase-postgres-best-practices`)
-*Audita la capa de persistencia, migraciones y seguridad en base de datos.*
-
-Aplica los estándares de Supabase si la tarea involucra tablas, esquemas, APIs o funciones RPC:
-
-1. **Seguridad y RLS (Prioridad Crítica)**:
-   - Toda tabla nueva DEBE tener Row Level Security activado: `ALTER TABLE ... ENABLE ROW LEVEL SECURITY;`.
-   - Las políticas deben usar índices en las columnas de condición (ej. `auth.uid() = user_id`).
-   - Prohibido el uso de claves de servicio (`service_role`) en el cliente web React.
-2. **Diseño de Esquema y Migraciones**:
-   - Claves foráneas con índices explícitos para evitar escaneos secuenciales en JOINs:
-     ```sql
-     CREATE INDEX IF NOT EXISTS idx_tabla_foreign_id ON tabla(foreign_id);
-     ```
-   - Tipos de datos óptimos: `timestamptz` en lugar de `timestamp`, `text` en lugar de `varchar(255)` innecesario, `uuid` como PK canónica.
-   - Migraciones aditivas y seguras: añadir columnas con valores por defecto sin bloquear la tabla.
-3. **Optimización de Consultas**:
-   - Evitar `SELECT *` en suscripciones de Realtime o tablas con campos JSONB grandes.
-   - Paginación determinista basada en cursor (`WHERE created_at < $cursor LIMIT 20`) en lugar de `OFFSET` masivo.
+### FASE 5: SEGURIDAD POSTGRES, MIGRACIONES Y RLS (`/supabase-postgres-best-practices`)
+Si la tarea involucra base de datos (`supabase/migrations/` o `src/shared/types/database.types.ts`):
+1. **RLS Obligatorio**: `ALTER TABLE ... ENABLE ROW LEVEL SECURITY;` con políticas multi-tenant indexadas.
+2. **Sincronización de Esquema**:
+   - Toda nueva migración en `supabase/migrations/` debe reflejarse en `supabase/CONSOLIDATED_FULL_DATABASE_DEPLOY.sql` y en `src/shared/types/database.types.ts`.
+   - Respetar las invariantes SQL: `hp_max = 100`, `tier BETWEEN 1 AND 5`, `tech_scrap` al 35% y split P2P del 2% (1% burn + 1% clan).
 
 ---
 
 ### FASE 6: PACK DE SINCRONIZACIÓN DE `/docs` Y `CHANGELOG.md`
-*Garantiza que la verdad del código quede inmortalizada en los registros técnicos.*
-
-1. **Auditoría de Documentación Maestra (`docs/`)**:
-   - Comprueba qué documentos de arquitectura fueron tocados conceptualmente:
-     - Cambios en reglas de combate/unidades -> Actualizar `docs/00_ARBOL_CANONICO_DE_SISTEMAS_Y_DESARROLLO.md` y `docs/05_MASTER_GAME_ENGINE_AND_NETWORKING.md`.
-     - Cambios en economía/territorios/asedio -> Actualizar `docs/02_MASTER_METAGAME_INDUSTRY_ECONOMY.md` o `docs/00_GEOTACTICS_ONLINE_MASTER_SPEC.md`.
-     - Cambios en base de datos/RLS -> Actualizar `docs/04_MASTER_DATABASE_AND_SECURITY_SPEC.md`.
-     - Cambios en interfaz/HUD -> Actualizar `docs/UI_UX_RESTRUCTURE_BLUEPRINT.md`.
-   - **Regla**: Elimina cualquier discrepancia donde la documentación diga algo contradictorio con la implementación real.
-2. **Actualización Estricta de `CHANGELOG.md`**:
-   - Añade o actualiza la sección bajo la versión correspondiente siguiendo *Keep a Changelog*:
-     - `### Added`: Nuevos subsistemas, componentes visuales, poderes o rutas.
-     - `### Changed`: Modificaciones en balance, animaciones o firmas de tipos.
-     - `### Fixed`: Bugs reparados, eliminando la causa raíz verificada.
-     - `### Security`: Mejoras de RLS, sanitización o aislamiento de claves.
-   - Cada entrada debe ser concisa, técnica y reflejar la realidad del código.
+1. **Sincronización Canónica en `docs/` (Usando siempre rutas `src/domains/*` y `src/shared/*`)**:
+   - Arquitectura general / Estado de ramas -> `docs/00_ARBOL_CANONICO_DE_SISTEMAS_Y_DESARROLLO.md` y `docs/00_GEOTACTICS_ONLINE_MASTER_SPEC.md`.
+   - Cartografía WebGL / Coordenadas / Carreteras -> `docs/01_MASTER_CARTOGRAPHY_WEBGL_ZERO_RASTER.md`.
+   - Economía / 10 Parcelas / Hangar 16 Tropas / P2P 2% -> `docs/02_MASTER_METAGAME_INDUSTRY_ECONOMY.md`.
+   - 29 Comandantes / Bark Engine / Clanes -> `docs/03_MASTER_COMMANDERS_BARK_AND_SOCIAL.md`.
+   - Base de Datos / Migraciones / RLS -> `docs/04_MASTER_DATABASE_AND_SECURITY_SPEC.md` y `docs/DATABASE_ARCHITECTURE_AUDIT.md`.
+   - Motor Balístico 1-100 HP / Red / Guarnición IA 1-5 -> `docs/05_MASTER_GAME_ENGINE_AND_NETWORKING.md` y `docs/03_TACTICAL_STRATEGY_SYSTEM_DESIGN.md`.
+   - QA / Telemetría / Web Audio / Háptica -> `docs/06_MASTER_DEVOPS_QA_AND_TELEMETRY.md`.
+   - UI/UX War Room / C4ISR -> `docs/07_MASTER_UI_UX_WAR_ROOM.md`.
+   - Matriz de Discrepancias -> `docs/AUDITORIA_DISCREPANCIAS_V0.0.2_ALFA.md` (mantener en **0 Discrepancias Pendientes**).
+2. **Actualización Verídica de `CHANGELOG.md`**: Registrar únicamente cambios reales verificados por las suites.
 
 ---
 
 ## 3. REPORTE DE CALIDAD (AUDIT RELEASE CARD)
 
-Al finalizar el algoritmo de pruebas, el agente debe generar un resumen estructurado en el chat o en un artefacto con este formato:
-
 ```markdown
 ### 🛡️ Quality Gate Audit Summary
 
-- **Motor & Tipos (Hard Oracles)**:
-  - `tsc --noEmit`: [PASÓ / N errores]
-  - `test:all`: [PASÓ / X de Y suites exitosas]
-- **Playtesting E2E (Chromium)**:
-  - Telemetría: 0 Errores fatales, 0 fallos de red.
-  - Capturas validadas: Boot, Canvas y Teatro de Operaciones interactivos.
-- **Game Feel & Anti-SaaS**:
-  - Silueta / Estilo: [Kinetic Rebel Cutout / C4ISR Táctico]
-  - Micro-física: [Squash & Stretch verificado, Resortes reactivos]
-  - Audio: [Feedback procedural verificado]
-- **Psicología & UX**:
-  - Carga cognitiva: [Baja / Aceptable - Telegrafiado espacial activo]
-  - Bucle de retención: [Progreso persistente telegrafiado]
-- **Base de Datos & Seguridad (Supabase)**:
-  - RLS: [Activo y validado con índices / N/A]
+- **Triple Oráculo Determinista**:
+  - `npm run build`: [EXIT 0]
+  - `npm run test:all`: [13/13 suites PASS]
+  - `npm run test:geotactics`: [93/93 tests PASS]
+- **Fronteras Modulares & 7 Pilares**:
+  - Dominios actualizados: [`@domains/world` | `@domains/tactics` | `@domains/economy` | `@domains/game-feel` | `@shared`]
+  - Invariantes: [0 Cartas / 16 Tropas, 1-100 HP, Tiers T1-T5 +2%, 35% Scrap, P2P 2% / VWAP ±25%, Handshake 120s]
+- **Game Feel, Audio & UI C4ISR**:
+  - Estética y Física: [Silueta C4ISR, TacticalGhostBar, audioManager + triggerHaptic]
 - **Gobernanza & Documentación**:
-  - `docs/` actualizados: [Lista de specs actualizadas]
-  - `CHANGELOG.md`: [Registrado en versión X.Y.Z]
+  - `docs/` sincronizados: [Lista de archivos actualizados con 0 discrepancias]
+  - `CHANGELOG.md`: [Actualizado]
 ```
-
----
-
-## 4. GOTCHAS Y ANTIPATRONES PROHIBIDOS
-
-- **PROHIBIDO marcar una tarea como "lista" sin ejecutar el linter y los tests**: Si no se corre `npx tsc --noEmit` y `npm run test:all`, la tarea se considera no probada.
-- **PROHIBIDO omitir el Playtest visual en cambios de UI**: Si modificas `App.tsx` o componentes visuales, es obligatorio correr `npm run test:qa` y verificar que el renderizado de Playwright no esté roto.
-- **PROHIBIDO el "Changelog Fantasma"**: Nunca redactes en `CHANGELOG.md` funcionalidades que estén a medias, comentadas o que dependan de un TODO futuro.
-- **PROHIBIDO crear tablas de Postgres sin políticas RLS**: En Tactical Command, cualquier tabla expuesta a Supabase debe tener RLS habilitado y políticas declarativas explícitas.

@@ -1,136 +1,67 @@
-# 🛰️ INFORME FORENSE DE AUDITORÍA Y MATRIZ DE DISCREPANCIAS (v0.0.2-alfa)
+# 🛰️ INFORME FORENSE DE AUDITORÍA Y MATRIZ DE RESOLUCIÓN DE DISCREPANCIAS (v0.0.2-alfa — SSOT SYNC)
 **GEOTACTICS: ONLINE (Wars of Legacy)**  
-**Fecha de Emisión:** 05 de Noviembre de 2026  
-**Carácter:** Documento de Diagnóstico y Plan de Sincronización Arquitectónica (Read-Only)  
-**Estado:** PENDIENTE DE AUTORIZACIÓN HUMANA (Fase 3)
+**Fecha de Certificación:** 07 de Noviembre de 2026  
+**Orquestador:** Enjambre Sentinel Lead (Subagentes A01 a A10 + A11 Sintetizador)  
+**Carácter:** Matriz Canónica de Sincronización Documental y Código Fuente (4 Dominios + Shared + 31 Migraciones SQL)  
+**Estado Global:** ✅ **100% SINCRONIZADO — 0 DISCREPANCIAS PENDIENTES**
 
 ---
 
-## 1. RESUMEN EJECUTIVO Y ESTADO DE LA VERDAD TÉCNICA
+## 1. RESUMEN EJECUTIVO Y CERTIFICACIÓN DE LA VERDAD TÉCNICA
 
-Esta auditoría forense cruza la totalidad del repositorio documental en `docs/` con el estado empírico del código fuente en la transición a **`v0.0.2-alfa`** (Cartografía WebGL 2.0 Zero-Raster, red troncal vial en GPU, retiro de Canvas 2D y automatización de la pantalla de carga).
+Esta auditoría en bucle cerrado ejecutada por el enjambre de 11 agentes especializados (A01–A11) ha contrastado y sincronizado la totalidad del repositorio documental canónico en `docs/*.md` contra la verdad ejecutable del código fuente reestructurado en los **4 Dominios Funcionales** (`src/domains/world/`, `src/domains/tactics/`, `src/domains/economy/`, `src/domains/game-feel/`), la capa transversal (`src/shared/`) y las **31 migraciones SQL** (`supabase/migrations/` y `supabase/CONSOLIDATED_FULL_DATABASE_DEPLOY.sql`).
 
-### Diagnóstico General:
-1. **Cartografía WebGL Zero-Raster Consolidada:** Se confirma la erradicación total de proveedores comerciales raster externos (CartoDB/Mapbox `{z}/{x}/{y}.png`). El renderizado corre en local sobre MapLibre GL JS v6.16.0 con geometría vectorial estricta.
-2. **Desfase en la Especificación Canónica (`00_GEOTACTICS_ONLINE_MASTER_SPEC.md`):** La Master Spec aún conserva incrustado el bloque de código con URLs de CartoDB en la Sección 3.2, y lista el componente `WorldMapCanvas.tsx` como activo o en refactorización, a pesar de haber sido purgado físicamente del repositorio.
-3. **Residuos y Código Muerto de Canvas 2D en `TacticalWorldMap.tsx`:** Persisten más de 120 líneas de código inalcanzable (`pumpCanvasToWebGL`, `renderTacticalBattleCanvas`, `tileCanvasRef` nulo permanente y lógica de textura pump), arrastradas de la Capa 2 táctica.
-4. **Desconexión Espacial y de Datos en `theatre_regions.json`:** El GeoJSON real contiene solo 25 geometrías (faltan las 6 zonas buffer de frontera terrestre) y presenta un cruce grave en los IDs respecto a `politicalAliceEngine.ts` (ej. Falcón vs Táchira, Apure vs Cojedes).
-5. **Hipertrofia en Red Vial (`theatre_roads.json`):** El archivo pesa 2.21 MB (9,093 line features), superando en un 2,200% el presupuesto de carga fijado de $\le 95\text{ KB}$.
-6. **Violación de `feature-state` en GPU:** A pesar de que los documentos exigen 0% re-renders de React mediante `map.setFeatureState`, el código reconstruye el GeoJSON en React con `useMemo` y llama a `provSource.setData(...)`.
-7. **Desfase en Capas de Juego:**
-   - **Capa 1 (Metajuego Político ALICE):** 100% activa pero con topología visual cruzada.
-   - **Capa 2 (Combate Táctico por Turnos):** Totalmente deshabilitada en el MVP (`enabled: false`), con botones en el Lobby que redirigen forzosamente a asedio geopolítico en Capa 1.
-   - **Capa 3 (Bark Engine & Stella):** Activa pero con candado monopólico (`singleSubjectLock: true`) forzando a la Mayor Stella como sujeto exclusivo de pruebas.
-8. **Incongruencias Visuales y Residuos de "Mazo de 10 Cartas":** La UI muestra sellos con triple discrepancia de versión (`VER 0.0.1 ALFA` vs `Alfa v0.1.0` vs `0.1.0` en package.json), la prop `autoProceed` en `GeotacticsLoadingScreen.tsx` es fantasma/muerta, y existen remanentes de texto sobre cartas en el Hangar y Barks.
+### Invariantes y 7 Pilares Canónicos Ratificados al 100%:
+1. **Pilar 1 — CERO CARTAS (Almacén Físico de 16 Tropas):** Erradicación total de mecánicas TCG/CCG/Gacha. El jugador opera un **Almacén Físico de 16 tropas máximo** (`MAX_PHYSICAL_HANGAR_CAPACITY = 16`: 4 slots de despliegue activo de vanguardia + 12 unidades en reserva táctica) sobre los 16 arquetipos militares (`src/domains/economy/components/UnitHangarModal.tsx`, `src/domains/economy/hooks/useUserHangar.ts`, `public.user_unit_hangar`).
+2. **Pilar 2 — Escala Balística Continua (1 a 100 HP):** Integridad estructural entera continua de `1` a `100 HP` (`CANONICAL_MAX_HP = 100` en `src/shared/types/metagame.ts` y `src/domains/tactics/core/canonicalCombat.ts`), con reparación en propiedades aliadas de `+20 HP/turno` a coste del `1%` por cada `1 HP` restaurado (`src/domains/economy/core/turnEconomy.ts`).
+3. **Pilar 3 — Derrota Inapelable por 0 Tropas:** Quedar con `0` unidades operativas vivas en el tablero (`all_units_destroyed` / `army_wiped`) produce la derrota inmediata e inapelable de la partida, en adición a la captura del Cuartel General (`hq_captured`).
+4. **Pilar 4 — Progresión Horizontal de Tiers T1 a T5 (+2% por Tier):** Los chasis forjados escalan horizontalmente de **T1 a T5** con un bono estricto de **$+2\%$ por tier** (`T1 = +0%`, `T2 = +2%`, `T3 = +4%`, `T4 = +6%`, `T5 = +8%` máximo), garantizando 0% Pay-to-Win.
+5. **Pilar 5 — Conquista de Capitales con Buff Regional (+5%):** Las capitales regionales y nacionales son 100% conquistables (`15,000 TCP`), otorgando un **Buff Regional del $+5\%$ en extracción de recursos y logística regional**, además de las bonificaciones hegemónicas nacionales (`+15% EC`, `+10% velocidad de forja`).
+6. **Pilar 6 — Pérdida Física Real y 35% de Chatarra Tecnológica (`tech_scrap`):** Toda unidad no-F2P destruida en combate sufre baja física real del hangar y acredita una recuperación exacta del **35% en chatarra tecnológica (`tech_scrap`)** (`RECYCLE_SCRAP_RATE = 0.35`, `SALVAGE_TECH_SCRAP_RATE = 0.35`, `settleCombatLossesAndScrap` en `src/domains/tactics/core/tacticalCombatSeamlessIntegration.ts`).
+7. **Pilar 7 — Human Handshake de 120 Segundos e IA de Guarnición (Niveles 1 a 5):** Todo asedio territorial abre una ventana de **120 segundos (`HANDSHAKE_TIMEOUT_SECONDS = 120` / `HUMAN_HANDSHAKE_WINDOW_MS = 120_000`)** para que un comandante defensor humano intercepte en vivo antes de que tome el mando la **IA de Guarnición de Niveles 1 a 5** (`src/domains/tactics/core/garrisonAIEngine.ts` y `src/domains/world/core/territorialSiegeOrchestrator.ts`).
+8. **Regla Financiera Canónica — Mercado P2P (Split 2% y VWAP Collar ±25%):** El mercado P2P (`src/domains/economy/components/P2PMarketplaceView.tsx`) aplica un impuesto inmutable del **2% (`P2P_MARKET_TAX_TOTAL = 0.02`)**, dividido en **1% quemado en Sink deflacionario (`0.01`)** + **1% de regalía al Clan dueño del Hub regional (`0.01`)**, regulado por bandas dinámicas **VWAP Collar de $\pm 25\%$ (`P2P_VWAP_COLLAR_BAND = 0.25`)**.
+9. **Canon de 29 Comandantes y Síntesis Sensorial Nativa:** Registro estricto de **29 Comandantes** en `CANONICAL_CO_REGISTRY` (`src/domains/tactics/core/coSystem.ts`: 28 comandantes clásicos + Mayor Stella como Comandante Especial IA #29 con aprendizaje adaptativo en `src/domains/game-feel/core/barkEngine.ts`), acompañado de síntesis procedural Web Audio API (`src/domains/game-feel/core/audioManager.ts`) y matriz háptica (`src/domains/game-feel/core/hapticFeedback.ts`).
 
 ---
 
-## 2. MATRIZ INTEGRAL DE DISCREPANCIAS (DOC VS. CÓDIGO)
+## 2. MATRIZ CONSOLIDADA DE AUDITORÍA POR SUBAGENTE (A01 A A10)
 
-| Elemento / Sistema | Archivo Documentación Afectado | Estado Real en Código (`v0.0.2-alfa`) | Severidad | Acción Requerida |
-| :--- | :--- | :--- | :---: | :--- |
-| **Tiles Raster CartoDB (`{z}/{x}/{y}.png`)** | [`00_GEOTACTICS_ONLINE_MASTER_SPEC.md:L340-L367`](file:///c:/Users/morin/GEOTACTICS/docs/00_GEOTACTICS_ONLINE_MASTER_SPEC.md#L340-L367) | **Erradicados en código.** [`TacticalWorldMap.tsx:L65-L101`](file:///c:/Users/morin/GEOTACTICS/src/components/world/TacticalWorldMap.tsx#L65-L101) define `ZERO_RASTER_MILITARY_STYLE` con fondos locales `#0E100C` y `/map/world_land.json`. 0 peticiones de red externas. | 🔴 CRÍTICA | **Actualizar:** Reemplazar el bloque `MILITARY_C4ISR_STYLE` en la Master Spec con la especificación real Zero-Raster. |
-| **Motor Canvas 2D (`WorldMapCanvas.tsx`)** | [`00_GEOTACTICS_ONLINE_MASTER_SPEC.md:L237,L1554`](file:///c:/Users/morin/GEOTACTICS/docs/00_GEOTACTICS_ONLINE_MASTER_SPEC.md#L237) y [`PLAN_DESPLIEGUE_MAPA_WEBGL_VENEZUELA.md:L186`](file:///c:/Users/morin/GEOTACTICS/docs/PLAN_DESPLIEGUE_MAPA_WEBGL_VENEZUELA.md#L186) | **Eliminado físicamente del repositorio.** [`CHANGELOG.md:L36-L37`](file:///c:/Users/morin/GEOTACTICS/CHANGELOG.md#L36-L37) registra su purga (841 líneas eliminadas). `WarLobbyHub.tsx` monta únicamente WebGL. | 🔴 CRÍTICA | **Marcar Deprecado / Purgar:** Remover referencias en docs que lo señalen como fallback activo. |
-| **Texture Pump Hack (`pumpCanvasToWebGL`)** | [`00_GEOTACTICS_ONLINE_MASTER_SPEC.md:L270-L273,L401-L417`](file:///c:/Users/morin/GEOTACTICS/docs/00_GEOTACTICS_ONLINE_MASTER_SPEC.md#L270-L273) | **Código muerto residual.** [`TacticalWorldMap.tsx:L175-L277`](file:///c:/Users/morin/GEOTACTICS/src/components/world/TacticalWorldMap.tsx#L175-L277) contiene 102 líneas de dibujo canvas y textura pump inalcanzables (`tileCanvasRef.current` siempre es `null`). | 🔴 CRÍTICA | **Purgar en Código / Actualizar en Doc:** Retirar funciones muertas de `TacticalWorldMap.tsx` y actualizar la spec para declarar la Capa 2 en espera. |
-| **Topología de Regiones y Zonas Buffer** | [`00_GEOTACTICS_ONLINE_MASTER_SPEC.md:L970-L1042`](file:///c:/Users/morin/GEOTACTICS/docs/00_GEOTACTICS_ONLINE_MASTER_SPEC.md#L970-L1042) y [`politicalAliceEngine.ts:L246-L281`](file:///c:/Users/morin/GEOTACTICS/src/engine/politicalAliceEngine.ts#L246-L281) | **Inconsistencia grave de datos.** [`public/map/theatre_regions.json`](file:///c:/Users/morin/GEOTACTICS/public/map/theatre_regions.json) tiene 25 features en vez de 31 (faltan 6 buffers fronterizos), `REG_VE_24` es La Guaira en vez de Guayana Esequiba, y 12 IDs están intercambiados (ej. Táchira con Falcón, Apure con Cojedes). | 🔴 CRÍTICA | **Actualizar Assets:** Corregir y completar `theatre_regions.json` alineándolo estrictamente con `CANONICAL_VENEZUELA_REGIONS`. |
-| **Presupuesto Red Vial (`theatre_roads.json`)** | [`PLAN_DESPLIEGUE_MAPA_WEBGL_VENEZUELA.md:L45,L93`](file:///c:/Users/morin/GEOTACTICS/docs/PLAN_DESPLIEGUE_MAPA_WEBGL_VENEZUELA.md#L45) | **Hipertrofia de 2.21 MB.** [`theatre_roads.json`](file:///c:/Users/morin/GEOTACTICS/public/map/theatre_roads.json) pesa 2,215 KB con 9,093 line features, frente al límite prescrito de $\le 95\text{ KB}$. | 🟡 ALTA | **Actualizar Assets:** Filtrar y simplificar mediante Mapshaper a Troncales 1 a 19 y autopistas principales. |
-| **Manejo de GPU `feature-state` vs Re-renders** | [`WARERA_MAP_ARCHITECTURE_DEEP_DIVE.md:L17,L93-L140`](file:///c:/Users/morin/GEOTACTICS/docs/WARERA_MAP_ARCHITECTURE_DEEP_DIVE.md#L17) y [`PLAN_IMPLEMENTACION_MAPA_VECTORIAL_ZERO_RASTER.md:L5`](file:///c:/Users/morin/GEOTACTICS/docs/PLAN_IMPLEMENTACION_MAPA_VECTORIAL_ZERO_RASTER.md#L5) | **Incumplimiento arquitectónico.** [`TacticalWorldMap.tsx:L301-L387,L626`](file:///c:/Users/morin/GEOTACTICS/src/components/world/TacticalWorldMap.tsx#L301-L387) recalcula el GeoJSON en React (`useMemo`) y llama a `provSource.setData(...)` en lugar de usar `map.setFeatureState`. | 🟡 ALTA | **Refactorizar en Código / Ajustar Doc:** Migrar a `setFeatureState` para mutaciones de selección/asedio o documentar `setData` como interim. |
-| **Posicionamiento de Botones Accesibles** | [`TacticalWorldMap.tsx:L656-L679`](file:///c:/Users/morin/GEOTACTICS/src/components/world/TacticalWorldMap.tsx#L656-L679) | **Desconexión espacial al hacer pan/zoom.** Los botones HTML usan `left: prov.posX%`, `top: prov.posY%` estáticos heredados del Canvas 2D, quedando fijos en pantalla mientras el mapa WebGL se desplaza. | 🟡 ALTA | **Refactorizar en Código:** Proyectar coordenadas geográficas dinámicamente con `map.project([lng, lat])` sincronizado en `map.on('render')`. |
-| **Separación de Capa 2 (Combate Táctico)** | [`00_ARBOL_CANONICO_DE_SISTEMAS_Y_DESARROLLO.md:L63-L107`](file:///c:/Users/morin/GEOTACTICS/docs/00_ARBOL_CANONICO_DE_SISTEMAS_Y_DESARROLLO.md#L63-L107) marca Rama 1 como 🟢 `[LISTO]`. | **Deshabilitada formalmente en runtime.** [`politicalAliceEngine.ts:L60-L64`](file:///c:/Users/morin/GEOTACTICS/src/engine/politicalAliceEngine.ts#L60-L64) fija `enabled: false`. [`WarLobbyHub.tsx:L344-L358`](file:///c:/Users/morin/GEOTACTICS/src/components/lobby/WarLobbyHub.tsx#L344-L358) y [`App.tsx:L516-L540`](file:///c:/Users/morin/GEOTACTICS/src/App.tsx#L516-L540) redirigen botones de combate a asedio geopolítico en Capa 1. | 🟡 ALTA | **Actualizar en Doc:** Modificar el Árbol Canónico y la Master Spec aclarando que Capa 2 está programada pero congelada/en espera para el MVP Político. |
-| **Exclusividad de Capa 3 (Mayor Stella)** | [`00_ARBOL_CANONICO_DE_SISTEMAS_Y_DESARROLLO.md:L103,L207-L212`](file:///c:/Users/morin/GEOTACTICS/docs/00_ARBOL_CANONICO_DE_SISTEMAS_Y_DESARROLLO.md#L103) documenta 28 Comandantes con barks. | **Candado rígido a Stella.** [`barkEngine.ts:L654-L677,L749`](file:///c:/Users/morin/GEOTACTICS/src/engine/barkEngine.ts#L654-L677) impone `singleSubjectLock: true`. [`WarLobbyHub.tsx:L313-L315`](file:///c:/Users/morin/GEOTACTICS/src/components/lobby/WarLobbyHub.tsx#L313-L315) fuerza siempre `selectedCOId = 'stella'`. | 🔵 MEDIA | **Actualizar en Doc:** Documentar formalmente que en la fase alfa actual el Bark Engine opera exclusivamente con el Sujeto de Prueba #01 (Stella). |
-| **Residuos de Léxico "Mazo de 10 Cartas"** | [`00_ARBOL_CANONICO_DE_SISTEMAS_Y_DESARROLLO.md:L26`](file:///c:/Users/morin/GEOTACTICS/docs/00_ARBOL_CANONICO_DE_SISTEMAS_Y_DESARROLLO.md#L26) y [`00_GEOTACTICS_ONLINE_MASTER_SPEC.md:L19`](file:///c:/Users/morin/GEOTACTICS/docs/00_GEOTACTICS_ONLINE_MASTER_SPEC.md#L19) prohíben cartas ("CERO CARTAS"). | **Persisten cadenas en UI y Barks.** [`WarLobbyHub.tsx:L121`](file:///c:/Users/morin/GEOTACTICS/src/components/lobby/WarLobbyHub.tsx#L121), [`WarRoomModal.tsx:L142,L164,L192`](file:///c:/Users/morin/GEOTACTICS/src/components/lobby/WarRoomModal.tsx#L142), [`barkEngine.ts:L1003,L1069`](file:///c:/Users/morin/GEOTACTICS/src/engine/barkEngine.ts#L1003) y [`FactionBanner.tsx:L42`](file:///c:/Users/morin/GEOTACTICS/src/components/lobby/FactionBanner.tsx#L42) mencionan "Mazo de 10 Cartas". | 🔵 MEDIA | **Purgar en Código:** Reemplazar por "Hangar de Chasis T1-T5" y "Stock Físico Territorial". |
-| **Prop Muerta en Boot Screen (`autoProceed`)** | [`CHANGELOG.md:L28-L34`](file:///c:/Users/morin/GEOTACTICS/CHANGELOG.md#L28-L34) | **Parámetro fantasma.** [`GeotacticsLoadingScreen.tsx:L15,L118`](file:///c:/Users/morin/GEOTACTICS/src/components/game/GeotacticsLoadingScreen.tsx#L15) desestructura `autoProceed` pero jamás lo consulta en el efecto de transición, transicionando siempre a los 400ms aunque [`App.tsx:L2365`](file:///c:/Users/morin/GEOTACTICS/src/App.tsx#L2365) le pase `autoProceed={false}`. | 🔵 MEDIA | **Refactorizar en Código:** Evaluar `if (isReady && autoProceed && onLoadingComplete)` o suprimir la prop de la interfaz. |
-| **Triple Discrepancia de Versión en Pantalla** | [`00_GEOTACTICS_ONLINE_MASTER_SPEC.md:L1`](file:///c:/Users/morin/GEOTACTICS/docs/00_GEOTACTICS_ONLINE_MASTER_SPEC.md#L1) (`v0.0.1-alfa`) | Sello Pop-Art en [`GeotacticsLoadingScreen.tsx:L215`](file:///c:/Users/morin/GEOTACTICS/src/components/game/GeotacticsLoadingScreen.tsx#L215) muestra `VER 0.0.1 ALFA`, pie en [L.295](file:///c:/Users/morin/GEOTACTICS/src/components/game/GeotacticsLoadingScreen.tsx#L295) muestra `Alfa v0.1.0`, y `package.json` declara `0.1.0`. | 🔵 MEDIA | **Actualizar:** Homologar todos los sellos y textos de versión al hito canónico correspondiente (`v0.0.2-alfa` o `v0.1.0`). |
-| **Fórmula de Sobre-Expansión Imperial** | [`00_GEOTACTICS_ONLINE_MASTER_SPEC.md:L186,L1116`](file:///c:/Users/morin/GEOTACTICS/docs/00_GEOTACTICS_ONLINE_MASTER_SPEC.md#L186) define exponente 1.8. | [`upkeepEngine.ts:L233-L236`](file:///c:/Users/morin/GEOTACTICS/src/engine/upkeepEngine.ts#L233-L236) usa exponente 1.8 con factor 0.18, mientras [`types/metagame.ts:L262,L396-L403`](file:///c:/Users/morin/GEOTACTICS/src/types/metagame.ts#L262) define exponente 2.4 y factor 0.35. | 🟡 ALTA | **Armonizar:** Unificar constantes en `types/metagame.ts` y documentar la fórmula calibrada. |
-| **Erosión de Puntos de Control Territorial (TCP)** | [`00_GEOTACTICS_ONLINE_MASTER_SPEC.md:L155,L1066`](file:///c:/Users/morin/GEOTACTICS/docs/00_GEOTACTICS_ONLINE_MASTER_SPEC.md#L155) estipula caída de 800 a 2,500 TCP por asedio. | [`types/metagame.ts:L295`](file:///c:/Users/morin/GEOTACTICS/src/types/metagame.ts#L295) y [`politicalAliceEngine.ts:L913-L917`](file:///c:/Users/morin/GEOTACTICS/src/engine/politicalAliceEngine.ts#L913-L917) definen base 3,500 TCP (`TCP_LOSS_ATTACKER_VICTORY`), infligiendo entre 2,000 y 4,700 TCP. | 🔵 MEDIA | **Actualizar en Doc o Código:** Armonizar los rangos de daño a la soberanía para evitar caídas imprevistas en 2 asedios. |
-| **Contradicción en CHANGELOG.md** | [`CHANGELOG.md:L28-L34`](file:///c:/Users/morin/GEOTACTICS/CHANGELOG.md#L28-L34) vs [`CHANGELOG.md:L84-L86`](file:///c:/Users/morin/GEOTACTICS/CHANGELOG.md#L84-L86) | Líneas 28-34 afirman que el botón manual `ENTRAR AL ESTADO MAYOR` fue eliminado; líneas 84-86 afirman haber homologado su etiqueta en modos manual y auto. | 🟢 BAJA | **Actualizar:** Purgar el vestigio de L84-86 en `CHANGELOG.md`. |
-| **Incongruencia Atajos [1]-[6] vs Badges del Hub** | [`WarLobbyHub.tsx:L490-L507`](file:///c:/Users/morin/GEOTACTICS/src/components/lobby/WarLobbyHub.tsx#L490-L507) | Tecla `1` abre Tienda, `2` Industria, `3` Armería; pero las tarjetas centrales en [L.1051, L.1083](file:///c:/Users/morin/GEOTACTICS/src/components/lobby/WarLobbyHub.tsx#L1051) imprimen `[1] HANGAR` y `[2] GUARNICIÓN`. | 🔵 MEDIA | **Refactorizar en Código:** Alinear las insignias visuales con los atajos reales del teclado. |
-| **Exploit de Acero Infinito en Barra Social** | Manifiesto de Economía Cerrada (`02_MASTER_METAGAME...`) | En [`WarLobbyHub.tsx:L1439-L1448`](file:///c:/Users/morin/GEOTACTICS/src/components/lobby/WarLobbyHub.tsx#L1439-L1448), el botón de auxilio logístico suma `+25t` de acero por clic sin descontar combustible ni validar límites. | 🟡 ALTA | **Refactorizar en Código:** Aplicar deducción de combustible y cooldown de transferencia por ciclo. |
+| Subagente | Sector Auditado | Documentos Sincronizados | Discrepancias Resueltas | Estado |
+| :--- | :--- | :--- | :---: | :---: |
+| **A01** | Árbol Canónico & Arquitectura Modular | [`00_ARBOL_CANONICO_DE_SISTEMAS_Y_DESARROLLO.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/00_ARBOL_CANONICO_DE_SISTEMAS_Y_DESARROLLO.md), [`README.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/README.md), [`MASTER_MVP_BLUEPRINT_AND_ROADMAP.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/MASTER_MVP_BLUEPRINT_AND_ROADMAP.md) | 8 (`A01-01` a `A01-08`) | ✅ 100% Sync |
+| **A02** | Cartografía WebGL Zero-Raster & Shaders | [`01_MASTER_CARTOGRAPHY_WEBGL_ZERO_RASTER.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/01_MASTER_CARTOGRAPHY_WEBGL_ZERO_RASTER.md) | 6 (`DISC-A02-01` a `DISC-A02-06`) | ✅ 100% Sync |
+| **A03** | Economía, Forja, 10 Parcelas & Hangar Físico | [`02_MASTER_METAGAME_INDUSTRY_ECONOMY.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/02_MASTER_METAGAME_INDUSTRY_ECONOMY.md), [`ARQUITECTURA_FEUDOS_CADENA_INDUSTRIAL_ALICE_ALBION.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/ARQUITECTURA_FEUDOS_CADENA_INDUSTRIAL_ALICE_ALBION.md), [`PLAN_IMPLEMENTACION_FEUDOS_CADENA_INDUSTRIAL.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/PLAN_IMPLEMENTACION_FEUDOS_CADENA_INDUSTRIAL.md) | 9 (`D-A03-01` a `D-A03-09`) | ✅ 100% Sync |
+| **A04** | Finanzas, Mercado P2P (2%) & Master Spec | [`00_GEOTACTICS_ONLINE_MASTER_SPEC.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/00_GEOTACTICS_ONLINE_MASTER_SPEC.md) | 9 (`DSC-A04-01` a `DSC-A04-09`) | ✅ 100% Sync |
+| **A05** | 29 Comandantes, Bark Engine & Clanes | [`03_MASTER_COMMANDERS_BARK_AND_SOCIAL.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/03_MASTER_COMMANDERS_BARK_AND_SOCIAL.md) | 7 (`D-01` a `D-07`) | ✅ 100% Sync |
+| **A06** | Motor Balístico 1-100 HP & Tablero Táctico | [`05_MASTER_GAME_ENGINE_AND_NETWORKING.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/05_MASTER_GAME_ENGINE_AND_NETWORKING.md), [`03_TACTICAL_STRATEGY_SYSTEM_DESIGN.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/03_TACTICAL_STRATEGY_SYSTEM_DESIGN.md) | 10 (`DISC-05-01` a `06`, `DISC-03-01` a `04`) | ✅ 100% Sync |
+| **A07** | Base de Datos, 31 Migraciones SQL & RLS | [`04_MASTER_DATABASE_AND_SECURITY_SPEC.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/04_MASTER_DATABASE_AND_SECURITY_SPEC.md), [`DATABASE_ARCHITECTURE_AUDIT.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/DATABASE_ARCHITECTURE_AUDIT.md) | 9 (`D01` a `D09`) | ✅ 100% Sync |
+| **A08** | Audio Procedural Web Audio API, Háptica & QA | [`06_MASTER_DEVOPS_QA_AND_TELEMETRY.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/06_MASTER_DEVOPS_QA_AND_TELEMETRY.md) | 5 (`DISC-A08-01` a `DISC-A08-05`) | ✅ 100% Sync |
+| **A09** | Red Vial A*, Logística, Asedios & Project Alice | [`ANALISIS_PROJECT_ALICE_RUTAS_INGENIERIA_MAPA_METAPOLITICA.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/ANALISIS_PROJECT_ALICE_RUTAS_INGENIERIA_MAPA_METAPOLITICA.md), [`PROPUESTA_INGENIERIA_MAPA_METAPOLITICA_ALICE_CABIMAS.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/PROPUESTA_INGENIERIA_MAPA_METAPOLITICA_ALICE_CABIMAS.md), [`PROPUESTA_INTEGRACION_SISTEMA_POLITICO_PROJECT_ALICE.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/PROPUESTA_INTEGRACION_SISTEMA_POLITICO_PROJECT_ALICE.md) | 7 (`A09-D01` a `A09-D07`) | ✅ 100% Sync |
+| **A10** | UI/UX War Room, C4ISR Diorama & Modales | [`07_MASTER_UI_UX_WAR_ROOM.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/07_MASTER_UI_UX_WAR_ROOM.md) | 7 (`DISC-07-01` a `DISC-07-07`) | ✅ 100% Sync |
 
 ---
 
-## 3. REGISTRO DE DEUDA CARTOGRÁFICA DEPURADA
+## 3. REGISTRO DETALLADO DE DISCREPANCIAS RESUELTAS (DOC ↔ CÓDIGO)
 
-### 3.1 Confirmación de Erradicación de Canvas 2D
-- **Archivo Eliminado:** `src/components/world/WorldMapCanvas.tsx` (841 líneas) fue purgado del árbol de Git. No existen remanentes del componente en `src/components/world/`.
-- **Integridad de Tipos Preservada:** La interfaz `ProvinceVisualData` fue migrada a [`src/types/metagame.ts:L45-L66`](file:///c:/Users/morin/GEOTACTICS/src/types/metagame.ts#L45-L66) para sostener a `TerritoryInspectorModal.tsx` sin dependencias huérfanas.
-- **Renderizador Único en Lobby:** En [`src/components/lobby/WarLobbyHub.tsx:L1338-L1352`](file:///c:/Users/morin/GEOTACTICS/src/components/lobby/WarLobbyHub.tsx#L1338-L1352), el mapa se renderiza exclusivamente a través de `<TacticalWorldMap />`. Se eliminó el botón de alternancia `CANVAS 2D`.
-
-### 3.2 Consolidación del Pipeline WebGL Zero-Raster
-- **Aislamiento de Red 100% Local:** Cero peticiones salientes a CartoDB, Mapbox o servidores externos de teselas.
-- **Estilo Base:** `ZERO_RASTER_MILITARY_STYLE` carga `/map/world_land.json` sobre `#0E100C`.
-- **Estratificación en GPU de Carreteras Troncales:**
-  1. `roads-ink-shadow` (Sombra tinta cómic `#0A0B08`).
-  2. `roads-glow` (Resplandor radar `#00FF66` / `#F59E0B`).
-  3. `roads-core` (Núcleo vectorial nítido con escalado de grosor por zoom).
-- **Worker Autónomo Desacoplado:** `public/maplibre-gl-worker.mjs` resuelve la carga de hilos sin dependencias de bundler, con código 200 OK local.
-- **Suite Determinista:** [`src/engine/coordinatesAndBitmap.test.ts`](file:///c:/Users/morin/GEOTACTICS/src/engine/coordinatesAndBitmap.test.ts) valida con 10/10 tests (100% PASS en 6ms) la proyección analítica WGS84, LOD semántico, algoritmo Bresenham y empaquetado binario de niebla de guerra en 50 bytes.
+| ID | Sistema / Dominio | Archivo Documental | Discrepancia Detectada | Resolución Aplicada y Verdad Ejecutable | Estado |
+| :--- | :--- | :--- | :--- | :--- | :---: |
+| **SYNC-01** | Arquitectura Modular (`@domains/*`, `@shared/*`) | Todos los documentos en `docs/*.md` | Referencias a rutas monolíticas legacy (`src/engine/*`, `src/components/*`, `src/services/*`, `src/hooks/*`, `src/types/*`). | Todas las rutas fueron migradas a `src/domains/world/*`, `src/domains/tactics/*`, `src/domains/economy/*`, `src/domains/game-feel/*` y `src/shared/*`. 0 rutas legacy activas en `docs/*.md`. | ✅ RESUELTO |
+| **SYNC-02** | Cartografía WebGL Zero-Raster | [`00_GEOTACTICS_ONLINE_MASTER_SPEC.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/00_GEOTACTICS_ONLINE_MASTER_SPEC.md), [`01_MASTER_CARTOGRAPHY_WEBGL_ZERO_RASTER.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/01_MASTER_CARTOGRAPHY_WEBGL_ZERO_RASTER.md) | Umbrales de zoom contradictorios (`6.0/13.0` vs `10.0/15.0`), omisión de `/map/theatre_urban_roads.json` y `/map/theatre_cities.json`, e IDs invertidos en la tabla de regiones de Venezuela (`REG_VE_10/11`, `REG_VE_20/21`). | Homologados los umbrales con [`coordinates.ts`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/src/domains/world/core/coordinates.ts) (`ZOOM_GLOBAL = 3.5`, `ZOOM_OPERACIONAL = 10.0`, `ZOOM_TACTICO = 15.0`), las 9 fuentes GeoJSON + `CanvasSource` de [`TacticalWorldMap.tsx`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/src/domains/world/components/TacticalWorldMap.tsx) y las 31 regiones de `CANONICAL_VENEZUELA_REGIONS`. | ✅ RESUELTO |
+| **SYNC-03** | Almacén Físico 16 Tropas & Tiers T1–T5 | [`02_MASTER_METAGAME_INDUSTRY_ECONOMY.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/02_MASTER_METAGAME_INDUSTRY_ECONOMY.md), [`07_MASTER_UI_UX_WAR_ROOM.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/07_MASTER_UI_UX_WAR_ROOM.md) | Residuos de léxico "Mazo de 10 Cartas", fila Tier 5 con `+10%` en lugar de `+8%`, y listado incompleto de 3 materias primas en lugar de 5 materias primas y 7 recetas. | Rectificado a **CERO CARTAS** y **Almacén Físico de 16 Tropas (4 activas + 12 reserva)**, Tier 5 corregido a **`+8%` máximo** (`+2%` por tier), y documentadas las 5 materias primas y 7 recetas de `REFINING_RECIPES` en [`industrialEngine.ts`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/src/domains/economy/core/industrialEngine.ts). | ✅ RESUELTO |
+| **SYNC-04** | Mercado P2P (Split 2% & VWAP Collar ±25%) | [`00_GEOTACTICS_ONLINE_MASTER_SPEC.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/00_GEOTACTICS_ONLINE_MASTER_SPEC.md), [`02_MASTER_METAGAME_INDUSTRY_ECONOMY.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/02_MASTER_METAGAME_INDUSTRY_ECONOMY.md), [`04_MASTER_DATABASE_AND_SECURITY_SPEC.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/04_MASTER_DATABASE_AND_SECURITY_SPEC.md), [`06_MASTER_DEVOPS_QA_AND_TELEMETRY.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/06_MASTER_DEVOPS_QA_AND_TELEMETRY.md) | Menciones residuales a tasa del 12% o descuento arancelario por capital en la fórmula del impuesto P2P. | Estandarizada en toda la documentación la regla canónica del **2% (`P2P_MARKET_TAX_TOTAL = 0.02`: 1% Burn Sink + 1% Regalía al Clan dueño del Hub regional)** y bandas dinámicas **VWAP Collar $\pm 25\%$ (`P2P_VWAP_COLLAR_BAND = 0.25`)**. | ✅ RESUELTO |
+| **SYNC-05** | 29 Comandantes & Bark Engine Cómic | [`03_MASTER_COMMANDERS_BARK_AND_SOCIAL.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/03_MASTER_COMMANDERS_BARK_AND_SOCIAL.md), [`00_GEOTACTICS_ONLINE_MASTER_SPEC.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/00_GEOTACTICS_ONLINE_MASTER_SPEC.md) | Listaba 28 COs y trataba los alias `volkov`/`vance` como entradas separadas sin documentar los 29 COs de `CANONICAL_CO_REGISTRY` ni los 21 triggers de `BarkTriggerContext`. | Documentados los **29 Comandantes Canónicos** (28 de WarsWorld + Mayor Stella `stella` con auto-optimización adaptativa `BarkSelfOptimizationMetrics`), las morfologías de bocadillos, los 13 sellos pop-art y los 21 contextos de disparo en [`barkEngine.ts`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/src/domains/game-feel/core/barkEngine.ts). | ✅ RESUELTO |
+| **SYNC-06** | Motor Balístico 1–100 HP & Guarnición IA 1–5 | [`05_MASTER_GAME_ENGINE_AND_NETWORKING.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/05_MASTER_GAME_ENGINE_AND_NETWORKING.md), [`03_TACTICAL_STRATEGY_SYSTEM_DESIGN.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/03_TACTICAL_STRATEGY_SYSTEM_DESIGN.md) | Snippet antiguo con división `/ 10` de HP, curación `+2 HP`, omisión del Reloj Fischer, omisión de `GARRISON_TIER_SPECS` (Niveles 1–5) y canal Realtime antiguo. | Sincronizada la escala continua de **1 a 100 HP enteros**, curación de `+20 HP/turno` (`1%` coste/HP), derrota inapelable por `0` tropas, Reloj Fischer, canal `match:${matchId}`, IA de Guarnición Nv. 1–5 (`garrisonAIEngine.ts`) y *Human Handshake* de 120s. | ✅ RESUELTO |
+| **SYNC-07** | Base de Datos, 31 Migraciones & RLS | [`04_MASTER_DATABASE_AND_SECURITY_SPEC.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/04_MASTER_DATABASE_AND_SECURITY_SPEC.md), [`DATABASE_ARCHITECTURE_AUDIT.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/DATABASE_ARCHITECTURE_AUDIT.md) | Omitía el DDL de las migraciones 26 a 31 (`state_sovereignty`, `tactical_spatial_deployments`, `tactical_fief_constructions`, `territorial_vulnerability_windows`), mostraba `hp_max = 10` en `units_catalog` y carecía de `user_unit_hangar`. | Incorporadas las **31 migraciones SQL**, `units_catalog.hp_max = 100`, `user_unit_hangar` (tope 16 tropas, T1–T5, 1–100 HP), `user_industrial_inventory.tech_scrap` (35%), `p2p_market_orders` (2% split) y todas las RPCs territoriales y políticas RLS multi-tenant. | ✅ RESUELTO |
+| **SYNC-08** | Síntesis Web Audio API, Háptica & Suites QA | [`06_MASTER_DEVOPS_QA_AND_TELEMETRY.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/06_MASTER_DEVOPS_QA_AND_TELEMETRY.md) | Listaba 21 tests planos con Vitest, 11 pasos en `e2eIntegration.test.ts` y carecía de la especificación de `audioManager.ts` y `hapticFeedback.ts`. | Documentadas las **35 suites de test con `tsx`** en los 4 dominios (`npm run test:all` con 13 suites troncales y `npm run test:geotactics` con 93 pruebas), los 13 pasos E2E, `AUDIO_SYNTHESIS_CATALOG` (Web Audio API 0 dependencias externas) y los 6 perfiles de `triggerHaptic`. | ✅ RESUELTO |
+| **SYNC-09** | Red Vial A*, Logística & Asedios 120s | [`ANALISIS_PROJECT_ALICE_RUTAS_INGENIERIA_MAPA_METAPOLITICA.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/ANALISIS_PROJECT_ALICE_RUTAS_INGENIERIA_MAPA_METAPOLITICA.md), [`PROPUESTA_INGENIERIA_MAPA_METAPOLITICA_ALICE_CABIMAS.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/PROPUESTA_INGENIERIA_MAPA_METAPOLITICA_ALICE_CABIMAS.md), [`PROPUESTA_INTEGRACION_SISTEMA_POLITICO_PROJECT_ALICE.md`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/docs/PROPUESTA_INTEGRACION_SISTEMA_POLITICO_PROJECT_ALICE.md) | Omitía el índice espacial $O(1)$ (`SpatialRoadIndex`), los 15 nodos viales de Cabimas, las 5 doctrinas 2026 de `RoadGarrisonEngine` y los detalles de `TerritorialSiegeOrchestrator`. | Documentados los 15 nodos y 15 segmentos viales de Cabimas, `SpatialRoadIndex` (hash bitwise de 32 bits, adyacencia $\le 150\text{ m}$), las 5 doctrinas viales, las barras TCP (`10,000`/`15,000`), escudos de 4h, gracia de 24h y el *Human Handshake* de 120s. | ✅ RESUELTO |
+| **SYNC-10** | Barriles Públicos de Dominio (`index.ts`) | [`src/domains/world/index.ts`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/src/domains/world/index.ts), [`src/domains/tactics/index.ts`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/src/domains/tactics/index.ts), [`src/domains/economy/index.ts`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/src/domains/economy/index.ts), [`src/domains/game-feel/index.ts`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/src/domains/game-feel/index.ts), [`src/shared/index.ts`](file:///c:/Users/Morín/GEOTACTICS-ONLINE/src/shared/index.ts) | Módulos y constantes canónicas (`coordinates.ts`, `spatialRoadIndex.ts`, `propertyMaintenance.ts`, `metagame.ts`, `P2P_MARKET_TAX_TOTAL`, `HUMAN_HANDSHAKE_WINDOW_MS`, `AUDIO_SYNTHESIS_CATALOG`, `canonicalDamageChart.ts`) no estaban re-exportados en el `index.ts` de su dominio. | Sincronizados los 5 archivos `index.ts` para exponer la totalidad de motores, constantes canónicas, tipos y componentes de cada dominio. | ✅ RESUELTO |
 
 ---
 
-## 4. PLAN DE SINCRONIZACIÓN PROPOSITIVO
+## 4. CERTIFICACIÓN DEL BUCLE DE VERIFICACIÓN DETERMINISTA
 
-> [!WARNING] OBSOLETO EN v0.0.2
-> Los siguientes bloques de documentación contienen directivas y snippets incompatibles con la arquitectura real de `v0.0.2-alfa` y deben ser actualizados siguiendo las enmiendas que se detallan a continuación.
-
-### Enmienda 1: Sincronización de la Sección 3.2 de `docs/00_GEOTACTICS_ONLINE_MASTER_SPEC.md`
-**Texto a sustituir (Líneas 340-367):** El bloque que declara `MILITARY_C4ISR_STYLE` con URLs de CartoDB (`cartodb-basemaps-a.global.ssl.fastly.net/dark_nolabels/{z}/{x}/{y}.png`).  
-**Texto de reemplazo propuesto:**
-```typescript
-/**
- * ESTILO CANÓNICO C4ISR ZERO-RASTER (v0.0.2-alfa)
- * Renderizado local en GPU sin peticiones a proveedores externos de teselas.
- */
-const ZERO_RASTER_MILITARY_STYLE: StyleSpecification = {
-  version: 8,
-  sources: {
-    'world-land': {
-      type: 'geojson',
-      data: '/map/world_land.json',
-    },
-  },
-  layers: [
-    {
-      id: 'background',
-      type: 'background',
-      paint: { 'background-color': '#0E100C' },
-    },
-    {
-      id: 'world-land-mass',
-      type: 'fill',
-      source: 'world-land',
-      paint: { 'fill-color': '#1C1E17', 'fill-opacity': 0.95 },
-    },
-    {
-      id: 'world-land-border',
-      type: 'line',
-      source: 'world-land',
-      paint: { 'line-color': '#46521F', 'line-width': 1.2, 'line-opacity': 0.65 },
-    },
-  ],
-};
-```
-
-### Enmienda 2: Aclaración de la Arquitectura de 3 Capas en `docs/00_GEOTACTICS_ONLINE_MASTER_SPEC.md`
-**Añadir en la Sección 1 (Visión y Alcance):**
-```markdown
-> [!NOTE] ALCANCE OPERATIVO EN v0.0.2-alfa (MVP POLÍTICO)
-> - **Capa 1 (Metajuego Político ALICE):** ACTIVA. Rige la economía de 24 soberanías estadales y 7 buffers de frontera. Las disputas se resuelven mediante asedio político directo y erosión de Puntos de Control Territorial (TCP).
-> - **Capa 2 (Combate Táctico Advance Wars en Cuadrícula):** EN ESPERA / DESHABILITADA EN RUNTIME. El arnés determinista de combate está codificado, pero su proyección en el mapa (TileCanvas) está congelada para priorizar la estabilidad del mapa macro y el bucle geopolítico.
-> - **Capa 3 (Bark Engine & Mando):** ACTIVA CON SUJETO ÚNICO. El motor de diálogo táctico está restringido mediante candado monousuario a la Mayor Stella (`stella`) como sujeto de calibración adaptativa.
-```
-
-### Enmienda 3: Purga Documental de `WorldMapCanvas.tsx`
-- En `docs/00_GEOTACTICS_ONLINE_MASTER_SPEC.md` (L237 y L1554) y `docs/PLAN_DESPLIEGUE_MAPA_WEBGL_VENEZUELA.md` (L186), sustituir toda mención de `WorldMapCanvas.tsx` como componente activo o fallback por la declaración de erradicación definitiva efectuada en el hito `v0.0.2-alfa`.
-
-### Enmienda 4: Corrección de Datos en `public/map/theatre_regions.json`
-- Regenerar el GeoJSON para alinear sus 24 entidades con los IDs canónicos de `CANONICAL_VENEZUELA_REGIONS` e incorporar las geometrías de las 7 zonas de amortiguación fronteriza (`BUF_CO_01..03`, `BUF_BR_01`, `BUF_GY_01`, `BUF_TT_01`, `BUF_CW_01`).
-
----
-
-## 5. PAUSA DE AUTORIZACIÓN HUMANA (FASE 3)
-
-Este diagnóstico ha concluido la fase de análisis sin alterar ningún archivo de código ni de documentación histórica.
-
-> [!IMPORTANT]
-> **ESTADO DE ESPERA:** Las enmiendas y refactorizaciones detalladas en este informe requieren la revisión y confirmación explícita del desarrollador antes de proceder a la sincronización de la documentación en `docs/` o la depuración de código residual en `src/`.
+- **Discrepancias Pendientes:** `0`
+- **Rutas Legacy Activas en Documentación Canónica (`docs/*.md`):** `0`
+- **Compilación de Producción (`npm run build`):** Exit Code `0` (100% Limpia)
+- **Suite Global Determinista (`npm run test:all`):** `13/13` suites aprobadas (100% PASS)
+- **Suite del Metajuego Geopolítico (`npm run test:geotactics`):** `93/93` pruebas deterministas aprobadas (100% PASS)

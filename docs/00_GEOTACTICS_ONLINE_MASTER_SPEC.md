@@ -16,14 +16,14 @@
 # 1. MANIFIESTO FUNDACIONAL Y VISIÓN DE PRODUCTO (`GEOTACTICS: ONLINE v0.0.2-alfa`)
 
 > [!NOTE] ESTADO OPERATIVO DE LAS 3 CAPAS EN v0.0.2-alfa (MVP POLÍTICO)
-> - **Capa 1: Metajuego Político Macro (Project Alice):** 🟢 **100% ACTIVA.** Rige la soberanía sobre el Teatro Venezuela (24 Entidades Federales + 7 Zonas Buffer internacionales). Las disputas territoriales se resuelven mediante asedio político directo y erosión progresiva de Puntos de Control Territorial (TCP).
-> - **Capa 2: Combate Táctico en Cuadrícula (Advance Wars 1-100 HP):** 🟡 **DESARROLLADA / EN ESPERA EN RUNTIME.** El motor determinista de combate (`canonicalCombat.ts`, `pathfinding.ts`) está completamente programado y probado, pero la inyección de cuadrícula sobre el mapa (TileCanvas) está temporalmente deshabilitada en el MVP para garantizar 60 FPS ininterrumpidos y foco pleno en la Capa 1. Todo intento de combate en el Lobby redirige hacia asedio político.
-> - **Capa 3: Bark Engine & Mando:** 🟢 **ACTIVA CON SUJETO ÚNICO.** El sistema de bocadillos de historieta y telemetría adaptativa opera bajo candado monousuario exclusivo con la Mayor Stella (`stella`) como Sujeto de Calibración C4ISR #01.
+> - **Capa 1: Metajuego Político Macro (Project Alice):** 🟢 **100% ACTIVA.** Rige la soberanía sobre el Teatro Venezuela (24 Entidades Federales + 7 Zonas Buffer internacionales) desde `src/domains/world/core/politicalAliceEngine.ts`. Las disputas territoriales se resuelven mediante asedio político directo y erosión progresiva de Puntos de Control Territorial (TCP) con **Human Handshake de 120 segundos (2 minutos)** antes de que asuma la IA de Guarnición (Niveles 1-5).
+> - **Capa 2: Combate Táctico en Cuadrícula (Advance Wars 1-100 HP):** 🟡 **DESARROLLADA / EN ESPERA EN RUNTIME.** El motor determinista de combate (`src/domains/tactics/core/canonicalCombat.ts`, `src/domains/tactics/core/pathfinding.ts`) está completamente programado y probado, pero la inyección de cuadrícula sobre el mapa (TileCanvas) está temporalmente deshabilitada en el MVP para garantizar 60 FPS ininterrumpidos y foco pleno en la Capa 1. Todo intento de combate en el Lobby redirige hacia asedio político.
+> - **Capa 3: Bark Engine & Mando (`src/domains/game-feel/core/barkEngine.ts`):** 🟢 **ACTIVA CON SUJETO ÚNICO.** El sistema de bocadillos de historieta y telemetría adaptativa opera bajo candado monousuario exclusivo con la Mayor Stella (`stella`) como Sujeto de Calibración C4ISR #01 dentro del registro canónico de **29 Comandantes (`CANONICAL_CO_REGISTRY`)**.
 
 ## 1.1 Identidad Formal del Proyecto y Transición Histórica
 **GEOTACTICS: ONLINE (`v0.0.1-alfa`)**, conocido internamente bajo el nombre en clave **Proyecto Hegemonía**, constituye la refundación arquitectónica, sistémica y lúdica de *Tactical Command: Wars of Legacy*. El proyecto evoluciona formalmente desde un juego de estrategia por turnos de bolsillo con mecánicas heredadas de juegos de cartas coleccionables (CCG) hacia un **MMORTS Geopolítico, Industrial y Táctico Persistente a Escala Planetaria** ejecutado de forma nativa en navegadores web modernos (Desktop y Mobile) a $60\text{ FPS}$ sin pantallas de carga desconectadas.
 
-La transición erradica de raíz la abstracción de los "mazos de 10 cartas", la progresión vertical artificial de niveles 1 a 15, la generación mágica de tropas y las arenas aisladas sin consecuencias. En **GEOTACTICS: ONLINE**, el planeta Tierra es un único teatro de operaciones continuo dividido en **$3,000$ Regiones Estratégicas** ($195$ Países, $6$ Teatros Continentales y $9$ Estrechos Marítimos Globales), cuyo despliegue operativo inicial se inaugura en la **"Isla de Prueba" (`v0.0.1-alfa`)**: un teatro de alta densidad táctica compuesto por **Venezuela y sus fronteras inmediatas** ($24$ Entidades Federales/Regiones de Venezuela + $7$ Regiones de Amortiguación Fronteriza con Colombia, Brasil, Guyana y el Caribe), la **Capital Nacional conquistable Caracas (`REG_VE_01`)** y los estrechos estratégicos del **Canal de Maracaibo (`CHK-MARACAIBO`)** y el **Golfo de Paria (`CHK-PARIA`)**. **Principio de Visibilidad Global y Jugabilidad Soberana:** Aunque la totalidad del globo terráqueo es visible a nivel macro en MapLibre GL WebGL (LOD 1), la interacción jugable, el forjado industrial, los asedios TCP y la soberanía de Fase 1 están activados **exclusivamente sobre el territorio de Venezuela**. Cada chasis blindado, caza de superioridad aérea o pieza de artillería desplegada sobre una cuadrícula táctica ha sido previamente extraído como mineral bruto, refinado en altos hornos territoriales, ensamblado físicamente en un hangar corporativo y transportado a la frontera. Cuando una unidad cae en combate, su pérdida material es **definitiva e irreversible**.
+La transición erradica de raíz la abstracción de los "mazos de 10 cartas", la progresión vertical artificial de niveles 1 a 15, la generación mágica de tropas y las arenas aisladas sin consecuencias. En **GEOTACTICS: ONLINE**, el planeta Tierra es un único teatro de operaciones continuo dividido en **$3,000$ Regiones Estratégicas** ($195$ Países, $6$ Teatros Continentales y $9$ Estrechos Marítimos Globales), cuyo despliegue operativo inicial se inaugura en la **"Isla de Prueba" (`v0.0.1-alfa`)**: un teatro de alta densidad táctica compuesto por **Venezuela y sus fronteras inmediatas** ($24$ Entidades Federales/Regiones de Venezuela + $7$ Regiones de Amortiguación Fronteriza con Colombia, Brasil, Guyana y el Caribe), la **Capital Nacional conquistable Caracas (`REG_VE_01`)** y los estrechos estratégicos del **Canal de Maracaibo (`CHK-MARACAIBO`)** y el **Golfo de Paria (`CHK-PARIA`)**. **Principio de Visibilidad Global y Jugabilidad Soberana:** Aunque la totalidad del globo terráqueo es visible a nivel macro en MapLibre GL WebGL (LOD 1), la interacción jugable, el forjado industrial, los asedios TCP y la soberanía de Fase 1 están activados **exclusivamente sobre el territorio de Venezuela**. Cada chasis blindado, caza de superioridad aérea o pieza de artillería desplegada sobre una cuadrícula táctica ha sido previamente extraído como mineral bruto, refinado en altos hornos territoriales, ensamblado físicamente en un hangar corporativo (con una capacidad de **almacén físico de $16$ tropas máximo por jugador: $4$ slots de despliegue activo + $12$ en reserva**) y transportado a la frontera. Cuando una unidad cae en combate, su pérdida material es **definitiva e irreversible** (con recuperación del **$35\%$ en chatarra tecnológica `tech_scrap`**).
 
 ---
 
@@ -36,8 +36,8 @@ flowchart TD
     subgraph PILAR_1 ["1. MOTOR MACRO-GEOPOLÍTICO (Herencia Project Alice C++20)"]
         A1["Grafo Planetario G=(V,E) con |V|=3,000 Regiones (50 en v0.0.1-alfa)"]
         A2["Máscara Binaria de Adyacencias (1 Byte: 0x01 a 0x20) + Chokepoints"]
-        A3["Soberanía Dual: De Jure Owner vs. De Facto Controller (24h-48h)"]
-        A4["Freno Anti-Snowballing: Infamia Superlineal (Exponente 1.8) y Máx. 10 Clanes/Alianza"]
+        A3["Soberanía Dual: De Jure Owner vs. De Facto Controller (24h-48h) + Capitales (+5% Buff Regional)"]
+        A4["Human Handshake 120s + IA Guarnición (Nv. 1-5) + Infamia (Exp. 1.8) y Máx. 10 Clanes/Alianza"]
     end
 
     subgraph PILAR_2 ["2. RENDERIZADOR CONTINUO WEBGL (Herencia Motor OpenPlace)"]
@@ -48,10 +48,10 @@ flowchart TD
     end
 
     subgraph PILAR_3 ["3. COMBATE ADVANCE WARS (1-100 HP) × ECONOMÍA ALBION P2P"]
-        C1["Balística Determinista 0% Azar en Escala Continua 1 a 100 HP"]
-        C2["Cero Cartas: Fleet Hangar con Doble Llave ($G Tácticos + Chasis Físico)"]
-        C3["Tiers Industriales T1 a T5 (+2% por Tier; Torneo Espejo fijo a T1 +0%)"]
-        C4["Destrucción Permanente (65% Sumidero / 35% Chatarra) + Mercado P2P (2% Split)"]
+        C1["Balística Determinista 0% Azar en Escala Continua 1 a 100 HP + Derrota por 0 Tropas"]
+        C2["Cero Cartas: Almacén Físico 16 Tropas (4 Activas + 12 Reserva) y Doble Llave ($G + Chasis)"]
+        C3["Tiers Industriales T1 a T5 (+2% por Tier, máx. +8% en T5; Torneo Espejo fijo a T1 +0%)"]
+        C4["Destrucción Permanente (65% Sumidero / 35% Chatarra) + Mercado P2P (2% Split: 1% Sink + 1% Hub / VWAP ±25%)"]
     end
 
     PILAR_1 ==> PILAR_2
@@ -61,21 +61,21 @@ flowchart TD
 
 ### Pilar I: Macro-Geopolítica Territorial y Fricción Imperial (*Project Alice Engine*)
 1. **Topología de Grafo Comprimida:** El mundo se modela como un grafo relacional no dirigido $G = (V, E)$ donde cada arista codifica en una máscara de bits de $1\text{ byte}$ (`topology_flags`) la naturaleza física de la frontera: `0x01` (`land_open`), `0x02` (`national_border`), `0x04` (`coastal`), `0x08` (`impassible`), `0x10` (`strait_choke`) y `0x20` (`river_crossing`). Esto permite validar rutas de suministro BFS y bloqueos de estrechos en memoria del cliente en $0\text{ ms}$ de red.
-2. **Desdoblamiento de Soberanía (*De Jure* vs. *De Facto*):** Previene el *offline raiding* separando al propietario legal registrado (`owner_clan_id`) del ocupante militar activo (`controller_clan_id`), exigiendo agotar la barra de **$10,000\text{ Puntos de Control Territorial (TCP)}$** y consolidar ventanas de ocupación de $24\text{h}$ a $48\text{h}$ antes de transferir la titularidad soberana.
-3. **0% Zonas Inexpugnables y Capitales Hegemónicas:** Ningún territorio del planeta goza de inmunidad perpetua. Conquistar cualquiera de las $195$ Capitales Nacionales otorga a la corporación dominante el **Buff Hegemónico Nacional** sobre todas sus provincias en ese país: **$+15\%$ a la producción de Créditos Energéticos (EC)**, **$+10\%$ a la velocidad de forja en hangares** y **$-20\%$ en aranceles comerciales P2P**.
+2. **Desdoblamiento de Soberanía (*De Jure* vs. *De Facto*) y *Human Handshake* de 120 Segundos (Pilar Canónico 7):** Previene el *offline raiding* separando al propietario legal registrado (`owner_clan_id`) del ocupante militar activo (`controller_clan_id`), exigiendo agotar la barra de **$10,000\text{ Puntos de Control Territorial (TCP)}$** y consolidar ventanas de ocupación de $24\text{h}$ a $48\text{h}$ antes de transferir la titularidad soberana. Todo asedio abre una ventana obligatoria de **Human Handshake de $120\text{ segundos}$ ($2\text{ minutos}$)** para que el defensor humano intercepte en vivo antes de que asuma el mando la **IA de Guarnición determinista (Niveles 1 a 5)**.
+3. **0% Zonas Inexpugnables y Conquista de Capitales con Buff Regional $+5\%$ (Pilar Canónico 5):** Ningún territorio del planeta goza de inmunidad perpetua. Conquistar una Capital otorga a la corporación dominante el **Buff Regional Canónico de $+5\%$ en extracción de recursos y logística en la región**, además del **Buff Hegemónico Nacional** sobre sus provincias en ese país (**$+15\%$ a la producción de Créditos Energéticos `EC`** y **$+10\%$ a la velocidad de forja en hangares**).
 4. **Frenos Matemáticos Anti-Snowballing:** Los mega-imperios sufren un incremento superlineal de mantenimiento energético con exponente $1.8$ sobre el límite imperial ($K_{\text{Límite\_Imperial}}$), latencia elástica de refuerzos según la distancia en saltos del grafo y un tope constitucional inquebrantable de **máximo $10$ corporaciones por Alianza Militar**.
 
 ### Pilar II: Renderizado Cartográfico Continuo y *Seamless Zoom* (*OpenPlace WebGL Engine*)
 1. **Nivel de Detalle Semántico (Semantic LOD) sin Pantallas de Carga:** El lobby estático desaparece; la pantalla principal es una **War-Room Viva** sobre MapLibre GL (WebGL 2.0):
-   - **Zoom Nivel 1 (`ZOOM_GLOBAL = 3.5`, $1.5 \le z < 6.0$ — Estratégico Global):** Polígonos vectoriales soberanos, colores heráldicos corporativos, banderas SVG de las $195$ naciones e iconos pulsantes de conflicto activo. Cero suscripción a WebSockets tácticos.
-   - **Zoom Nivel 2 (`ZOOM_OPERACIONAL = 7.0`, $6.0 \le z < 13.0$ — Operacional Provincial):** Visualización de barras de $10,000\text{ TCP}$, niveles de búnker (1 a 5), complejos industriales de $10$ parcelas, peajes en estrechos ($0.00\%$ a $10.00\%$) y líneas de suministro trazadas con el algoritmo entero de Bresenham (`traceSupplyLine`).
-   - **Zoom Nivel 3 (`ZOOM_TACTICO = 14.0`, $z \ge 13.0$ — Cuadrícula Táctica en Vivo):** El motor inyecta dinámicamente un `TileCanvas` HTML5 ($1000 \times 1000\text{ px}$) anclado a los $4$ vértices geográficos WGS84 exactos de la región (`getTileBounds`), conmuta el muestreo de textura de `linear` a `nearest` para preservar la nitidez pixel-art y se suscribe al canal WebSocket `territorial_battle:{province_id}` en menos de $200\text{ ms}$.
+   - **Zoom Nivel 1 (`ZOOM_GLOBAL = 3.5`, $1.5 \le z < 10.0$ — Estratégico Global):** Polígonos vectoriales soberanos, colores heráldicos corporativos, banderas SVG de las $195$ naciones e iconos pulsantes de conflicto activo. Cero suscripción a WebSockets tácticos.
+   - **Zoom Nivel 2 (`ZOOM_OPERACIONAL = 10.0`, $10.0 \le z < 15.0$ — Operacional Provincial):** Visualización de barras de $10,000\text{ TCP}$, niveles de búnker (1 a 5), complejos industriales de $10$ parcelas, peajes en estrechos ($0.00\%$ a $10.00\%$) y líneas de suministro trazadas con el algoritmo entero de Bresenham (`traceSupplyLine`).
+   - **Zoom Nivel 3 (`ZOOM_TACTICO = 15.0`, $z \ge 15.0$ — Cuadrícula Táctica en Vivo):** El motor inyecta dinámicamente un `TileCanvas` HTML5 ($1000 \times 1000\text{ px}$) anclado a los $4$ vértices geográficos WGS84 exactos de la región (`getTileBounds`), conmuta el muestreo de textura de `linear` a `nearest` para preservar la nitidez pixel-art y se suscribe al canal WebSocket `territorial_battle:{province_id}` en menos de $200\text{ ms}$.
 2. **Picking Analítico $O(1)$ y Empaquetado Binario:** Toda interacción de ratón o toque táctil resuelve la celda exacta $(x, y)$ mediante proyección trigonométrica directa de Web Mercator (`lngLatToGridCoords`) en $< 0.002\text{ ms}$, sin consultas al DOM ni lecturas de framebuffer. La Niebla de Guerra (*Fog of War*) y el control de celdas se transmiten mediante la estructura `TacticalBitMap` (`Uint8Array`), comprimiendo una cuadrícula de $20 \times 20$ ($400$ celdas) en exactamente **$50\text{ bytes}$** ($375\text{ bytes}$ para las $3,000$ regiones mundiales).
 
 ### Pilar III: Combate Determinista *Advance Wars* (1-100 HP) e Industria *Albion Online*
-1. **Determinismo Balístico en Escala Continua 1 a 100 HP:** Cero dados, cero varianza aleatoria (`luckModifier = 0`). Toda unidad opera sobre $100\text{ HP}$ continuos, permitiendo aplicar con exactitud matemática la mitigación por estrellas de terreno ($0\star$ a $4\star$), las bonificaciones de Torres de Comunicación ($+10\%$ por torre) y la pureza industrial del chasis.
-2. **Almacén Físico de Flota (*Fleet Hangar*) y Ley de Doble Llave:** Desaparecen por completo los mazos de cartas. El jugador administra un inventario físico de los **$16$ arquetipos militares canónicos** ensamblados en **Tiers T1 a T5**. Desplegar una unidad desde una fábrica en combate requiere satisfacer simultáneamente la **Doble Llave**: poseer los Fondos Tácticos ($\text{\$G}$) generados por ciudades capturadas en la partida **Y** descontar $1$ chasis físico real de `user_unit_hangar` (con excepción del **Kit Básico de Supervivencia F2P**: Infantería Ligera T1 y Reconocimiento T1 con stock infinito garantizado $\infty$).
-3. **Siniestralidad Real y Mercado P2P Descentralizado:** Todo chasis destruido en combate se elimina permanentemente de la base de datos: el **$65\%$** se destruye como sumidero deflacionario puro y el **$35\%$** retorna al propietario como Chatarra Balística (`tech_scrap`) refundible en Altos Hornos ($2\text{ Scrap} \to 1\text{ Placa de Acero}$). El Mercado P2P aplica un impuesto transaccional del **$2\%$** ($1\%$ quema deflacionaria + $1\%$ regalía para el clan soberano de la provincia), bandas anti-especulación VWAP ($\pm 25\%$) y **prohíbe terminantemente el comercio de unidades militares terminadas**.
+1. **Determinismo Balístico en Escala Continua 1 a 100 HP y Derrota por 0 Tropas (Pilares Canónicos 2 y 3):** Cero dados, cero varianza aleatoria (`luckModifier = 0`). Toda unidad opera sobre $100\text{ HP}$ enteros continuos, permitiendo aplicar con exactitud matemática la mitigación por estrellas de terreno ($0\star$ a $4\star$), las bonificaciones de Torres de Comunicación ($+10\%$ por torre) y la pureza industrial del chasis. Quedarse con **$0$ tropas supervivientes en el tablero** (`all_units_destroyed`) produce la **derrota inapelable e inmediata**.
+2. **Cero Cartas, Almacén Físico de Flota de 16 Tropas (4 Activas + 12 Reserva) y Ley de Doble Llave (Pilares Canónicos 1 y 4):** Desaparecen por completo los mazos de cartas (NO TCG/CCG). Cada jugador posee un **almacén físico con capacidad máxima de $16$ tropas ($4$ slots de despliegue activo + $12$ en reserva)** seleccionadas de entre los **$16$ arquetipos militares canónicos** ensamblados en **Tiers T1 a T5** ($+2\%$ por tier sobre T1, hasta un máximo de $+8\%$ en T5). Desplegar una unidad desde una fábrica en combate requiere satisfacer simultáneamente la **Doble Llave**: poseer los Fondos Tácticos ($\text{\$G}$) generados por ciudades capturadas en la partida **Y** descontar $1$ chasis físico real de `user_unit_hangar` (con excepción del **Kit Básico de Supervivencia F2P**: Infantería Ligera T1 y Reconocimiento T1 con stock infinito garantizado $\infty$).
+3. **Siniestralidad Real (35% Chatarra) y Mercado P2P Descentralizado (2% Split + VWAP ±25%) (Pilar Canónico 6 y Regla Financiera):** Todo chasis destruido en combate se elimina permanentemente de la base de datos: el **$65\%$** se destruye como sumidero deflacionario puro y el **$35\%$** retorna al propietario como Chatarra Tecnológica (`tech_scrap`, `LOSS_SCRAP_RECOVERY_RATE = 0.35`) refundible en Altos Hornos ($2\text{ Scrap} \to 1\text{ Placa de Acero}$). El Mercado P2P (`src/domains/economy/components/P2PMarketplaceView.tsx`) aplica un impuesto transaccional total inmutable del **$2\%$** (`P2P_MARKET_TAX_TOTAL = 0.02`: **$1\%$ quemado en Sink deflacionario + $1\%$ regalía al Clan dueño del Hub regional**), bandas dinámicas de precios **VWAP Collar $\pm 25\%$** (`P2P_VWAP_COLLAR_BAND = 0.25`) y **prohíbe terminantemente el comercio de unidades militares terminadas**.
 
 ---
 
@@ -85,7 +85,7 @@ flowchart TD
 Tras la fragmentación de los tratados supranacionales de defensa y el agotamiento de las reservas energéticas convencionales, la soberanía de las $195$ naciones ha pasado a estar disputada por **Corporaciones Militares Soberanas (Clanes)** gobernadas por Consejos Militares electos cada $30$ días. El patrón monetario global ha sido reemplazado por el **Crédito Energético (`EC`)**, respaldado directamente por el refinado de hidrocarburos sintéticos y el control de reactores e infraestructura pesada.
 
 ### Las Cinco Doctrinas Corporativas y el Alto Mando
-Los comandantes en jefe lideran sus divisiones a través de **$28$ Oficiales Comandantes (COs)** agrupados en cinco bloques doctrinales clásicos y el Alto Mando Ejecutivo:
+Los comandantes en jefe lideran sus divisiones a través de los **$29$ Oficiales Comandantes (COs) canónicos** registrados en `CANONICAL_CO_REGISTRY` (`src/domains/tactics/core/coSystem.ts`), agrupados en cinco bloques doctrinales clásicos y el Alto Mando Ejecutivo (con resolución automática de alias de lore `volkov`, `garrison` y `vance` vía `resolveCanonicalCOId`):
 
 | Bloque Doctrinal / Facción | Identidad Cromática Canónica | Comandantes Representativos (`COId`) | Especialización Militar y Doctrina de Guerra |
 | :--- | :--- | :--- | :--- |
@@ -94,7 +94,7 @@ Los comandantes en jefe lideran sus divisiones a través de **$28$ Oficiales Com
 | **Green Earth Aero-Naval Consortium** | Verde Táctico (`#15803D`) / Níquel (`#86EFAC`) | `eagle`, `drake`, `jess`, `javier` | Supremacía aérea relámpago con doble turno (`Lightning Strike`), bloqueo de estrechos oceánicos con acorazados, logística blindada y fortificación de nodos C4ISR. |
 | **Yellow Comet Bushido Zaibatsu** | Oro Imperial (`#D97706`) / Arena (`#FDE047`) | `kanbei`, `sonja`, `sensei`, `grimm` | Chasis de altísima pureza (+20% moral ofensiva/defensiva), contraataques letales, inteligencia óptica contra Niebla de Guerra y asaltos aerotransportados en helicóptero. |
 | **Black Hole Vanguard Technologies** | Púrpura Vacío (`#4C1D95`) / Carmesí (`#991B1B`) | `flak`, `adder`, `lash`, `hawke`, `sturm`, `von_bolt`, `jugger`, `koal`, `kindle` | Guerra asimétrica experimental, aprovechamiento balístico del terreno, drenaje bio-energético global (`Black Wave`) y bombardeo cinético de área (`Meteor Strike`). |
-| **Alto Mando Ejecutivo (C4ISR)** | Oliva Blindado (`#46521F`) / Óxido Alerta (`#C46A3A`) | `stella`, `volkov`, `garrison`, `vance` | Doctrinas operacionales híbridas integradas al Bark Engine: puntas de lanza Blitz (`stella`), saturación de obuses (`volkov`) y defensa de búnkeres provinciales (`garrison`). |
+| **Alto Mando Ejecutivo (C4ISR)** | Oliva Blindado (`#46521F`) / Óxido Alerta (`#C46A3A`) | `stella` (CO #29; más alias de lore `volkov` $\to$ `grit`, `garrison` $\to$ `kanbei`, `vance` $\to$ `colin`) | Doctrina operacional híbrida integrada al Bark Engine (`src/domains/game-feel/core/barkEngine.ts`): punta de lanza Blitzkrieg (`stella`, Sujeto de Calibración C4ISR #01), saturación de obuses (`volkov`) y defensa de búnkeres provinciales (`garrison`). |
 
 ### Dirección de Arte y Tono: Consola Militar C4ISR × Novela Gráfica Bélica (Atompunk)
 La interfaz de usuario fusiona la precisión instrumental de una sala de mando militar **C4ISR (Command, Control, Communications, Computers, Intelligence, Surveillance and Reconnaissance)** con la energía cinética de la novela gráfica bélica (*Advance Wars meets Persona 5 / Hades*) y el diseño industrial *Space-Age Atompunk (1950s/1960s)*:
@@ -136,13 +136,13 @@ flowchart TD
     subgraph ETAPA_2 ["ETAPA 2: REFINO EN 10 PARCELAS Y ENSAMBLAJE EN HANGAR"]
         E2_REF["Refinado en Cascada (Altos Hornos, Óptica, Polímeros, EC)"]
         E2_MKT["Mercado Libre P2P (Split 2%: 1% Burn / 1% Regalía, Collar VWAP ±25%)"]
-        E2_ASM["Forja con Patente Tecnológica -> Stock Físico user_unit_hangar (T1-T5)"]
+        E2_ASM["Forja con Patente -> Almacén Físico 16 Tropas (4 Activas + 12 Reserva) user_unit_hangar (T1-T5)"]
         E2_REF <--> E2_MKT
         E2_REF --> E2_ASM
     end
 
     subgraph ETAPA_3 ["ETAPA 3: INCURSIÓN, HANDSHAKE (120s) Y DOBLE LLAVE"]
-        E3_ZOOM["Seamless Zoom Nivel 3 (Zoom >= 13.0) + Selección de Frontera Adyacente"]
+        E3_ZOOM["Seamless Zoom Nivel 3 (Zoom >= 15.0) + Selección de Frontera Adyacente"]
         E3_HAND["Alerta Push Defensiva: Ventana Human Handshake (120 Segundos)"]
         E3_KEY["Fábrica Táctica: Validación Doble Llave (Fondos $G + Stock Físico Hangar)"]
         E3_ZOOM --> E3_HAND --> E3_KEY
@@ -150,7 +150,7 @@ flowchart TD
 
     subgraph ETAPA_4 ["ETAPA 4: COMBATE TÁCTICO DETERMINISTA (1-100 HP)"]
         E4_CLOCK["Reloj Fischer (15s/30s/60s) o Ronda WeGo Territorial (45s)"]
-        E4_BALLISTIC["Matriz Balística 1-100 HP (0% Azar, Terreno 0★-4★, CO Powers)"]
+        E4_BALLISTIC["Matriz Balística 1-100 HP (0% Azar, Terreno 0★-4★, CO Powers, Derrota a 0 Tropas)"]
         E4_REINF["Refuerzos con Latencia Elástica (T+4 + 0.5*Saltos Grafo) y Soft Cap (14 u.)"]
         E4_CLOCK --> E4_BALLISTIC --> E4_REINF
     end
@@ -165,7 +165,7 @@ flowchart TD
     subgraph ETAPA_6 ["ETAPA 6: SOBERANÍA DUAL, ESCUDO 4H Y HEGEMONÍA"]
         E6_DE_FACTO["0 TCP -> Ocupación De Facto (Drenaje RGO y Ventana de Consolidación 24h-48h)"]
         E6_SHIELD["Transferencia De Jure + Escudo Cooldown de Prioridad (4 Horas)"]
-        E6_CAPITAL["Conquista de Capital Nacional: +15% EC, +10% Forja, -20% Aranceles"]
+        E6_CAPITAL["Conquista de Capital: +5% Buff Regional (Recursos/Logística) + Hegemonía (+15% EC, +10% Forja)"]
         E6_DE_FACTO --> E6_SHIELD --> E6_CAPITAL
     end
 
@@ -183,7 +183,7 @@ flowchart TD
 ## 2.2 Desglose Matemático y Temporal de las 6 Etapas del Bucle
 
 ### ETAPA 1: Extracción Geológica RGO, Ciclo Circadiano y Freno Imperial
-Cada región del mapa posee una veta primaria de recurso (`resource_tier` $\in \{1, 2, 3, 4, 5\}$) y un complejo industrial modular de hasta **$10$ parcelas** (`industrialEngine.ts`).
+Cada región del mapa posee una veta primaria de recurso (`resource_tier` $\in \{1, 2, 3, 4, 5\}$) y un complejo industrial modular de hasta **$10$ parcelas** (`src/domains/economy/core/industrialEngine.ts`). Conquistar una Capital aplica el **Buff Regional Canónico de $+5\%$ a la extracción de recursos y logística en la región** ($M_{\text{Capital\_Regional}} = 1.05$).
 1. **Fórmula de Extracción Horaria Regional (Modelo RGO Adaptado):**
    $$\text{Producción\_Horaria}(r) = Y_{\text{base}}(r) \times \eta_{\text{infra}} \times \left(\frac{L_{\text{asignada}}}{L_{\text{máx}}}\right) \times (1 - D_{\text{estructural}}) \times M_{\text{Capital}} \times \eta_{\text{circadiano}}(t)$$
 2. **Función de Eficiencia del Ciclo Circadiano Ergonómico ($\eta_{\text{circadiano}}(t)$):**
@@ -192,17 +192,17 @@ Cada región del mapa posee una veta primaria de recurso (`resource_tier` $\in \
    $$C_{\text{Mantenimiento\_Total}}(\text{EC/h}) = \left(\sum_{i=1}^{N_{\text{reg}}} C_{\text{base}}(i)\right) \times \left[1 + \left(\frac{N_{\text{reg}}}{K_{\text{Límite\_Imperial}}}\right)^{1.8}\right]$$
 
 ### ETAPA 2: Cadena de Refino en Cascada, Mercado P2P y Ensamblaje en Hangar
-1. **Bandas Anti-Manipulación del Mercado Libre P2P ($\text{VWAP}_{24\text{h}} \pm 25\%$):**
+1. **Bandas Anti-Manipulación del Mercado Libre P2P ($\text{VWAP}_{24\text{h}} \pm 25\%$, `P2P_VWAP_COLLAR_BAND = 0.25`):**
    $$P_{\text{orden}} \in \Big[0.75 \times \text{VWAP}_{24\text{h}},\; 1.25 \times \text{VWAP}_{24\text{h}}\Big]$$
-2. **Split Impositivo del 2.0% ($1\%$ Burn + $1\%$ Regalía Soberana):**
-   $$\text{Tax}_{\text{Burn}} = \lfloor 0.01 \times V_{\text{bruto}} \times (1 - \delta_{\text{Capital}}) \rfloor, \qquad \text{Tax}_{\text{RegalíaClan}} = \lfloor 0.01 \times V_{\text{bruto}} \times (1 - \delta_{\text{Capital}}) \rfloor$$
+2. **Split Impositivo Inmutable del 2.0% (`P2P_MARKET_TAX_TOTAL = 0.02`: $1\%$ Sink Burn + $1\%$ Regalía al Clan dueño del Hub regional):**
+   $$\text{Tax}_{\text{Burn}} = \lfloor 0.01 \times V_{\text{bruto}} \rfloor, \qquad \text{Tax}_{\text{RegalíaClan}} = \lfloor 0.01 \times V_{\text{bruto}} \rfloor, \qquad V_{\text{neto\_vendedor}} = V_{\text{bruto}} - \text{Tax}_{\text{Burn}} - \text{Tax}_{\text{RegalíaClan}}$$
 3. **Ensamblaje Físico y Tiempo de Forja en Hangar:**
    $$t_{\text{forja}}(u, T) = \frac{t_{\text{base}}(u) \times \mu_{\text{time}}(T)}{(1 + \text{Bonus}_{\text{Taller}}) \times (1 + 0.10 \cdot \mathbb{I}_{\text{Capital}})}$$
 
 ### ETAPA 3: Incursión Geopolítica, Human Handshake (120s) y Despliegue con Doble Llave
 1. **Protocolo de Relevo Humano (*Human Handshake* de 120 Segundos):**
    $$\text{Controlador}_{\text{Defensa}} = \begin{cases} \text{Oficial Humano (PvP en Vivo)} & \text{si } \exists\, u_{\text{def}} \text{ que pulsa ``Tomar el Mando'' en } t \le t_0 + 120\text{ s} \\ \text{Guarnición IA Autónoma (Búnker Nv. 1-5)} & \text{si } t > t_0 + 120\text{ s sin respuesta humana} \end{cases}$$
-2. **Ecuación Booleana de la Doble Llave en Fábricas Tácticas (`ProductionModal.tsx`):**
+2. **Ecuación Booleana de la Doble Llave en Fábricas Tácticas (`src/domains/tactics/components/ProductionModal.tsx`):**
    $$\text{PuedeDesplegar}(u, T) \iff \Big(\text{Fondos}_{\$G} \ge \text{Coste}_{\$G}(u)\Big) \;\land\; \Big(\text{StockHangar}(u, T) \ge 1 \;\lor\; (u \in \{\text{'infantry'}, \text{'recon'}\} \land T = 1)\Big)$$
 
 ### ETAPA 4: Combate Táctico Determinista (Escala 1-100 HP, Relojes y Logística)
@@ -226,21 +226,21 @@ Al caer a $0\text{ TCP}$, el atacante se convierte en `controller_clan_id` (*Ocu
 
 | Dimensión del Sistema | ❌ Legado Erradicado (*Tactical Command CCG / Pre-Hegemonía*) | ✅ Nuevo Estándar Canónico (*GEOTACTICS: ONLINE `v0.0.1-alfa`*) | Impacto Técnico y de Diseño en el Repositorio |
 | :--- | :--- | :--- | :--- |
-| **1. Modelo de Colección e Invocación de Tropas** | **Mazo de 10 Cartas (`DeckManager`):** El jugador armaba una baraja cerrada de 10 naipes y podía invocar copias infinitas en partida pagando solo oro in-match ($\$G$). | **Almacén Físico de Unidades (`Fleet Hangar`) + Doble Llave:** Cero cartas. Acceso abierto a los $16$ arquetipos militares sujetos a **Doble Llave**: Fondos $\$G$ in-match **Y** $1$ chasis físico real en `user_unit_hangar`. | Deprecación definitiva de `src/engine/deckManager.ts`. Integración de `useUserHangar` en `ProductionModal.tsx`. |
-| **2. Progresión Vertical de Unidades** | **Niveles de Carta 1 a 15 (`getLevelAttackBonus`):** Subida de nivel estilo *Clash Royale* coleccionando copias duplicadas en cofres de botín, generando inflación de estadísticas. | **Grados Industriales T1 a T5 (`getIndustrialTierBonus`):** Progresión industrial por pureza de materiales forjados ($+2.0\%$ por Tier sobre T1, máx $+8.0\%$ en T5). En Esports/Duelo Espejo todo se fija a **Tier 1 ($+0.0\%$)**. | Eliminación de `getLevelAttackBonus` en `src/engine/canonicalCombat.ts`. Preservación exclusiva de `tier: 1 \| 2 \| 3 \| 4 \| 5`. |
-| **3. Escala de Salud y Precisión Balística** | **Escala Discreta 1 a 10 HP (o Híbrida):** Código partido con un flag condicional `is100Scale` y divisiones por $10$ que truncaban los bonos del $+2\%$ y las coberturas de terreno. | **Escala Continua Nativa de 1 a 100 HP:** Toda unidad nace con `hp: 100, maxHp: 100`. Daño determinista continuo sin redondeos a base $10$, con $0\%$ de azar (`luckModifier = 0`). | Unificación de `TacticalUnit` en `src/types/index.ts`, `turnEconomy.ts` y `canonicalCombat.ts` a $100\text{ HP}$ puros. |
+| **1. Modelo de Colección e Invocación de Tropas** | **Mazo de 10 Cartas (`DeckManager`):** El jugador armaba una baraja cerrada de 10 naipes y podía invocar copias infinitas en partida pagando solo oro in-match ($\$G$). | **Almacén Físico de 16 Tropas (`Fleet Hangar`: 4 Activas + 12 Reserva) + Doble Llave:** Cero cartas (NO TCG/CCG). Capacidad máxima de $16$ tropas por jugador ($4$ slots activos + $12$ en reserva) de los $16$ arquetipos militares sujetos a **Doble Llave**: Fondos $\$G$ in-match **Y** $1$ chasis físico real en `user_unit_hangar`. | Deprecación definitiva de `deckManager.ts`. Integración de `src/domains/economy/hooks/useUserHangar.ts` en `src/domains/tactics/components/ProductionModal.tsx`. |
+| **2. Progresión Vertical de Unidades** | **Niveles de Carta 1 a 15 (`getLevelAttackBonus`):** Subida de nivel estilo *Clash Royale* coleccionando copias duplicadas en cofres de botín, generando inflación de estadísticas. | **Grados Industriales T1 a T5 (`getIndustrialTierBonus`):** Progresión horizontal por pureza de materiales forjados ($+2.0\%$ por Tier sobre T1, máx $+8.0\%$ en T5). En Esports/Duelo Espejo todo se fija a **Tier 1 ($+0.0\%$)**. | Eliminación de `getLevelAttackBonus` en `src/domains/tactics/core/canonicalCombat.ts`. Preservación exclusiva de `tier: 1 \| 2 \| 3 \| 4 \| 5`. |
+| **3. Escala de Salud y Precisión Balística** | **Escala Discreta 1 a 10 HP (o Híbrida):** Código partido con un flag condicional `is100Scale` y divisiones por $10$ que truncaban los bonos del $+2\%$ y las coberturas de terreno. | **Escala Continua Nativa de 1 a 100 HP y Derrota por 0 Tropas:** Toda unidad nace con `hp: 100, maxHp: 100`. Daño determinista continuo sin redondeos a base $10$, $0\%$ de azar (`luckModifier = 0`) y derrota inmediata al llegar a $0$ tropas supervivientes. | Unificación de `TacticalUnit` en `src/shared/types/index.ts`, `src/domains/economy/core/turnEconomy.ts` y `src/domains/tactics/core/canonicalCombat.ts` a $100\text{ HP}$ puros. |
 | **4. Consecuencia Post-Combate (Siniestralidad)** | **Cero Pérdida Material:** Al terminar la batalla, todas las unidades destruidas seguían intactas en la cuenta del jugador; la economía carecía de sumidero real (*Item Sink*). | **Destrucción Física Permanente + 35% Chatarra:** Todo chasis destruido se descuenta de `user_unit_hangar`. El $65\%$ desaparece como sumidero y el **$35\%$** retorna como `tech_scrap` refundible ($2\text{ Scrap} \to 1\text{ Acero}$). | Ejecución del RPC transaccional `settle_territorial_combat_losses` al cierre de cada batalla territorial. |
 | **5. Salvaguarda contra Bancarrota del Jugador** | **Inexistente (Innecesaria por Cartas Infinitas):** Como los mazos no se gastaban nunca, no existía riesgo de quedarse sin inventario militar. | **Kit Básico de Supervivencia F2P Inagotable ($\infty$):** La Infantería Ligera T1 (`infantry`, $\$1,000\text{G}$) y el Reconocimiento T1 (`recon`, $\$4,000\text{G}$) tienen stock infinito garantizado por el Estado Mayor. | Bypass de validación de stock físico en cliente y backend para `unit_code IN ('infantry', 'recon')` a Tier 1. |
-| **6. Pantalla Principal y Navegación Espacial** | **Lobby Estático de Menús y Modales:** Pantalla desconectada del mundo donde se pulsaba un botón para buscar partida en arenas abstractas con bordes negros. | **War-Room Viva con *Seamless Zoom* (OpenPlace WebGL):** Mapa mundial MapLibre GL a $60\text{ FPS}$ como fondo permanente con LOD Semántico (N1 Global $\to$ N2 Operacional $\to$ N3 Cuadrícula `TileCanvas` en vivo a $\text{Zoom} \ge 13.0$). | Implementación de `TacticalWorldMap.tsx`, `coordinates.ts` (Picking $O(1)$) y `tacticalBitmap.ts` ($50\text{ bytes}$ FoW). |
-| **7. Escala Territorial y Gobernanza de Capitales** | **Capitales Inexpugnables (High-Sec Inmune) o Mapa Vacío:** Las $195$ capitales no se podían atacar o se pretendía abrir $3,000$ regiones vacías sin densidad de jugadores. | **0% Zonas Inexpugnables + Estrategia "Teatro Venezuela":** Todas las $195$ Capitales son conquistables y otorgan el **Buff Hegemónico Nacional** ($+15\%\text{ EC}, +10\%\text{ forja}, -20\%\text{ aranceles}$). Lanzamiento en teatro denso de **24 Regiones de Venezuela + 7 Regiones de Amortiguación Fronteriza** (Capital Caracas `REG_VE_01` y estrechos `CHK-MARACAIBO` y `CHK-PARIA`). Visibilidad global de la Tierra en WebGL, pero jugabilidad activa acotada exclusivamente a Venezuela en Fase 1. | Migración de seed territorial acotado de $24$ regiones venezolanas + $7$ amortiguadores + Capital Caracas + $2$ estrechos y barras de $10,000\text{ TCP}$. |
+| **6. Pantalla Principal y Navegación Espacial** | **Lobby Estático de Menús y Modales:** Pantalla desconectada del mundo donde se pulsaba un botón para buscar partida en arenas abstractas con bordes negros. | **War-Room Viva con *Seamless Zoom* (OpenPlace WebGL):** Mapa mundial MapLibre GL a $60\text{ FPS}$ como fondo permanente con LOD Semántico (N1 Global $3.5 \to$ N2 Operacional $10.0 \to$ N3 Cuadrícula `TileCanvas` en vivo a $\text{Zoom} \ge 15.0$). | Implementación de `src/domains/world/components/TacticalWorldMap.tsx`, `src/domains/world/core/coordinates.ts` (Picking $O(1)$) y `src/domains/world/core/tacticalBitmap.ts` ($50\text{ bytes}$ FoW). |
+| **7. Escala Territorial y Gobernanza de Capitales** | **Capitales Inexpugnables (High-Sec Inmune) o Mapa Vacío:** Las $195$ capitales no se podían atacar o se pretendía abrir $3,000$ regiones vacías sin densidad de jugadores. | **0% Zonas Inexpugnables + Buff Regional $+5\%$ + Estrategia "Teatro Venezuela":** Todas las Capitales son conquistables y otorgan el **Buff Regional Canónico de $+5\%$ en recursos/logística en la región** además del **Buff Hegemónico Nacional** ($+15\%\text{ EC}, +10\%\text{ forja}$). Lanzamiento en teatro denso de **24 Regiones de Venezuela + 7 Regiones de Amortiguación Fronteriza** (Capital Caracas `REG_VE_01` y estrechos `CHK-MARACAIBO` y `CHK-PARIA`). Visibilidad global de la Tierra en WebGL, pero jugabilidad activa acotada exclusivamente a Venezuela en Fase 1. | Migración de seed territorial acotado de $24$ regiones venezolanas + $7$ amortiguadores + Capital Caracas + $2$ estrechos y barras de $10,000\text{ TCP}$. |
 | **8. Defensa Territorial Asincrónica y Relevo** | **Combate Puramente Offline contra Bots o Espera Indefinida:** Desconexión entre las defensas automáticas y la intervención en vivo de los miembros del clan. | **Guarniciones IA por Nivel + Human Handshake ($120\text{ s}$):** Alerta push en tiempo real al clan defensor con cuenta atrás de **$120\text{ segundos}$** para tomar el mando en PvP antes de que la Guarnición IA (Nivel 1 a 5 MCTS) asuma el control. | Tabla `territorial_battle_sessions`, canal Realtime `territorial_battle:{id}` y `HANDSHAKE_TIMEOUT_SECONDS = 120`. |
-| **9. Comercio entre Jugadores y Monetización** | **Riesgo de Comercio de Tropas en Cajas / Ofertas Tilt $0.99:** Ambigüedad sobre qué objetos finales podían comprarse directamente o mediante ofertas flash tras derrotas. | **Mercado P2P 100% Insumos/Patentes (0% P2W):** Prohibición absoluta de vender tropas terminadas y retiro de ofertas Tilt. Impuesto del **$2\%$** ($1\%$ Burn + $1\%$ Regalía Provincial), collar $\text{VWAP} \pm 25\%$ y **Créditos Energéticos (`EC`)**. | Restricción de catálogo en el libro de órdenes P2P y curva de mantenimiento energético superlineal con exponente $1.8$. |
+| **9. Comercio entre Jugadores y Monetización** | **Riesgo de Comercio de Tropas en Cajas / Ofertas Tilt $0.99:** Ambigüedad sobre qué objetos finales podían comprarse directamente o mediante ofertas flash tras derrotas. | **Mercado P2P 100% Insumos/Patentes (0% P2W):** Prohibición absoluta de vender tropas terminadas y retiro de ofertas Tilt. Impuesto total del **$2\%$** (`P2P_MARKET_TAX_TOTAL = 0.02`: $1\%$ Sink Burn + $1\%$ Regalía al Clan dueño del Hub regional), collar dinámico $\text{VWAP} \pm 25\%$ (`P2P_VWAP_COLLAR_BAND = 0.25`) y **Créditos Energéticos (`EC`)**. | Restricción de catálogo en `src/domains/economy/components/P2PMarketplaceView.tsx` y curva de mantenimiento energético superlineal con exponente $1.8$ en `src/domains/economy/core/upkeepEngine.ts`. |
 
 ---
 
 # 3. MOTOR CARTOGRÁFICO WEBGL, SEAMLESS ZOOM Y PIPELINE OPENPLACE
 
-Esta sección especifica la arquitectura de renderizado de alta frecuencia para **GEOTACTICS: ONLINE (`v0.0.2-alfa`)**. Ha erradicado definitivamente el antiguo lienzo DOM/SVG (`src/components/world/WorldMapCanvas.tsx`, purgado físicamente del repositorio), consolidando el motor **OpenPlace Bridge** sobre **MapLibre GL (WebGL 2.0) Zero-Raster** con geometría vectorial local e interactividad C4ISR a **60 FPS constantes**. Esta arquitectura sostiene más de $3,000$ regiones geopolíticas y proyecta cuadrículas tácticas estilo *Advance Wars* en vivo directamente sobre la cartografía terrestre real a **60 FPS constantes**, sin pantallas de carga desconectadas.
+Esta sección especifica la arquitectura de renderizado de alta frecuencia para **GEOTACTICS: ONLINE (`v0.0.2-alfa`)**. Ha erradicado definitivamente el antiguo lienzo DOM/SVG (`WorldMapCanvas.tsx`, purgado físicamente del repositorio), consolidando el motor **OpenPlace Bridge** en `src/domains/world/components/TacticalWorldMap.tsx` sobre **MapLibre GL (WebGL 2.0) Zero-Raster** con geometría vectorial local e interactividad C4ISR a **60 FPS constantes**. Esta arquitectura sostiene más de $3,000$ regiones geopolíticas y proyecta cuadrículas tácticas estilo *Advance Wars* en vivo directamente sobre la cartografía terrestre real a **60 FPS constantes**, sin pantallas de carga desconectadas.
 
 ---
 
@@ -250,9 +250,9 @@ Para evitar el colapso de VRAM en el cliente y la saturación de canales WebSock
 
 | Nivel LOD | Constante Canónica | Rango de Zoom ($z$) | Estrato Visual Activo | Suscripción de Red & RBAC | Presupuesto de Memoria / GPU |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Nivel 1: Macro-Globo & Soberanía de Estados** | `ZOOM_MACRO = 10.0` | $1.5 \le z < 10.0$ | Polígonos de soberanía nacional y regional (`theatre_regions.json`), `StateInspectorDrawer` al hacer click en el estado (PIB de guerra, rendimiento de recursos, nivel de defensa, facción y clan controlador). Panel de Control del Estado (`StateSovereignDeckModal`) con RBAC para Líderes de Clan y Gestores de Facción que muta el nombre soberano de Países y Estados en vivo. | Canal global ligero `world_sovereignty_ticker`. RLS en Postgres (`state_sovereignty_rbac.sql`) para proclamaciones oficiales. | $< 45\text{ MB}$ VRAM. Renderizado 100% vectorial en GPU (`GeoJSONSource`). |
-| **Nivel 2: Operacional & Red Vial Urbana Real** | `ZOOM_OPERACIONAL = 10.0` | $10.0 \le z < 15.0$ | Se activa a **$z = 10.0$**. Renderiza la **Red Vial Urbana Real** (`theatre_urban_roads.json`) con calles y avenidas fieles a ciudades reales (Caracas, Maracaibo, Cabimas, Valencia, Barquisimeto) junto a la red troncal nacional. Nombres de metrópolis reales (`theatre_cities.json`). Unidades y edificios operacionales desplegados (`operationalUnitsService`). | Canal regional `theater_ops:{country_iso}` (actualización de tropas operacionales, adyacencias y alertas). | $< 85\text{ MB}$ VRAM. Capas vectoriales MapLibre GL (`line`, `circle`, `symbol`). |
-| **Nivel 3: Microjuego Táctico & Construcción In-Situ** | `ZOOM_TACTICO = 15.0` | $15.0 \le z \le 20.0$ | Se activa a **$z = 15.0$**. Emerge el panel de microjuego `MicroTacticalDeckHUD`. Asignación espacial analítica $O(1)$ (`Sector X,Y`, `Cell X,Y`, WGS84, Cobertura 10-40% y estado de ocupación). Habilita despliegue in-situ de unidades militares (`TacticalUnitDeployModal`) y construcción in-situ de estructuras industriales (`TacticalConstructionDrawer`). Activación de cuadrícula `TileCanvas` dinámica ($20 \times 20$). | Suscripción bajo demanda a la celda espacial o sesión táctica. | $< 140\text{ MB}$ VRAM. Muestreo pixel-art `nearest`. Auto-destrucción al bajar de $z < 15.0$. |
+| **Nivel 1: Macro-Globo & Soberanía de Estados** | `ZOOM_GLOBAL = 3.5` | $1.5 \le z < 10.0$ | Polígonos de soberanía nacional y regional (`theatre_regions.json`), `src/domains/world/components/StateInspectorDrawer.tsx` al hacer click en el estado (PIB de guerra, rendimiento de recursos, nivel de defensa, facción y clan controlador). Panel de Control del Estado (`src/domains/world/components/StateSovereignDeckModal.tsx`) con RBAC para Líderes de Clan y Gestores de Facción que muta el nombre soberano de Países y Estados en vivo. | Canal global ligero `world_sovereignty_ticker`. RLS en Postgres (`state_sovereignty_rbac.sql`) para proclamaciones oficiales. | $< 45\text{ MB}$ VRAM. Renderizado 100% vectorial en GPU (`GeoJSONSource`). |
+| **Nivel 2: Operacional & Red Vial Urbana Real** | `ZOOM_OPERACIONAL = 10.0` | $10.0 \le z < 15.0$ | Se activa a **$z = 10.0$**. Renderiza la **Red Vial Urbana Real** (`theatre_urban_roads.json`) con calles y avenidas fieles a ciudades reales (Caracas, Maracaibo, Cabimas, Valencia, Barquisimeto) junto a la red troncal nacional. Nombres de metrópolis reales (`theatre_cities.json`). Unidades y edificios operacionales desplegados (`src/domains/world/services/operationalUnitsService.ts`). | Canal regional `theater_ops:{country_iso}` (actualización de tropas operacionales, adyacencias y alertas). | $< 85\text{ MB}$ VRAM. Capas vectoriales MapLibre GL (`line`, `circle`, `symbol`). |
+| **Nivel 3: Microjuego Táctico & Construcción In-Situ** | `ZOOM_TACTICO = 15.0` | $15.0 \le z \le 20.0$ | Se activa a **$z = 15.0$**. Emerge el panel de microjuego `src/domains/tactics/components/MicroTacticalDeckHUD.tsx`. Asignación espacial analítica $O(1)$ (`Sector X,Y`, `Cell X,Y`, WGS84, Cobertura 10-40% y estado de ocupación). Habilita despliegue in-situ de unidades militares (`src/domains/tactics/components/TacticalUnitDeployModal.tsx`) y construcción in-situ de estructuras industriales (`src/domains/tactics/components/TacticalConstructionDrawer.tsx`). Activación de cuadrícula `TileCanvas` dinámica ($20 \times 20$). | Suscripción bajo demanda a la celda espacial o sesión táctica. | $< 140\text{ MB}$ VRAM. Muestreo pixel-art `nearest`. Auto-destrucción al bajar de $z < 15.0$. |
 
 ### Diagrama de Flujo de Cámara y Ciclo de Vida de las 3 Vistas
 
@@ -279,7 +279,7 @@ flowchart TD
 
 ## 3.2 Arquitectura del Componente `TacticalWorldMap.tsx` (React 19 + MapLibre GL)
 
-El componente `src/components/world/TacticalWorldMap.tsx` evoluciona y reemplaza a `WorldMapCanvas.tsx`. Delega toda la geometría al pipeline **WebGL 2.0 de MapLibre GL** y proyecta el combate táctico mediante un **Canvas HTML5 en memoria enlazado como textura GPU**.
+El componente `src/domains/world/components/TacticalWorldMap.tsx` evoluciona y reemplaza a `WorldMapCanvas.tsx`. Delega toda la geometría al pipeline **WebGL 2.0 de MapLibre GL** y proyecta el combate táctico mediante un **Canvas HTML5 en memoria enlazado como textura GPU**.
 
 ### Reglas de Ingeniería del Renderizador WebGL:
 1. **Inicialización Blindada Zero-SSR**: `maplibre-gl` se importa dinámicamente dentro de `useEffect` para prevenir referencias a `window` antes del montaje del DOM.
@@ -290,10 +290,10 @@ El componente `src/components/world/TacticalWorldMap.tsx` evoluciona y reemplaza
 4. **WebGL Canvas Pump Hack (Repintado por Demanda)**:
    - El canvas permanece pausado (`animate: false`) y solo cuando se recibe un cambio de turno, movimiento de unidad o actualización de Niebla de Guerra, se invoca el bombeo selectivo: `source.play()` $\rightarrow$ `map.triggerRepaint()` $\rightarrow$ `setTimeout(() => source.pause(), 0)`.
 5. **Conmutación Dinámica de Muestreo (`linear` vs. `nearest`)**:
-   - Al cruzar el umbral táctico ($z \ge 13.0$), la propiedad `raster-resampling` de la capa del canvas conmuta de `"linear"` a `"nearest"`, preservando los bordes exactos del pixel-art de las unidades y las barras de $1\text{–}100\text{ HP}$ sin desenfoque bilineal.
+   - Al cruzar el umbral táctico ($z \ge 15.0$), la propiedad `raster-resampling` de la capa del canvas conmuta de `"linear"` a `"nearest"`, preservando los bordes exactos del pixel-art de las unidades y las barras de $1\text{–}100\text{ HP}$ sin desenfoque bilineal.
 
 ```tsx
-// ARCHIVO CANÓNICO: src/components/world/TacticalWorldMap.tsx
+// ARCHIVO CANÓNICO: src/domains/world/components/TacticalWorldMap.tsx
 
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import type {
@@ -311,10 +311,10 @@ import {
   TILE_SIZE,
   lngLatToGridCoords,
   getTileBounds,
-} from '../../engine/coordinates';
-import { TacticalBitMap } from '../../engine/tacticalBitmap';
-import { useTerritoryMap } from '../../hooks/useTerritoryMap';
-import type { TacticalUnit } from '../../types';
+} from '../core/coordinates';
+import { TacticalBitMap } from '../core/tacticalBitmap';
+import { useTerritoryMap } from '../hooks/useTerritoryMap';
+import type { TacticalUnit } from '@shared/types';
 
 export interface TacticalWorldMapProps {
   userClanId?: string | null;
@@ -660,7 +660,7 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
 
       const map = new maplibregl.Map({
         container: mapContainerRef.current,
-        style: MILITARY_C4ISR_STYLE,
+        style: ZERO_RASTER_MILITARY_STYLE,
         center: [-66.9036, 10.4806], // Teatro Inicial Fase 1: República de Venezuela (Caracas)
         zoom: 5.5, // Enfoque operacional sobre el teatro caribeño-sudamericano
         minZoom: 1.5,
@@ -781,18 +781,18 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
 
 ---
 
-## 3.3 Especificación de `src/engine/coordinates.ts` (Picking Analítico $O(1)$ y Bresenham)
+## 3.3 Especificación de `src/domains/world/core/coordinates.ts` (Picking Analítico $O(1)$ y Bresenham)
 
-Dado un nivel de teselado táctico $Z_{\text{táctico}} = 14$, el factor de partición planetaria es $n = 2^{14} = 16,384$ sectores por eje:
+Dado un nivel de teselado táctico $Z_{\text{táctico}} = 15$, el factor de partición planetaria es $n = 2^{15} = 32,768$ sectores por eje:
 $$tileX_{\text{float}} = \left(\frac{\text{lng} + 180}{360}\right) \cdot n, \qquad \varphi = \text{lat} \cdot \frac{\pi}{180}, \qquad tileY_{\text{float}} = \left(1 - \frac{\ln(\tan(\varphi) + \sec(\varphi))}{\pi}\right) \cdot \frac{n}{2}$$
 $$\text{sectorX} = \lfloor tileX_{\text{float}} \rfloor, \quad \text{sectorY} = \lfloor tileY_{\text{float}} \rfloor, \quad \text{cellX} = \lfloor (tileX_{\text{float}} - \text{sectorX}) \cdot G \rfloor, \quad \text{cellY} = \lfloor (tileY_{\text{float}} - \text{sectorY}) \cdot G \rfloor$$
 
 ```typescript
-// ARCHIVO CANÓNICO: src/engine/coordinates.ts
+// ARCHIVO CANÓNICO: src/domains/world/core/coordinates.ts
 
 export const ZOOM_GLOBAL = 3.5;       // Nivel 1: Macro-Geopolítica (Continentes y Países)
-export const ZOOM_OPERACIONAL = 7.0;  // Nivel 2: Provincias, Rutas de Suministro y TCP
-export const ZOOM_TACTICO = 14.0;     // Nivel 3: Cuadrícula de Combate Advance Wars en vivo
+export const ZOOM_OPERACIONAL = 10.0; // Nivel 2: Provincias, Rutas de Suministro y TCP
+export const ZOOM_TACTICO = 15.0;     // Nivel 3: Cuadrícula de Combate Advance Wars en vivo
 
 export const TILE_SIZE = 1000;        // Resolución canónica en píxeles de cada TileCanvas (1000x1000)
 export const EARTH_RADIUS_M = 6_371_000;
@@ -891,13 +891,13 @@ export function traceSupplyLine(
 
 ---
 
-## 3.4 Empaquetado Binario Ultraligero en `src/engine/tacticalBitmap.ts` (`TacticalBitMap`)
+## 3.4 Empaquetado Binario Ultraligero en `src/domains/world/core/tacticalBitmap.ts` (`TacticalBitMap`)
 
 - **Grilla Táctica ($20 \times 20 = 400\text{ celdas}$):** $\frac{400\text{ bits}}{8\text{ bits/byte}} = \mathbf{50\text{ bytes}}$.
 - **Estado Global ($3,000\text{ regiones}$):** $\frac{3,000\text{ bits}}{8\text{ bits/byte}} = \mathbf{375\text{ bytes}}$.
 
 ```typescript
-// ARCHIVO CANÓNICO: src/engine/tacticalBitmap.ts
+// ARCHIVO CANÓNICO: src/domains/world/core/tacticalBitmap.ts
 
 export class TacticalBitMap {
   public bytes: Uint8Array;
@@ -1000,7 +1000,7 @@ El grafo de adyacencias $G = (V, E, \Phi, \Omega)$ codifica en 1 byte (`topology
 
 | ID Región | Nombre Entidad / Sector | Bioma Táctico | Slots | Tier RGO | Veta Estratégica Principal | Propiedad Geopolítica / Chokepoint |
 | :--- | :--- | :---: | :---: | :---: | :--- | :--- |
-| `REG_VE_01` | **Distrito Capital - Caracas** | `BIO-URB` | 16 | T5 | Petroquímica, Electrónica y Centro Financiero | **Capital Nacional Conquistable** (`is_national_capital = true`, Buff Hegemónico Nacional). |
+| `REG_VE_01` | **Distrito Capital - Caracas** | `BIO-URB` | 16 | T5 | Petroquímica, Electrónica y Centro Financiero | **Capital Nacional Conquistable** (`is_national_capital = true`, $+5\%$ Buff Regional Recursos/Logística + Buff Hegemónico Nacional). |
 | `REG_VE_02` | **Zulia - Maracaibo** | `BIO-PLA` | 14 | T4 | Hidrocarburos Ligeros & Plataformas Lacustres | **Controlador de `CHK-MARACAIBO`** (Canal del Lago). Frontera con `BUF_CO_02`. |
 | `REG_VE_03` | **Bolívar - Ciudad Guayana** | `BIO-HGH` | 14 | T5 | Hierro, Bauxita, Acero & Hidroeléctrica Guri | Complejo Pesado Sidor/Venalum. Conexión con `BUF_BR_01`. |
 | `REG_VE_04` | **Anzoátegui - Barcelona/PLC** | `BIO-PLA` | 12 | T4 | Crudo Pesado (Faja Orinoco) & Criogénico | Puerto de exportación petrolera y refinería mayor. |
@@ -1106,13 +1106,13 @@ stateDiagram-v2
 
 ---
 
-## 4.3 Buff Hegemónico de Capital Nacional
+## 4.3 Buff Regional de Capital (+5% Recursos/Logística) y Hegemonía Nacional (Pilar Canónico 5)
 
 | Vector del Buff Hegemónico | Modificador Matemático Exacto | Impacto Sistémico en la Nación Dominada (`country_iso`) |
 | :--- | :---: | :--- |
-| **1. Producción Energética Nacional** | **$+15.0\%$ EC** ($\times 1.15$) | Incrementa en un $+15\%$ la generación de Créditos Energéticos (EC) en todas las refinerías del país. |
-| **2. Velocidad de Ensamblaje Militar** | **$+10.0\%$ Velocidad** ($\times 1.10$) | Reduce el tiempo de forjado físico de chasis militares en todos los hangares corporativos locales. |
-| **3. Aranceles de Terminal de Mercado** | **$-20.0\%$ Arancel** ($\times 0.80$) | Reduce en un $20\%$ relativo la comisión arancelaria en todas las terminales de mercado del país. |
+| **1. Buff Regional de Capital (Pilar Canónico 5)** | **$+5.0\%$ Recursos y Logística** ($\times 1.05$) | Incrementa en un $+5\%$ la extracción de recursos RGO y la eficiencia logística regional al controlar la Capital. |
+| **2. Producción Energética y Ensamblaje Nacional** | **$+15.0\%$ EC** ($\times 1.15$) / **$+10.0\%$ Forja** ($\times 1.10$) | Incrementa un $+15\%$ la generación de Créditos Energéticos (`src/domains/economy/core/upkeepEngine.ts`) y acelera un $+10\%$ la forja en hangares (`src/domains/economy/core/strategicAndProductionEngine.ts`). |
+| **3. Regalía Comercial del Hub Regional P2P** | **$1.0\%$ Regalía del Split P2P ($2\%$ Total)** | El clan propietario del Hub regional recauda el $1.0\%$ de regalía soberana de cada transacción del Mercado P2P (`P2P_MARKET_TAX_TOTAL = 0.02`: $1\%$ Sink Burn + $1\%$ Regalía Hub). |
 | **4. Proyección Heráldica Soberana** | **Sello Visual Nivel 1 LOD** | Despliega el escudo heráldico y color del clan sobre la silueta nacional en el mapa estratégico. |
 
 ---
@@ -1140,12 +1140,12 @@ CREATE TABLE IF NOT EXISTS public.regions (
     id TEXT PRIMARY KEY,
     country_iso CHAR(2) NOT NULL CHECK (char_length(country_iso) = 2),
     name TEXT NOT NULL,
-    biome_code TEXT NOT NULL CHECK (biome_code IN (
-        'BIO-URB', 'BIO-FOR', 'BIO-JNG', 'BIO-MTN', 'BIO-DES', 'BIO-STP', 'BIO-ARC', 'BIO-ARC-ISL'
+    biome TEXT NOT NULL CHECK (biome IN (
+        'BIO-PLA', 'BIO-HGH', 'BIO-URB', 'BIO-ARC-ISL', 'BIO-JGL', 'BIO-FOR', 'BIO-JNG', 'BIO-MTN', 'BIO-DES', 'BIO-STP', 'BIO-ARC'
     )),
     security_zone TEXT NOT NULL DEFAULT 'low_sec' CHECK (security_zone IN ('high_sec', 'low_sec', 'null_sec')),
     is_national_capital BOOLEAN NOT NULL DEFAULT FALSE,
-    is_capturable BOOLEAN NOT NULL DEFAULT TRUE CHECK (is_capturable = TRUE),
+    is_capturable BOOLEAN NOT NULL DEFAULT TRUE, is_playable BOOLEAN NOT NULL DEFAULT TRUE,
     center_x NUMERIC(5,2) NOT NULL CHECK (center_x >= 0.00 AND center_x <= 100.00),
     center_y NUMERIC(5,2) NOT NULL CHECK (center_y >= 0.00 AND center_y <= 100.00),
     primary_commodity TEXT NOT NULL DEFAULT 'mineral_metalico',
@@ -1198,11 +1198,11 @@ Esta sección establece la especificación de ingeniería inmutable para el núc
 
 ## 5.1 Escala Continua 1 a 100 HP y Erradicación de Niveles de Carta (1-15)
 
-### 5.1.1 Contrato de Interfaz `TacticalUnit` (`src/types/index.ts`)
+### 5.1.1 Contrato de Interfaz `TacticalUnit` (`src/shared/types/index.ts`)
 Se prohíbe el uso de la escala discreta heredada (`1..10 HP`) y de cualquier propiedad vinculada a niveles de carta (`cardLevel: 1..15`). Toda instancia de unidad en memoria, persistencia y tránsito de red obedece estrictamente al contrato `TacticalUnit` en escala centesimal nativa:
 
 ```typescript
-// src/types/index.ts
+// src/shared/types/index.ts
 
 export type MovementType = 'foot' | 'mech' | 'wheels' | 'treads' | 'air' | 'sea';
 export type IndustrialTier = 1 | 2 | 3 | 4 | 5;
@@ -1234,7 +1234,7 @@ export interface TacticalUnit {
 }
 ```
 
-### 5.1.2 Depuración Arquitectónica en `src/engine/canonicalCombat.ts`
+### 5.1.2 Depuración Arquitectónica en `src/domains/tactics/core/canonicalCombat.ts`
 Quedan **permanentemente eliminados** del motor de combate:
 1. La función `normalizeCardLevel(rawLevel, isTournamentMode)`.
 2. La función `getLevelAttackBonus(level, isTournamentMode)` (progresión de niveles 1 a 15).
@@ -1259,7 +1259,7 @@ Todo enfrentamiento directo o indirecto entre una unidad atacante $A$ y una unid
 
 ---
 
-## 5.2 Economía In-Match, Reparaciones y Victoria/Derrota Inmediata (`turnEconomy.ts`)
+## 5.2 Economía In-Match, Reparaciones y Victoria/Derrota Inmediata (`src/domains/economy/core/turnEconomy.ts`)
 
 1. **Ingresos por Propiedades Operativas ($+1,000\text{G}$):**
    $$\text{Income}(P) = 1000 \times \sum_{x, y} \mathbb{I}\left(\text{tile}_{x,y}.\text{ownerId} = P \;\land\; \text{tile}_{x,y}.\text{type} \in \mathcal{I}_{\text{prop}}\right)$$
@@ -1312,7 +1312,7 @@ sequenceDiagram
     end
 ```
 
-### Matriz de Escalamiento Cognitivo de la Guarnición IA (`garrisonAIEngine.ts`)
+### Matriz de Escalamiento Cognitivo de la Guarnición IA (`src/domains/tactics/core/garrisonAIEngine.ts`)
 
 | Nivel Búnker | Designación Canónica | Tier Motor (`GarrisonAIEngineTier`) | Arquitectura de Búsqueda (`searchEngine`) | Profundidad (`maxSearchPlies`) | Presupuesto de Estados | Tier Máx. Operable | Reserva de Chasis |
 | :---: | :--- | :---: | :--- | :---: | :---: | :---: | :---: |
@@ -1394,12 +1394,12 @@ CREATE TABLE IF NOT EXISTS public.territorial_battle_sessions (
 
 ---
 
-## 6.2 La Doble Llave de Producción en `ProductionModal.tsx`
+## 6.2 Almacén Físico de 16 Tropas (4 Activas + 12 Reserva) y la Doble Llave de Producción en `src/domains/tactics/components/ProductionModal.tsx`
 
 $$\text{CanDeploy}(u) \iff \underbrace{\Big( F_{\text{match}} \ge C_G(u, \text{coId}) \Big)}_{\text{Llave 1: Liquidez Táctica In-Match}} \;\land\; \underbrace{\Big( u \in \{\text{'infantry'}, \text{'recon'}\} \;\lor\; H(u) \ge 1 \Big)}_{\text{Llave 2: Existencia Física en Hangar o Kit F2P}}$$
 
 ```typescript
-// Evaluador Canónico en src/components/game/ProductionModal.tsx (100% desacoplado de deckManager.ts)
+// Evaluador Canónico en src/domains/tactics/components/ProductionModal.tsx (Capacidad de Almacén: 16 tropas máx. = 4 activas + 12 en reserva; 100% desacoplado de deckManager.ts)
 export const F2P_EMERGENCY_UNIT_CODES = new Set<string>(['infantry', 'recon']);
 
 export function canDeployWithDoubleKey(
@@ -1498,17 +1498,17 @@ BEGIN
 
   IF v_scrap_recovered > 0 THEN
     PERFORM 1
-    FROM public.user_materials
-    WHERE user_id = p_user_id AND material_code = 'tech_scrap'
+    FROM public.user_industrial_inventory
+    WHERE user_id = p_user_id
     FOR UPDATE;
 
-    INSERT INTO public.user_materials (user_id, material_code, quantity, updated_at)
-    VALUES (p_user_id, 'tech_scrap', v_scrap_recovered, timezone('utc', now()))
-    ON CONFLICT (user_id, material_code)
+    INSERT INTO public.user_industrial_inventory (user_id, tech_scrap, updated_at)
+    VALUES (p_user_id, v_scrap_recovered, timezone('utc', now()))
+    ON CONFLICT (user_id)
     DO UPDATE SET
-      quantity = public.user_materials.quantity + EXCLUDED.quantity,
+      tech_scrap = public.user_industrial_inventory.tech_scrap + EXCLUDED.tech_scrap,
       updated_at = timezone('utc', now())
-    RETURNING quantity INTO v_new_scrap_balance;
+    RETURNING tech_scrap INTO v_new_scrap_balance;
   END IF;
 
   RETURN jsonb_build_object(
@@ -1524,7 +1524,7 @@ $$;
 
 ---
 
-## 6.5 Mercado Regional P2P, Rutas de Convoyes y Split Fiscal del 2%
+## 6.5 Mercado Regional P2P (`src/domains/economy/components/P2PMarketplaceView.tsx`), Bandas VWAP Collar ±25% (`P2P_VWAP_COLLAR_BAND = 0.25`) y Split Fiscal del 2% (`P2P_MARKET_TAX_TOTAL = 0.02`)
 
 $$\begin{aligned}
 \text{Tax}_{\text{Total}} &= \lfloor P_{\text{total}} \times 0.02 \rfloor \\
@@ -1533,7 +1533,7 @@ $$\begin{aligned}
 \text{Revenue}_{\text{Seller}} &= P_{\text{total}} - \text{Tax}_{\text{Total}} \quad &\text{(98.0\% Ingreso Neto: acreditado al vendedor)}
 \end{aligned}$$
 
-> **Invariante 2 (Prohibición de Venta de Chasis Terminados en Mercado P2P):** En `public.p2p_market_orders`, la restricción `CHECK (item_category IN ('raw_resource', 'refined_material', 'patent_blueprint', 'buff_consumable'))` impide a nivel de motor PostgreSQL publicar o transferir unidades militares terminadas. Todo chasis debe ser forjado físicamente en los talleres propios o del clan.
+> **Invariante 2 y Regla Financiera Canónica (`src/shared/types/metagame.ts`, `src/domains/economy/components/P2PMarketplaceView.tsx`, `src/domains/economy/core/industrialEngine.ts`):** El Mercado P2P aplica una tasa impositiva total estricta del **$2\%$ (`P2P_MARKET_TAX_TOTAL = 0.02`)** dividida en **$1\%$ quemado en Sink deflacionario (`P2P_MARKET_TAX_BURN = 0.01`) + $1\%$ de regalía al Clan dueño del Hub regional (`P2P_MARKET_TAX_CLAN_ROYALTY = 0.01`)**, junto con bandas dinámicas anti-manipulación **VWAP Collar $\pm 25\%$ (`P2P_VWAP_COLLAR_BAND = 0.25`)**. En `public.p2p_market_orders`, la restricción `CHECK (item_category IN ('raw_resource', 'refined_material', 'patent_blueprint', 'buff_consumable'))` impide a nivel de motor PostgreSQL publicar o transferir unidades militares terminadas. Todo chasis debe ser forjado físicamente en los talleres propios o del clan.
 
 ---
 
@@ -1557,10 +1557,10 @@ flowchart TD
 
 | Categoría | Módulos del Repositorio | Estado en `v0.0.1-alfa` |
 | :--- | :--- | :--- |
-| **🟢 PRESERVAR AL 100% (Núcleo Canónico)** | `canonicalDamageChart.ts`, `canonicalMovement.ts`, `pathfinding.ts`, `fogOfWar.ts`, `weatherSystem.ts`, `coSystem.ts`, `barkEngine.ts`, `industrialEngine.ts`, `worldMapEngine.ts`, `garrisonAIEngine.ts`, `reinforcementEngine.ts`, `upkeepEngine.ts`, `clanSystem.ts`, `useUserHangar.ts`, `useUserIndustry.ts`, `useTerritoryMap.ts`, Migraciones SQL 23 a 25. | **Intactos.** Constituyen los cimientos matemáticos, industriales y geopolíticos de *GEOTACTICS: ONLINE*. |
-| **🟡 REFACTORIZAR (Alineación Quirúrgica)** | `types/index.ts`, `types/metagame.ts` (`120s`), `canonicalCombat.ts` (1-100 HP puro, sin niveles 1-15), `turnEconomy.ts` (fábricas y reparaciones a 100 HP), `combat.ts` (captura normalizada), `ProductionModal.tsx` (Doble Llave), `GameCanvas.tsx` (HUD 100 HP), `TacticalWorldMap.tsx` (WebGL 2.0 Zero-Raster); `WorldMapCanvas.tsx` [PURGADO DEFINITIVAMENTE en v0.0.2], `LoadoutCustomizer.tsx` (solo skins), `App.tsx`. | **Intervención en Fases 0 y 1** bajo garantía de compilación continua. |
+| **🟢 PRESERVAR AL 100% (Núcleo Canónico Modular)** | `src/domains/tactics/core/{canonicalDamageChart.ts, canonicalMovement.ts, pathfinding.ts, fogOfWar.ts, weatherSystem.ts, coSystem.ts, garrisonAIEngine.ts, reinforcementsEngine.ts}`, `src/domains/game-feel/core/barkEngine.ts`, `src/domains/economy/core/{industrialEngine.ts, upkeepEngine.ts}`, `src/domains/economy/hooks/{useUserHangar.ts, useUserIndustry.ts}`, `src/domains/world/core/{worldMapEngine.ts, clanSystem.ts}`, `src/domains/world/hooks/useTerritoryMap.ts`, Migraciones SQL 23 a 31. | **Intactos.** Constituyen los cimientos matemáticos, industriales y geopolíticos de *GEOTACTICS: ONLINE* organizados en 4 dominios (`world`, `tactics`, `economy`, `game-feel`) + `shared`. |
+| **🟡 REFACTORIZAR (Alineación Quirúrgica)** | `src/shared/types/index.ts`, `src/shared/types/metagame.ts` (`120s`, `P2P_MARKET_TAX_TOTAL = 0.02`, `P2P_VWAP_COLLAR_BAND = 0.25`), `src/domains/tactics/core/canonicalCombat.ts` (1-100 HP puro, sin niveles 1-15), `src/domains/economy/core/turnEconomy.ts` (fábricas y reparaciones a 100 HP), `src/domains/tactics/core/combat.ts` (captura normalizada), `src/domains/tactics/components/ProductionModal.tsx` (Almacén 16 tropas: 4 activas + 12 reserva y Doble Llave), `src/domains/tactics/components/GameCanvas.tsx` (HUD 100 HP), `src/domains/world/components/TacticalWorldMap.tsx` (WebGL 2.0 Zero-Raster); `WorldMapCanvas.tsx` [PURGADO DEFINITIVAMENTE en v0.0.2], `src/domains/economy/components/LoadoutCustomizer.tsx` (solo skins), `src/App.tsx`. | **Intervención en Fases 0 y 1** bajo garantía de compilación continua. |
 | **🔴 DEPRECAR / RETIRAR (Legado CCG)** | `deckManager.ts`, `deckAndSupply.test.ts` (se transforma en `hangarAndSupply.test.ts`), `asymmetricLadderEngine.ts`, `asymmetricLadderEngine.test.ts`, `airdropSystem.ts`, `airdropSystem.test.ts`, `TiltEmergencyOfferModal.tsx`, `NearMissAnalysisModal.tsx`, 19 documentos CCG/Drafts en `docs/` y `METAGAME_DESIGN/`. | **Retirados del árbol activo** y archivados en `docs/archive_legacy/`. |
-| **🔵 CREAR (Nueva Infraestructura Alfa)** | `docs/00_GEOTACTICS_ONLINE_MASTER_SPEC.md`, `docs/MIGRATION_AND_LEGACY_PURGE_PLAN.md`, `src/engine/coordinates.ts`, `src/engine/tacticalBitmap.ts`, `src/components/world/TacticalWorldMap.tsx`, `supabase/migrations/20261104000001_geotactics_alpha_siege_and_venezuela_seed.sql`, `src/engine/territorialSiegeOrchestrator.ts`, `src/components/world/TerritorySiegeModal.tsx`, `src/hooks/useSiegeRealtime.ts`. | **Nuevos entregables** para cerrar el bucle de soberanía global en vivo. |
+| **🔵 CREAR (Nueva Infraestructura Alfa Modular)** | `docs/00_GEOTACTICS_ONLINE_MASTER_SPEC.md`, `docs/MIGRATION_AND_LEGACY_PURGE_PLAN.md`, `src/domains/world/core/coordinates.ts`, `src/domains/world/core/tacticalBitmap.ts`, `src/domains/world/components/TacticalWorldMap.tsx`, `src/domains/economy/components/P2PMarketplaceView.tsx`, `supabase/migrations/20261104000001_geotactics_alpha_siege_and_venezuela_seed.sql`, `src/domains/world/core/territorialSiegeOrchestrator.ts`, `src/domains/world/components/TerritorySiegeModal.tsx`, `src/domains/world/hooks/useSiegeRealtime.ts`. | **Nuevos entregables** para cerrar el bucle de soberanía global en vivo. |
 
 ---
 *Documento firmado y sellado por el Concilio de 6 Agentes de Ingeniería de GEOTACTICS: ONLINE (`v0.0.1-alfa`).*

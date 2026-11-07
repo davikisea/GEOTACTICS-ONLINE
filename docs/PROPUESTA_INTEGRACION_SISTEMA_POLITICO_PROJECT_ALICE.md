@@ -2,30 +2,47 @@
 
 > **Código de Documento:** `docs/PROPUESTA_INTEGRACION_SISTEMA_POLITICO_PROJECT_ALICE.md`  
 > **Clasificación:** Propuesta de Arquitectura de Sistemas, Ingeniería de Software y Metajuego Geopolítico  
-> **Versión Canónica de Destino:** `v0.0.3-alfa (Hegemonía - Síntesis Política Alice & Soberanía Dual)`  
-> **Estado:** **PROPUESTA TÉCNICA EXHAUSTIVA DE TRANSFERENCIA TECNOLÓGICA (SSOT)**  
-> **Repositorio Fuente Analizado:** `C:\Users\morin\Project-Alice` (C++20 Open-Source Victoria 2 Engine)  
-> **Repositorio Destino:** `c:\Users\morin\GEOTACTICS` (React 19 + TypeScript + MapLibre GL + Supabase PostgreSQL)  
+> **Versión Canónica de Destino:** `v0.2.0-alfa (Hegemonía — Síntesis Política Alice, Soberanía Dual y Dominio World)`  
+> **Estado:** **ESPECIFICACIÓN TÉCNICA EXHAUSTIVA Y VERDAD EJECUTABLE (SSOT)**  
+> **Repositorio Fuente Analizado:** `C:\Users\Morín\Project-Alice-1.3.0` (C++20 Open-Source Victoria 2 Engine)  
+> **Repositorio Destino:** `c:\Users\Morín\GEOTACTICS-ONLINE` (React 19 + TypeScript + MapLibre GL + Supabase PostgreSQL)  
+> **Dominio Arquitectónico Principal:** `src/domains/world/` (`@domains/world/*`) en sinergia con `src/domains/tactics/`, `src/domains/economy/`, `src/domains/game-feel/` y `src/shared/`
 
 ---
 
-## 1. RESUMEN EJECUTIVO Y MANIFIESTO DE TRANSFERENCIA TECNOLÓGICA
+## 1. RESUMEN EJECUTIVO, LOS 7 PILARES CANÓNICOS Y MANIFIESTO DE TRANSFERENCIA TECNOLÓGICA
 
-### 1.1 Contexto y Antecedentes
-En el desarrollo de **GEOTACTICS: ONLINE**, la integración del mapa vectorial interactivo (*OpenPlace Bridge*) y la topología regional inspirada en simuladores de gran estrategia (*Grand Strategy*) demostró ser un rotundo éxito operativo y lúdico. La experiencia de navegar el Teatro de Operaciones de Venezuela (compuesto por sus 24 entidades federales y 7 zonas buffer de amortiguación fronteriza) sentó las bases de la **Capa 1: Metajuego Político Macro**.
+### 1.1 Contexto, Antecedentes y Estado Ejecutable Real en `src/domains/world/`
+En el desarrollo de **GEOTACTICS: ONLINE**, la integración del mapa vectorial interactivo (*OpenPlace Bridge*) y la topología regional inspirada en simuladores de gran estrategia (*Grand Strategy*) consolidó la **Capa 1: Metajuego Político Macro** en el Teatro de Operaciones de Venezuela (compuesto por sus **24 entidades federales jugables** `REG_VE_01` a `REG_VE_24` y **7 zonas buffer de amortiguación fronteriza** `BUF_CO_01..03`, `BUF_BR_01`, `BUF_GY_01`, `BUF_TT_01`, `BUF_CW_01`).
 
-No obstante, la política actual en GEOTACTICS descansa sobre un modelo estático y unidimensional: el archivo [`src/engine/politicalAliceEngine.ts`](file:///c:/Users/morin/GEOTACTICS/src/engine/politicalAliceEngine.ts) posee un catálogo cerrado de 5 edictos que funcionan como mejoras pasivas (*buffs*) adquiribles con Créditos de Energía (EC). El juego carece de **fricción institucional, representación parlamentaria, elecciones dinámicas y consecuencias sociales por sobre-expansión o tiranía impositiva**.
+En la arquitectura modular reestructurada, el motor político reside en [`src/domains/world/core/politicalAliceEngine.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/core/politicalAliceEngine.ts) (`@domains/world/core/politicalAliceEngine`), sincronizado bidireccionalmente con [`src/domains/world/services/stateSovereigntyService.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/services/stateSovereigntyService.ts), [`src/domains/world/core/territorialSiegeOrchestrator.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/core/territorialSiegeOrchestrator.ts), [`src/domains/world/hooks/useTerritoryMap.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/hooks/useTerritoryMap.ts) y [`src/domains/world/hooks/useSiegeRealtime.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/hooks/useSiegeRealtime.ts).
 
-El análisis profundo del repositorio local `C:\Users\morin\Project-Alice` —reimplementación de alto rendimiento en C++ del legendario motor de gran estrategia *Victoria 2*— revela un ecosistema político, social y legislativo maduro, probado durante décadas y refinado en código limpio y determinista.
+Actualmente, [`src/domains/world/core/politicalAliceEngine.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/core/politicalAliceEngine.ts) implementa en producción:
+* **Arquitectura de Separación en 3 Capas (`THREE_LAYER_ARCHITECTURE`):** Capa 1 Geopolítica activa (`imperialCapRegions = 6`, `overexpansionExponent = 1.8`), Capa 2 Combate Táctico desacoplado (`resolutionMode = 'alice_political_autoresolve'`) y Capa 3 Bark Engine con la Mayor Stella (`'stella'`).
+* **Catálogo de 5 Edictos Políticos (`POLITICAL_EDICTS_CATALOG`):** `edict_forced_industrialization`, `edict_c4isr_energy_subsidy`, `edict_border_martial_law`, `edict_maritime_customs_tariff` y `edict_diplomatic_pacification`.
+* **Estratos Sociales Provinciales (POPs — `ProvincialStrataState` en [`src/domains/world/types/stateSovereigntyTypes.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/types/stateSovereigntyTypes.ts)):** Simulación viva por región de `militaristsLoyalty`, `bureaucratsSatisfaction`, `petroLaborUnrest`, `oligarchCapitalFlight`, `secessionRiskPercent` e `isRebelControlled`, con evaluación de secesión armada (`calculateSecessionRisk` y `evaluateProvincialSecession`) cuando el riesgo supera el $80\%$.
 
-### 1.2 Objetivo Principal
-Trasplantar la arquitectura matemática, algorítmica y estructural de **Project Alice** hacia el código de **GEOTACTICS**, adaptándola con precisión quirúrgica al canon estipulado en nuestra documentación:
+El análisis profundo del repositorio `C:\Users\Morín\Project-Alice-1.3.0` —reimplementación de alto rendimiento en C++20 del motor de gran estrategia *Victoria 2*— fundamenta tanto las ecuaciones de estratos POPs y sobre-expansión ya ejecutables en `politicalAliceEngine.ts` como la extensión parlamentaria del Hemiciclo de 25 Escaños y las elecciones mensuales de Comandante en Jefe.
+
+### 1.2 Los 7 Pilares Canónicos Inmutables y Regla Financiera SSOT
+Toda mecánica política, legislativa o de asedio se sujeta de forma inquebrantable a los **7 Pilares Canónicos** y a la **Regla Financiera Canónica**:
+1. **Pilar 1 — Cero Cartas (NO TCG/CCG):** Almacén físico estricto de **16 tropas máximo por jugador** (`4` slots de despliegue activo + `12` en reserva en [`src/domains/economy/hooks/useUserHangar.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/economy/hooks/useUserHangar.ts)).
+2. **Pilar 2 — Escala Balística Continua (1 a 100 HP):** Integridad entera de `1` a `100 HP` (`MASTER_METAGAME_CONSTANTS.CANONICAL_MAX_HP = 100` en [`src/shared/types/metagame.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/shared/types/metagame.ts) y [`src/domains/tactics/core/canonicalCombat.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/tactics/core/canonicalCombat.ts)).
+3. **Pilar 3 — Derrota Inapelable por Aniquilación:** Derrota inmediata al llegar a `0` tropas supervivientes en el tablero táctico.
+4. **Pilar 4 — Progresión Horizontal de Tiers (T1 a T5):** Bonificación de `+2%` por nivel/tier (`TIER_EFFECTIVENESS_BONUS_PER_LEVEL = 0.02`, máximo `+8%` en T5 sobre T1).
+5. **Pilar 5 — Conquista de Capitales con Buff Regional (+5%):** Las capitales son capturables (`CAPITAL_IMMUNITY = false`, `CAPITAL_TCP_THRESHOLD = 15000`) y otorgan un **Buff Regional de +5% en recursos y logística en la región**, además del bono hegemónico de capital nacional (`+15%` extracción energética y `+10%` velocidad de forja en [`src/domains/world/core/territorialExpansionEngine.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/core/territorialExpansionEngine.ts) y [`src/domains/economy/core/upkeepEngine.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/economy/core/upkeepEngine.ts)).
+6. **Pilar 6 — Pérdida Física Real y 35% de Chatarra Tecnológica (`tech_scrap`):** Las unidades destruidas se pierden físicamente del hangar, recuperando el **35%** en chatarra tecnológica (`RECYCLE_SCRAP_RATE = 0.35`, `calculateLossScrapRecovery` en [`src/shared/types/metagame.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/shared/types/metagame.ts)).
+7. **Pilar 7 — Human Handshake de 120 Segundos (2 Minutos) e IA de Guarnición (Niveles 1-5):** En todo asedio territorial ([`src/domains/world/core/territorialSiegeOrchestrator.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/core/territorialSiegeOrchestrator.ts) y [`src/domains/world/hooks/useSiegeRealtime.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/hooks/useSiegeRealtime.ts)), existe una ventana defensiva de **120 segundos** (`HANDSHAKE_TIMEOUT_SECONDS = 120` / `HUMAN_HANDSHAKE_WINDOW_MS = 120_000`) antes de que asuma el mando la **IA de Guarnición (Niveles 1 a 5)** ([`src/domains/tactics/core/garrisonAIEngine.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/tactics/core/garrisonAIEngine.ts)).
+8. **Regla Financiera Canónica — Mercado P2P (2% Impuesto Total + VWAP Collar ±25%):** Impuesto total del **2%** (`TOTAL_P2P_TAX_RATE = 0.02`: **1% quemado en Sink** `PLATFORM_BURN_RATE = 0.01` + **1% regalía al Clan dueño del Hub regional** `PROVINCE_ROYALTY_RATE = 0.01`) y bandas de precios dinámicas **VWAP Collar ±25%** (`VWAP_COLLAR_PERCENT = 0.25`, `calculateP2PTransactionSplit` en [`src/shared/types/metagame.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/shared/types/metagame.ts)).
+
+### 1.3 Objetivo Principal
+Consolidar la arquitectura matemática, algorítmica y estructural de **Project Alice** dentro de `src/domains/world/`:
 1. Resolver el hito **Rama 3 (§3.5.3) del Árbol Canónico**: *"Elecciones mensuales de Comandante en Jefe por país"*.
-2. Dotar de contenido y propósito vivo a la **Gaveta Retráctil de Mando Paradox** (`ParadoxCommandDrawer.tsx`, especificada en `07_MASTER_UI_UX_WAR_ROOM.md`).
-3. Introducir un freno orgánico al monopolio y al efecto de bola de nieve territorial (*Anti-Snowballing*) mediante el **Motor de Descontento e Insurgencia Guerrillera** (`rebels.cpp` de Alice).
-4. Restringir orgánicamente los parámetros macroeconómicos (aranceles en estrechos, subsidios y gasto militar) mediante el sistema de **Límites Presupuestarios por Doctrina** (`bound_budget_settings` de Alice).
+2. Dotar de contenido vivo a las consolas de gobernanza (`src/domains/world/components/MetaCommandConsole.tsx`, `StateInspectorDrawer.tsx`, `TerritoryInspectorModal.tsx`).
+3. Mantener un freno orgánico al monopolio y al efecto de bola de nieve territorial (*Anti-Snowballing*) mediante el **Motor de Estratos POPs, Descontento e Insurgencia Seccional** (`rebels.cpp` de Alice $\to$ `ProvincialStrataState` en `politicalAliceEngine.ts`).
+4. Restringir orgánicamente los parámetros macroeconómicos (aranceles en estrechos `CHK-MARACAIBO` y `CHK-PARIA`, subsidios y gasto militar) mediante **Límites Presupuestarios por Doctrina** (`bound_budget_settings` de Alice) y la respuesta de fuga de capitales de oligarcas (`oligarchCapitalFlight` cuando el peaje supera el `15%`).
 
-### 1.3 Estimación de Ahorro de Ingeniería
+### 1.4 Estimación de Ahorro de Ingeniería
 Diseñar y balancear desde cero un sistema sociopolítico de esta envergadura exigiría al menos **210 horas de diseño lúdico y desarrollo**. Al portar las estructuras, fórmulas y máquinas de estado ya resueltas y testeadas en Project Alice, el tiempo de implementación se reduce a **32 horas**, logrando un ahorro neto superior a **178 horas de ingeniería**.
 
 ```mermaid
@@ -33,7 +50,7 @@ flowchart LR
     subgraph AhorroIngenieria ["Ahorro Neto de Horas de Ingeniería (85% Reducción)"]
         direction TB
         Tradicional["Diseño & Balance desde Cero\n(210 Horas de I+D)"]
-        AlicePort["Port Quirúrgico Alice C++ → TS\n(32 Horas de Adaptación)"]
+        AlicePort["Port Quirúrgico Alice C++ → TS (src/domains/world/)\n(32 Horas de Adaptación)"]
         Delta["Ahorro Directo:\n178 Horas de Ingeniería"]
         Tradicional -.->|Aceleración| AlicePort
         AlicePort === Delta
@@ -48,11 +65,11 @@ El núcleo político de Project Alice reside en `src/culture/politics.cpp`, `pol
 
 ```mermaid
 graph TD
-    subgraph PopCulture ["Demografía y POPs"]
+    subgraph PopCulture ["Demografía y POPs (ProvincialStrataState)"]
         Pop[Población Provincial / POP]
         Consc[Consciousness / Consciencia]
-        Mil[Militancy / Militancia]
-        IdeoWeights[Pesos Ideológicos]
+        Mil[Militancy / Militancia & petroLaborUnrest]
+        IdeoWeights[Pesos Ideológicos & Lealtad Militar]
         Pop --> Consc
         Pop --> Mil
         Pop --> IdeoWeights
@@ -61,7 +78,7 @@ graph TD
     subgraph AssemblyEngine ["Motor de Asamblea & Senado"]
         StateVote[State Vote: Voto Federado Regional]
         recalculate_upper_house[recalculate_upper_house]
-        UpperHouse[Cámara Alta / Hemiciclo Legislativo]
+        UpperHouse[Cámara Alta / Hemiciclo Legislativo 25 Escaños]
         StateVote --> recalculate_upper_house --> UpperHouse
     end
 
@@ -74,15 +91,15 @@ graph TD
 
     subgraph ResistanceSystem ["Motor de Resistencia Civil e Insurrección"]
         movements[movements: Movimientos de Protesta]
-        rebel_factions[rebel_factions: Milicias Armadas]
-        siege_won[Asedio de Búnker & Drenaje de TCP]
-        movements -->|Radicalismo >= 70%| rebel_factions --> siege_won
+        rebel_factions[rebel_factions: Secesión Armada > 80%]
+        siege_won[Asedio de Búnker, Corte Logístico & Drenaje de TCP]
+        movements -->|Radicalismo > 70%| rebel_factions --> siege_won
     end
 
     subgraph FiscalBounds ["Límites Presupuestarios Doctrinales"]
         bound_budget_settings[bound_budget_settings]
         RulingParty[Doctrina / Partido en el Poder]
-        FiscalSliders[Slidres: Aranceles, Impuestos, Subsidios]
+        FiscalSliders[Sliders: Peajes Estrechos 0-30%, Impuestos, Subsidios]
         RulingParty --> bound_budget_settings --> FiscalSliders
     end
 
@@ -137,9 +154,9 @@ El sistema de rebeldes de Alice es una obra maestra de simulación de guerra asi
 
 ---
 
-## 3. ADAPTACIÓN AL PLANTEAMIENTO CANÓNICO DE GEOTACTICS
+## 3. ADAPTACIÓN AL PLANTEAMIENTO CANÓNICO DE GEOTACTICS EN `src/domains/world/`
 
-A continuación se expone la matriz de integración de los sistemas de Alice dentro de la arquitectura de GEOTACTICS estipulada en los documentos maestros.
+A continuación se expone la matriz de integración de los sistemas de Alice dentro de la arquitectura modular de `src/domains/world/` y `src/shared/types/metagame.ts`:
 
 ```mermaid
 classDiagram
@@ -148,9 +165,24 @@ classDiagram
         +string ownerClanId
         +string controllerClanId
         +number controlPoints
+        +number maxControlPoints
+        +number bunkerLevel
         +string status
-        +RegionalVoterProfile voterProfile
-        +RegionalUnrestMovement activeMovement
+        +boolean customsEscrowLocked
+        +boolean isEnergyStarved
+        +string cooldownExpiresAt
+        +string graceExpiresAt
+    }
+
+    class ProvincialStrataState {
+        +string stateId
+        +number militaristsLoyalty
+        +number bureaucratsSatisfaction
+        +number petroLaborUnrest
+        +number oligarchCapitalFlight
+        +number secessionRiskPercent
+        +boolean isRebelControlled
+        +string updatedAt
     }
 
     class TheaterAssemblySeat {
@@ -174,15 +206,6 @@ classDiagram
         +boolean allowsMercenaryTroops
     }
 
-    class TheaterElectionState {
-        +string electionCycleId
-        +string status
-        +string endsAt
-        +Map~string, number~ accumulatedVotes
-        +string leadingFactionId
-        +number activeCampaignEventsCount
-    }
-
     class RegionalUnrestMovement {
         +string movementId
         +string targetRegionId
@@ -193,32 +216,58 @@ classDiagram
         +number tcpDrainRatePerMinute
     }
 
-    GeotacticsRegionSovereignty --> RegionalVoterProfile
+    GeotacticsRegionSovereignty --> ProvincialStrataState
     GeotacticsRegionSovereignty --> RegionalUnrestMovement
     TheaterAssemblySeat --> FactionDoctrinePolicy
-    TheaterElectionState --> TheaterAssemblySeat
 ```
 
-### 3.1 Integración en la Capa 1: Metajuego Político Macro (`politicalAliceEngine.ts`)
-Actualmente, `politicalAliceEngine.ts` opera con un arreglo plano `POLITICAL_EDICTS_CATALOG` y 4 clanes (`clan-ferro`, `clan-orinoco`, `clan-caribe`, `clan-andes`).
-Con la integración de Alice, `politicalAliceEngine.ts` evoluciona para gobernar tres subsistemas deterministas:
-1. **Límites Fiscales Doctrinales:** Los edictos dejan de ser compras libres; pasan a estar habilitados o vetados según la doctrina del Clan Hegemónico.
-2. **Cálculo de la Asamblea de 24 Entidades Federales:** Evaluación en tiempo real del quorum y balance del Senado del Teatro.
-3. **Tick de Asedio y Drenaje de TCP:** Las insurrecciones internas de `rebels.cpp` se suman a la fórmula de erosión de soberanía.
+### 3.1 Verdad Ejecutable en `src/domains/world/core/politicalAliceEngine.ts`
+En [`src/domains/world/core/politicalAliceEngine.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/core/politicalAliceEngine.ts), el motor geopolítico singleton `politicalAliceEngine` (`PoliticalAliceEngine.getInstance()`) gobierna los siguientes subsistemas deterministas:
+1. **Topología Canónica de 31 Regiones (`CANONICAL_VENEZUELA_REGIONS` y `CANONICAL_VENEZUELA_ADJACENCIES`):**
+   * **24 Entidades Federales Jugables (`isPlayable: true`):** Desde `REG_VE_01` (Distrito Capital - Caracas, Capital Nacional con `15,000 TCP`, `resourceTier: 5`, `baseHourlyYield: 800`, `maxBuildingSlots: 16`) y `REG_VE_02` (Zulia - Maracaibo/Cabimas, controla el estrecho `CHK-MARACAIBO`) hasta `REG_VE_24` (Guayana Esequiba).
+   * **7 Zonas de Amortiguación Fronteriza (`isPlayable: false`):** `BUF_CO_01..03`, `BUF_BR_01`, `BUF_GY_01`, `BUF_TT_01`, `BUF_CW_01`. Intentar atacarlas dispara el bloqueo de frontera de Fase 1 y el bark reactivo `buffer_zone_blocked`.
+2. **Catálogo de 5 Edictos Políticos (`POLITICAL_EDICTS_CATALOG`):**
+   * `edict_forced_industrialization`: Coste `350 EC`, Upkeep `60 EC/ciclo`, `+30%` RGO yield, `-5%` defensa de asedio.
+   * `edict_c4isr_energy_subsidy`: Coste `300 EC`, Upkeep `30 EC/ciclo`, `+5%` RGO yield, `+5%` defensa de asedio, `-22%` drenaje de upkeep por sobre-expansión (`upkeepReductionMultiplier: 0.78`).
+   * `edict_border_martial_law`: Coste `400 EC`, Upkeep `75 EC/ciclo`, `-5%` RGO yield, `+35%` ataque de asedio, `+25%` defensa de asedio.
+   * `edict_maritime_customs_tariff`: Coste `250 EC`, Upkeep `25 EC/ciclo`, `+15%` RGO yield, `+10%` ataque/defensa de asedio, `-8%` upkeep.
+   * `edict_diplomatic_pacification`: Coste `450 EC`, Upkeep `50 EC/ciclo`, `+10%` RGO yield, `+15%` ataque, `+30%` defensa, `-10%` upkeep.
+3. **Estratos Sociales Provinciales (POPs — `ProvincialStrataState`) y Riesgo de Secesión (`calculateSecessionRisk`):**
+   Cada provincia jugable mantiene 4 indicadores demográficos (`0` a `100%`) en [`src/domains/world/types/stateSovereigntyTypes.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/types/stateSovereigntyTypes.ts#L72-L81):
+   * `militaristsLoyalty`: Cae si hay inanición energética (`-15`) o búnker Nv. 1 (`-6`); sube con búnker $\ge 3$ (`+5`).
+   * `bureaucratsSatisfaction`: Cae con la sobre-extensión imperial cuando las regiones controladas superan `imperialCapRegions = 6` (`-8 * excess`).
+   * `petroLaborUnrest`: Sube por inanición energética (`+20`), desconexión logística BFS (`+15`) o explotación intensiva en regiones Tier $\ge 4$ (`+4`).
+   * `oligarchCapitalFlight`: Sube si los peajes de estrechos (`CHK-MARACAIBO` o `CHK-PARIA`) superan el **15%** (`setChokepointToll`).
+   * **Ecuación Ejecutable de Riesgo de Secesión (`calculateSecessionRisk` en `politicalAliceEngine.ts:L654-L682`):**
+     $$\text{BaseRisk} = 0.45 \cdot \text{unrest} + 0.35 \cdot (100 - \text{loyalty}) + 0.12 \cdot (100 - \text{satisfaction}) + 0.08 \cdot \text{capitalFlight}$$
+     Si $\text{unrest} > 70$, suma la penalización superlineal $\left(\frac{\text{unrest} - 70}{30}\right)^{1.4} \times 35$. Si $(100 - \text{loyalty}) > 60$, suma $\left(\frac{\text{disloyalty} - 60}{40}\right)^{1.2} \times 15$.
+   * **Secesión Armada (`evaluateProvincialSecession`):** Si `secessionRiskPercent > 80%` y se produce la tirada de ruptura, la provincia pasa a `isRebelControlled = true` y `status = 'under_siege'`, cortando inmediatamente su conectividad de suministro (`supplyConnectedMap[reg.id] = false`).
 
-### 3.2 Integración en la Rama 3 del Árbol Canónico (§3.5.3: Elecciones Mensuales)
-En `docs/00_ARBOL_CANONICO_DE_SISTEMAS_Y_DESARROLLO.md` (§3.5), el item **3.5.3** establece las elecciones mensuales de Comandante en Jefe. La adaptación formal funciona de la siguiente manera:
-* **Temporada Electoral:** Los últimos 3 días de cada mes calendario se activa el estado de campaña en la base de datos de Supabase.
-* **Votación de Doble Llave:**
-  * **Llave Popular:** Cada región jugable (desde Distrito Capital hasta Amazonas) emite su voto de acuerdo con el índice de bienestar económico, energía disponible y daño de guerra sufrido durante el mes.
-  * **Llave Militar:** Los clanes en el podio de la tabla clasificatoria territorial obtienen multiplicadores de campaña.
-* **El Escrutinio D'Hondt:** Se reparte la gobernanza de la República. El clan ganador asume la **Presidencia del Consejo de Seguridad Nacional** y nombra al Comandante en Jefe del Teatro, obteniendo control de los 5 Nodos Estratégicos nacionales y la capacidad de declarar zonas de exclusión militar.
+### 3.2 Protocolo de Asedio Territorial, Barras TCP, Escudos, Ventanas de Vulnerabilidad y Human Handshake (120s)
+El motor político se articula con [`src/domains/world/core/territorialSiegeOrchestrator.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/core/territorialSiegeOrchestrator.ts) y [`src/domains/world/hooks/useSiegeRealtime.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/hooks/useSiegeRealtime.ts):
+1. **Temporizador del Human Handshake de 120 Segundos (`HANDSHAKE_TIMEOUT_SECONDS = 120` / `HUMAN_HANDSHAKE_WINDOW_MS = 120_000`):**
+   * Al iniciar un asedio (`TerritorialSiegeOrchestrator.createSiegeSession`), se abre una ventana de `120 segundos` (`status: 'handshake_pending'`).
+   * Si un oficial defensor reclama el duelo antes de 120s (`claimDefensiveHandshake`), la batalla pasa a `mode: 'pvp_realtime'`, `status: 'in_combat'`.
+   * Si expira el temporizador (`resolveHandshakeTimeout`), asume el mando la **IA de Guarnición (Niveles 1 a 5)** definida en [`src/domains/tactics/core/garrisonAIEngine.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/tactics/core/garrisonAIEngine.ts) (`easy` 1-ply, `normal` 2-ply, `hard` 3-ply, `chess` 4-5 ply Alpha-Beta, `mcts_legendary` 6-ply MCTS-UCT).
+2. **Barras de Puntos de Control Territorial (TCP):**
+   * `10,000 TCP` en provincias estándar (`STANDARD_TCP_THRESHOLD`) y `15,000 TCP` en capitales (`CAPITAL_TCP_THRESHOLD`).
+   * En resolución táctica (`calculateSiegeTcpDelta`), el atacante drena entre `-800` y `-2,500 TCP` (atenuado por el nivel de búnker 1–5) y el defensor recupera `+500 TCP`. En ofensiva política directa de Capa 1 (`executePoliticalSiegeOperation`), el golpe base es de `3,500 TCP` (`TCP_LOSS_ATTACKER_VICTORY`), modulado por edictos, fricción topológica (`RIVER_CROSSING: 0.85`, `STRAIT_CHOKE: 0.88`) y nivel de búnker.
+3. **Ventanas de Vulnerabilidad Horaria (`VulnerabilityWindowConfig` & `isWithinVulnerabilityWindow`):**
+   * Fuera de la ventana UTC configurada por el clan defensor, la provincia goza de **Inmunidad Estructural Anti-Offline** (`isImmuneOfflineProtection = true`, `tcpDelta = 0`).
+4. **Soberanía Dual y Escudos Temporales:**
+   * Al llegar a `0 TCP`, la provincia entra en Ocupación *De Facto* (`status: 'occupied_grace'`, `customsEscrowLocked: true`) con una **Ventana de Gracia de 24h–48h** (`graceExpiresAt`, `OCCUPIED_GRACE_HOURS_MIN = 24`) y un **Escudo Temporal de Prioridad de 4 horas** (`cooldownExpiresAt`, `COOLDOWN_PRIORITY_HOURS = 4`).
+   * Al expirar la gracia (`consolidateDeJureOwnership`) o ejecutar `reinforceAndConsolidateRegion`, se transfiere la titularidad *De Jure* (`ownerClanId = controllerClanId`).
 
-### 3.3 Integración en la Interfaz: Pestaña 5 en `ParadoxCommandDrawer.tsx`
-El panel retráctil lateral derecho (`ParadoxCommandDrawer.tsx`), estipulado en `docs/07_MASTER_UI_UX_WAR_ROOM.md` (§6.3), incorpora su quinta pestaña definitiva: **`GOBERNANZA`**:
-1. **El Hemiciclo de las 24 Entidades Federales:** Gráfico en arco con 24 bancadas coloreadas con la heráldica de cada clan o facción neutral.
-2. **Tablero de Edictos y Votaciones:** Muestra los edictos activos, los requisitos de quorum y el botón diegético de promulgación.
-3. **Radar de Insurgencia Regional:** Lista de las provincias con movimientos de protesta activos, indicando el nivel de radicalismo y permitiendo ejecutar protocolos de pacificación o conceder subsidios energéticos.
+### 3.3 Red Vial A* (`roadNetworkEngine.ts`, `spatialRoadIndex.ts`), Conquista de Capitales (+5%) y Mercado P2P (2%)
+* **Red Vial A* e Índice Espacial $O(1)$:** En [`src/domains/world/core/roadNetworkEngine.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/core/roadNetworkEngine.ts) y [`src/domains/world/core/spatialRoadIndex.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/core/spatialRoadIndex.ts), la proyección logística a nivel micro opera sobre 15 nodos y 15 segmentos en el Teatro Cabimas (`REG_VE_02`), con guarniciones viales de niveles 1 a 4 y 5 doctrinas 2026 en [`src/domains/world/core/roadGarrisonEngine.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/core/roadGarrisonEngine.ts).
+* **Conquista de Capitales con Buff Regional (+5%) y Hegemónico (Pilar 5):** Capturar la capital otorga `+5%` de bonificación regional de recursos y logística, además del multiplicador hegemónico de capital nacional (`+15%` rendimiento RGO en `calculateRgoRegionalYield` de [`src/domains/economy/core/upkeepEngine.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/economy/core/upkeepEngine.ts) y `+10%` velocidad de forja en [`src/domains/world/core/territorialExpansionEngine.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/core/territorialExpansionEngine.ts)).
+* **Mercado P2P Canónico (Split 2%: 1% Sink + 1% Clan, VWAP Collar ±25%):** Definido en `MASTER_METAGAME_CONSTANTS` y `calculateP2PTransactionSplit` ([`src/shared/types/metagame.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/shared/types/metagame.ts#L283-L291)).
+
+### 3.4 Integración en la Interfaz de Mando (`MetaCommandConsole.tsx` / `StateInspectorDrawer.tsx`)
+El panel de mando geopolítico en `src/domains/world/components/` presenta la telemetría de gobernanza:
+1. **El Hemiciclo de las 24 Entidades Federales (25 Escaños):** Gráfico en arco con las bancadas coloreadas con la heráldica de cada clan o facción neutral.
+2. **Tablero de Edictos y Votaciones:** Muestra los 5 edictos de `POLITICAL_EDICTS_CATALOG`, los costes en EC y la promulgación en vivo (`togglePoliticalEdict`).
+3. **Radar de Estratos POPs e Insurgencia Regional:** Muestra `militaristsLoyalty`, `bureaucratsSatisfaction`, `petroLaborUnrest`, `oligarchCapitalFlight` y `secessionRiskPercent` por estado.
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -227,63 +276,52 @@ El panel retráctil lateral derecho (`ParadoxCommandDrawer.tsx`), estipulado en 
 │  FRENTES   │   NODOS   │ ENSAMBLAJE│  ARSENAL  │ GOBERNANZA* │
 ├────────────┴───────────┴───────────┴───────────┴─────────────┤
 │                                                              │
-│  🏛️ ASAMBLEA NACIONAL DEL TEATRO (24 ESCAÑOS REGIONALES)      │
+│  🏛️ ASAMBLEA NACIONAL DEL TEATRO (25 ESCAÑOS REGIONALES)      │
 │  ┌────────────────────────────────────────────────────────┐  │
-│  │        [●●●●] IVS (Iron Vanguard) — 10 Escaños (41%)   │  │
+│  │        [●●●●] IVS (Iron Vanguard) — 10 Escaños (40%)   │  │
 │  │        [●●●]  CSO (Consorcio Orinoco) — 6 Escaños      │  │
-│  │        [●●]   FMC (Flota Caribe) — 5 Escaños           │  │
+│  │        [●●]   FMC (Flota Caribe) — 6 Escaños           │  │
 │  │        [●]    FBA (Frente Andes) — 3 Escaños           │  │
 │  └────────────────────────────────────────────────────────┘  │
 │                                                              │
 │  ⚖️ DOCTRINA EN EL PODER: Hegemonía Industrial & Blindaje     │
-│  • Aranceles en Estrechos: [====|-----] 12% (Límite: 5-25%)   │
-│  • Tasa Impositiva EC:     [=======|--] 18% (Límite: 10-30%)  │
-│  • Subsidio a Búnkeres:    ACTIVO (+20% Def / -150 EC/h)     │
+│  • Peaje CHK-MARACAIBO:    [====|-----] 5.0% (Límite: 0-30%)  │
+│  • Peaje CHK-PARIA:        [===|------] 4.0% (Alerta > 15%)   │
+│  • Subsidio Red Guri-C4ISR: ACTIVO (-22% Upkeep / 30 EC/ciclo)│
 │                                                              │
 │  📜 EDICTOS EN VOTACIÓN DE QUORUM (MÍNIMO 13 VOTOS)          │
 │  ┌────────────────────────────────────────────────────────┐  │
-│  │ [EDICT-03] Ley Marcial Fronteriza                      │  │
-│  │ Apoyo Actual: 16/24 Votos (66.6%) — QUORUM ALCANZADO   │  │
+│  │ [edict_border_martial_law] Doctrina de Asedio y Cerco  │  │
+│  │ Apoyo Actual: 16/25 Votos (64.0%) — QUORUM ALCANZADO   │  │
 │  │ [ BOTÓN: RATIFICAR DECRETO POR CONSEJO DE DEFENSA ]    │  │
 │  └────────────────────────────────────────────────────────┘  │
 │                                                              │
-│  ⚠️ RADAR DE DESCONTENTO REGIONAL E INSURGENCIA              │
-│  • REG_VE_02 (Zulia): Sindicato Petrolero (Radicalismo: 78%) │
-│    [!] Riesgo Inminente de Drenaje de TCP (-85 TCP/min)      │
-│    [ PACIFICAR CON EC: 300 EC ]   [ CONCEDER SUBSIDIO: 15% ] │
+│  ⚠️ RADAR DE ESTRATOS POPs E INSURGENCIA REGIONAL             │
+│  • REG_VE_02 (Zulia): Obreros Petroleros (Unrest: 78%)       │
+│    [!] Riesgo de Secesión: 82% (> 80% Umbral de Ruptura)     │
+│    [ REFORZAR Y CONSOLIDAR: 150 EC + 15 ACERO ]              │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-### 3.4 Mecánica de Anti-Snowballing: Descontento e Insurgencia Guerrillera
-Para impedir que un clan que conquista 8 o 10 regiones liquide la partida por acumulación exponencial de recursos, aplicamos la adaptación de `rebels.cpp`:
-* Cada región controlada más allá del Límite Imperial ($K_{\text{cap}} = 6$ en el Teatro Venezuela) dispara la fórmula de sobre-expansión:
-  $$\Omega = 0.35 \times \left(\frac{N_{\text{provincias}} - 6}{6}\right)^{1.8}$$
-* El factor $\Omega$ incrementa directamente la **Militancia Provincial diaria**:
-  $$\Delta\mathcal{M} = \Omega \times \text{TasaImpositivaEC} \times (1.0 - \text{NivelBúnker} \times 0.15)$$
-* Cuando $\mathcal{M} > 7.0$, se genera una **Célula Insurgente Local**. Esta célula no requiere combates por turnos; actúa directamente en la Capa 1 aplicando una erosión constante sobre la soberanía:
-  $$\text{Drenaje TCP} = 50 + 20 \times (\mathcal{M} - 7.0) \quad [\text{TCP / minuto}]$$
-* Si el clan hegemónico no envía recursos de seguridad o no negocia en el Senado, **el búnker colapsa por implosión interna** y la región se declara Cantón Autónomo Libre o regresa a su dueño original *De Jure*.
-
-### 3.5 Diálogos Diegéticos del Bark Engine (Capa 3 - Mayor Stella)
-En consonancia con `docs/03_MASTER_COMMANDERS_BARK_AND_SOCIAL.md`, la Mayor Stella reacciona en tiempo real a los hitos del motor político en el widget inferior izquierdo (`CommanderBarkWidget.tsx`):
-* **Apertura de Elecciones:** *"¡Comandante en puesto! La Comisión Electoral ha declarado abierto el escrutinio mensual. Necesitamos consolidar las regiones clave antes de que la oposición capture el Senado."*
-* **Aprobación de Edicto con Quorum:** *"¡Decreto ratificado por la Asamblea! Nuestros ingenieros ya aplican el blindaje adicional a lo largo de toda la línea fronteriza."*
-* **Rechazo por Falta de Quorum:** *"La Asamblea Regional ha bloqueado la partida de fondos de emergencia. Nuestros delegados no alcanzaron el 50% de los votos requeridos."*
-* **Brote Insurgente en Región Ocupada:** *"¡Alarma C4ISR en el sector Zulia! Las milicias locales están saboteando los generadores del búnker. Si no enviamos suministros de pacificación, perderemos la soberanía en menos de 2 horas."*
+### 3.5 Diálogos Diegéticos del Bark Engine (Capa 3 — Mayor Stella en `src/domains/game-feel/`)
+En consonancia con `src/domains/world/hooks/useTerritoryMap.ts` y `src/domains/game-feel/`, la Mayor Stella (`commanderId: 'stella'`) reacciona en tiempo real a los hitos del motor político:
+* **Apertura de Elecciones / Asedio Declarado (`siege_declared`):** *"¡Comandante en puesto! Operación de presión geopolítica en marcha. Necesitamos consolidar las regiones clave antes de que la oposición capture el Senado."*
+* **Ocupación De Facto Consumada (`region_claimed`):** *"¡Soberanía De Facto establecida! Nuestros ingenieros ya aseguran el perímetro durante la ventana de consolidación de 24 horas."*
+* **Bloqueo de Zona Buffer (`buffer_zone_blocked`):** *"¡Alto el fuego, Comandante! Ese sector pertenece a las Zonas de Amortiguación Internacional fuera del Teatro Fase 1."*
+* **Brote Insurgente / Secesión Armada (`hq_siege` / `trap_ambush`):** *"¡Alarma C4ISR en el sector! El descontento obrero superó el 80% y las milicias locales han cortado las líneas de suministro hacia el búnker."*
 
 ---
 
 ## 4. MODELOS DE DATOS Y CONTRATOS TYPESCRIPT COMPLETOS
 
-A continuación se presentan los contratos tipados definitivos para implementar en `src/types/politics.ts`:
+A continuación se presentan los contratos tipados de gobernanza, estratos POPs (implementados en [`src/domains/world/types/stateSovereigntyTypes.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/types/stateSovereigntyTypes.ts)) y los contratos de asamblea legislativa y elecciones mensuales:
 
 ```typescript
 /**
  * ==============================================================================
  * SISTEMA POLÍTICO CANÓNICO GEOTACTICS — ESPECIFICACIÓN PROJECT ALICE BRIDGE
- * ==============================================================================
- * Modelos de datos para Gobernanza, Doctrinas, Asamblea Regional, Elecciones
- * e Insurgencia Territorial (Anti-Snowballing).
+ * Ubicación Modular: src/domains/world/types/stateSovereigntyTypes.ts
+ *                    y src/domains/world/core/politicalAliceEngine.ts
  * ==============================================================================
  */
 
@@ -293,6 +331,24 @@ export type FactionIdeologyType =
   | 'mercantile_naval'        // Flota Caribe / Libre Comercio & Estrechos
   | 'ballistic_autarky'       // Frente Andes / Fortificación & Desgaste
   | 'civic_republican';       // Facciones Libres / Neutrales
+
+export interface ProvincialStrataState {
+  stateId: string;
+  militaristsLoyalty: number;        // 0-100% (Demandan inversión en búnkeres)
+  bureaucratsSatisfaction: number;   // 0-100% (Afectado por sobre-extensión imperial > 6 regiones)
+  petroLaborUnrest: number;          // 0-100% (Sube por inanición energética o aislamiento logístico)
+  oligarchCapitalFlight: number;     // 0-100% (Fuga de capital si peajes en estrechos > 15%)
+  secessionRiskPercent: number;      // Sube superlinealmente si petroLaborUnrest > 70%
+  isRebelControlled: boolean;        // true si la provincia entra en secesión armada (> 80% riesgo)
+  updatedAt: string;
+}
+
+export interface SecessionEvaluationResult {
+  stateId: string;
+  seceded: boolean;
+  strata: ProvincialStrataState;
+  reason: string;
+}
 
 export interface DoctrinePolicyAxes {
   economicModel: 'free_market' | 'state_capitalism' | 'planned_autarky';
@@ -343,7 +399,7 @@ export interface TheaterAssemblySeat {
   regionName: string;
   isCapitalCitadel: boolean;
   controllingClanId: string | null;
-  seatWeight: number;               // 1 voto estándar; 2 votos para la Capital (Caracas)
+  seatWeight: number;               // 1 voto estándar; 2 votos para la Capital (Caracas REG_VE_01)
   currentFactionHolder: string;     // Faction ID que ostenta el escaño
   loyaltyMargin: number;            // Margen de victoria electoral (0.0 a 1.0)
   isSecededOrRebel: boolean;
@@ -431,7 +487,7 @@ export interface RegionalUnrestMovement {
 
 ## 5. ALGORITMOS Y FÓRMULAS MATEMÁTICAS EXACTAS (PORT C++ → TYPESCRIPT)
 
-A continuación se documentan los cinco algoritmos fundamentales extraídos de `Project-Alice`, convertidos en funciones puras de TypeScript con complejidad $O(N)$ aptas para ejecutarse tanto en el cliente como en Edge Functions de Supabase.
+A continuación se documentan los algoritmos fundamentales extraídos de `Project-Alice`, convertidos en funciones puras de TypeScript con complejidad $O(N)$ aptas para ejecutarse tanto en `src/domains/world/core/politicalAliceEngine.ts` como en Edge Functions de Supabase.
 
 ### 5.1 Algoritmo de Consciencia y Voto Provincial Ponderado
 Port directo de `politics.cpp:L813-L845`:
@@ -620,8 +676,8 @@ export function calculateForcedRegimeChangeCost(
 }
 ```
 
-### 5.5 Algoritmo de Insurrección y Drenaje de TCP (Anti-Snowballing - `rebels.cpp`)
-Port directo de `rebels.cpp:L10-L36`:
+### 5.5 Algoritmo de Insurrección, Secesión Provincial y Drenaje de TCP (Anti-Snowballing - `rebels.cpp`)
+Port directo de `rebels.cpp:L10-L36` y sincronizado con `calculateSecessionRisk` / `evaluateProvincialSecession` en [`src/domains/world/core/politicalAliceEngine.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/core/politicalAliceEngine.ts#L654-L781):
 
 ```typescript
 /**
@@ -773,51 +829,48 @@ ON CONFLICT (region_id) DO NOTHING;
 
 ---
 
-## 7. PLAN DE IMPLEMENTACIÓN Y CRONOGRAMA POR FASES
+## 7. PLAN DE IMPLEMENTACIÓN Y MAPEO DE ARCHIVOS EN `src/domains/world/`
 
-Para ejecutar este trasplante sin disrupciones en el juego en vivo, la integración se estructura en tres fases modulares:
+Para ejecutar y mantener este ecosistema dentro de la arquitectura modular de 4 dominios (`world`, `tactics`, `economy`, `game-feel`) + `shared`, las rutas de implementación son las siguientes:
 
 ```mermaid
 gantt
-    title Cronograma de Implementación — Síntesis Política Project Alice
+    title Cronograma de Implementación — Síntesis Política Project Alice (src/domains/world/)
     dateFormat  YYYY-MM-DD
-    section Fase 1: Doctrinas & Quorum
-    Contratos TypeScript (src/types/politics.ts)    :done, 2026-11-06, 1d
-    Motor de Límites Fiscales (bound_budget)        :active, 2026-11-07, 1d
-    Motor de Asamblea & Quorum (State Vote)         :active, 2026-11-08, 2d
-    section Fase 2: UI Drawer C4ISR
-    Componente Hemiciclo SVG (Asamblea 24)          :2026-11-10, 2d
-    Pestaña Gobernanza en ParadoxCommandDrawer      :2026-11-12, 1d
-    section Fase 3: Anti-Snowballing & Elecciones
-    Motor de Resistencia e Insurgencia (rebels.cpp) :2026-11-13, 2d
-    Ciclo Electoral Mensual (D'Hondt + Bark Stella) :2026-11-15, 2d
-    Validación E2E Playwright                       :2026-11-17, 1d
+    section Fase 1: Doctrinas, POPs & Quorum
+    Contratos de Soberanía y POPs (src/domains/world/types/stateSovereigntyTypes.ts) :done, 2026-11-06, 1d
+    Motor Geopolítico Alice y Edictos (src/domains/world/core/politicalAliceEngine.ts) :done, 2026-11-07, 1d
+    Servicio RBAC de Soberanía Estatal (src/domains/world/services/stateSovereigntyService.ts) :done, 2026-11-08, 2d
+    section Fase 2: UI Consola & Inspector C4ISR
+    Consola MetaCommand e Inspector Estatal (src/domains/world/components/MetaCommandConsole.tsx) :done, 2026-11-10, 2d
+    Modal de Asedio y Handshake 120s (src/domains/world/components/TerritorySiegeModal.tsx) :done, 2026-11-12, 1d
+    section Fase 3: Anti-Snowballing, Asedios & Bark Engine
+    Motor de Secesión Provincial (evaluateProvincialSecession en politicalAliceEngine.ts) :done, 2026-11-13, 2d
+    Orquestador de Asedios, TCP y Handshake 120s (territorialSiegeOrchestrator.ts) :done, 2026-11-15, 2d
+    Hooks Realtime (useTerritoryMap.ts & useSiegeRealtime.ts + Bark Stella) :done, 2026-11-17, 1d
 ```
 
-### Fase 1: Motor Doctrinal y Quorum Legislativo (Semana 1)
-* Crear `src/types/politics.ts` con los contratos completos ratificados.
-* Crear `src/engine/politicalDoctrineEngine.ts` implementando las funciones puras portadas de `politics.cpp`.
-* Conectar `politicalDoctrineEngine.ts` con `politicalAliceEngine.ts` para que los 5 edictos requieran quorum legislativo.
-* Ejecutar suites de pruebas unitarias (`politicalDoctrine.test.ts`).
+### Fase 1: Motor Geopolítico, Estratos POPs y Gobernanza RBAC (`src/domains/world/`)
+* Mantener y extender [`src/domains/world/types/stateSovereigntyTypes.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/types/stateSovereigntyTypes.ts) y [`src/shared/types/metagame.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/shared/types/metagame.ts) con los contratos completos de soberanía dual, estratos POPs (`ProvincialStrataState`) y constantes canónicas (`MASTER_METAGAME_CONSTANTS`).
+* Operar [`src/domains/world/core/politicalAliceEngine.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/core/politicalAliceEngine.ts) como fuente de verdad de las 31 regiones del Teatro Venezuela, los 5 edictos (`POLITICAL_EDICTS_CATALOG`), los peajes de estrechos (`CHK-MARACAIBO`, `CHK-PARIA`) y la fricción de estratos sociales.
+* Sincronizar con [`src/domains/world/services/stateSovereigntyService.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/services/stateSovereigntyService.ts) para control RBAC de proclamaciones y renombre soberano de estados.
 
-### Fase 2: Pestaña Gobernanza en `ParadoxCommandDrawer.tsx` (Semana 2)
-* Crear el componente SVG del hemiciclo parlamentario (`TheaterAssemblyHemicircle.tsx`) con diseño Atompunk, tramas Ben-Day y bordes biselados a 45°.
-* Integrar la pestaña 5 en `ParadoxCommandDrawer.tsx`.
-* Añadir feedback diegético en la cabecera dual (`DualResourceHeader.tsx`) mostrando el estatus de mayoría parlamentaria del clan.
+### Fase 2: Interfaz C4ISR de Gobernanza y Asedio (`src/domains/world/components/`)
+* Integrar la visualización de soberanía, barras TCP y edictos en [`src/domains/world/components/MetaCommandConsole.tsx`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/components/MetaCommandConsole.tsx), [`src/domains/world/components/StateInspectorDrawer.tsx`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/components/StateInspectorDrawer.tsx) y [`src/domains/world/components/TerritoryInspectorModal.tsx`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/components/TerritoryInspectorModal.tsx).
+* Añadir feedback diegético en [`src/domains/world/components/DualResourceHeader.tsx`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/components/DualResourceHeader.tsx) mostrando el balance energético, acero, tierras raras e influencia política del clan.
 
-### Fase 3: Anti-Snowballing, Elecciones y Bark Engine (Semana 3)
-* Crear `src/engine/regionalUnrestEngine.ts` implementando la máquina de estados de insurrección (`rebels.cpp`).
-* Conectar el drenaje de TCP por insurgencia con `useTerritoryMap.ts` y `TerritorySiegeModal.tsx`.
-* Suscribir el `BarkEngine` de la Mayor Stella a los eventos de quorum y rebelión.
-* Desplegar la migración SQL en Supabase y validar con el playtester de Playwright.
+### Fase 3: Anti-Snowballing, Protocolo de Asedio (120s Handshake) y Bark Engine
+* Ejecutar la máquina de estados de secesión provincial (`calculateSecessionRisk` y `evaluateProvincialSecession` en [`src/domains/world/core/politicalAliceEngine.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/core/politicalAliceEngine.ts)) y el drenaje de TCP en [`src/domains/world/core/territorialSiegeOrchestrator.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/core/territorialSiegeOrchestrator.ts).
+* Conectar la cuenta atrás de **120 segundos del Human Handshake** (`HANDSHAKE_TIMEOUT_SECONDS = 120` / `HUMAN_HANDSHAKE_WINDOW_MS = 120_000`) y el relevo a la **IA de Guarnición (Niveles 1–5)** con [`src/domains/world/hooks/useSiegeRealtime.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/hooks/useSiegeRealtime.ts), [`src/domains/world/hooks/useTerritoryMap.ts`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/hooks/useTerritoryMap.ts) y [`src/domains/world/components/TerritorySiegeModal.tsx`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/src/domains/world/components/TerritorySiegeModal.tsx).
+* Suscribir el `barkEngine` (`src/domains/game-feel/`) de la Mayor Stella a los eventos de asedio, conquista, bloqueo de buffer zones y secesión armada.
 
 ---
 
 ## 8. CONCLUSIÓN Y BENEFICIOS ESTRATÉGICOS
 
-La incorporación de los sistemas de **Project Alice** transforma a **GEOTACTICS: ONLINE** de un juego táctico con un mapa pasivo a un **auténtico simulador geopolítico vivo y dinámico**.
+La incorporación de los sistemas de **Project Alice** en `src/domains/world/` transforma a **GEOTACTICS: ONLINE** de un juego táctico con un mapa pasivo a un **auténtico simulador geopolítico vivo, determinista y sincronizado en tiempo real**.
 
-1. **Alineación 100% Canónica:** Resuelve de manera elegante y definitiva las promesas de la **Capa 1 (Project Alice Bridge)** y el hito **3.5.3 (Elecciones de Comandante en Jefe)** de la documentación oficial.
-2. **Profundidad Sistémica sin Microgestión Tediosa:** Los jugadores no necesitan gestionar números infinitos; la política opera mediante causas y efectos claros: expandirse sin control genera protestas, gobernar bien atrae votos de las regiones y controlar la Asamblea permite dictar las reglas de la guerra.
-3. **Eficiencia Máxima de Desarrollo:** Ahorra más de **178 horas de ingeniería** al reutilizar fórmulas matemáticas y algoritmos perfeccionados y equilibrados en C++.
-4. **Game Feel Atompunk Militar:** La estética militarista se complementa a la perfección con la tensión de una sala de guerra (*War Room*) donde la política y las armas marchan de la mano.
+1. **Alineación 100% Canónica con los 7 Pilares:** Respeta el almacén físico de 16 tropas (Cero Cartas), la escala 1–100 HP, la derrota a 0 unidades, los Tiers horizontales T1–T5 (+2% por tier), el Buff Regional de Capital (+5%), el 35% de recuperación de chatarra tecnológica (`tech_scrap`), el Human Handshake de 120s con IA de Guarnición Niveles 1–5 y el Mercado P2P con impuesto del 2% (1% Sink + 1% Clan, VWAP Collar ±25%).
+2. **Profundidad Sistémica sin Microgestión Tediosa:** Los jugadores operan mediante causas y efectos claros: expandirse más allá del límite imperial ($K_{\text{cap}} = 6$) o imponer peajes abusivos ($> 15\%$) dispara el descontento obrero (`petroLaborUnrest`) y la fuga de capitales (`oligarchCapitalFlight`), pudiendo desencadenar secesiones armadas (`> 80%` riesgo) que cortan las líneas de suministro.
+3. **Eficiencia Máxima de Desarrollo:** Ahorra más de **178 horas de ingeniería** al reutilizar fórmulas matemáticas y algoritmos perfeccionados en C++20.
+4. **Game Feel Atompunk Militar:** La estética C4ISR de sala de guerra (*War Room*) une la alta política, la logística vial A* de Cabimas y el combate táctico en una sola experiencia cohesiva.

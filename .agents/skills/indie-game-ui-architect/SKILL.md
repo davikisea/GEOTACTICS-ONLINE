@@ -1,194 +1,73 @@
 ---
 name: indie-game-ui-architect
-description: Sistema de diseno, arquitectura UX y motor de gamificacion para crear interfaces de videojuegos indie y aplicaciones altamente gamificadas (estilo Balatro, Persona 5, Hades, Slay the Spire, Celeste). Usa esta skill siempre que el usuario pida disenar o programar UI/UX para juegos, HUDs, menus interactivos, arboles de habilidades, sistemas de cartas/inventario, dashboards gamificados o experiencias con alto "game feel" y "juiciness", evitando por completo la estetica generica de SaaS corporativo.
+description: Sistema de diseño, arquitectura UX y motor de gamificación para crear interfaces de videojuegos indie y aplicaciones altamente gamificadas (estilo Persona 5, Hades, Advance Wars, Celeste). En GEOTACTICS ONLINE trabaja en sinergia con /tactical-command-intel aplicando siluetas poligonales, física de resortes, barras con Ghost Trail, síntesis Web Audio API (@domains/game-feel) y respeto estricto al Pilar 1 (CERO cartas/gacha, usando Bahías de Chasis Físico).
 ---
-# Indie Game UI/UX & Gamification Architect
+# Indie Game UI/UX & Gamification Architect (GEOTACTICS Aligned)
 
-Transforma interfaces planas y predecibles en experiencias tactiles, diegeticas y llenas de "Game Feel" (*Juice*) dignas de los mejores videojuegos indie. Esta skill prohibe el diseno corporativo por defecto de la IA (tarjetas blancas simetricas, tipografia Inter, transiciones lineales y tablas estaticas) y obliga a implementar siluetas con caracter, fisica de resortes, capas diegeticas, audio procedural y bucles psicologicos de gamificacion.
+Transforma interfaces planas y predecibles en experiencias táctiles, diegéticas y llenas de "Game Feel" (*Juice*) dignas de los mejores videojuegos indie. Esta skill prohíbe el diseño corporativo por defecto de la IA (tarjetas blancas simétricas, tipografía Inter, transiciones lineales y tablas estáticas) y obliga a implementar siluetas con carácter, física de resortes, capas diegéticas, audio procedural y bucles psicológicos de gamificación.
+
+> [!IMPORTANT]
+> **REGLA DE ORO EN GEOTACTICS ONLINE (SINERGIA CON `/tactical-command-intel`):**
+> Cuando operes dentro del repositorio de **GEOTACTICS: ONLINE**, rige el **Pilar Canónico 1: CERO CARTAS (NO TCG/CCG/Gacha)**. Jamás diseñes "mazos de 10 cartas" ni "sobres coleccionables"; toda unidad se representa como una **Bahía de Chasis Físico en el Almacén de 16 Tropas** (`4` activas + `12` en reserva), con integridad en **escala continua de 1 a 100 HP enteros**, Tiers **T1 a T5 (+2% por tier, máx +8% en T5)** y reciclaje del **35% en `tech_scrap`**.
 
 ## When to Use
 
-- El usuario pide crear la interfaz (UI/UX), HUD, menu principal, inventario, tienda, arbol de habilidades o pantalla de combate/recompensas de un videojuego (web, Canvas, React, Godot, Unity o movil).
-- El usuario quiere gamificar una aplicacion (aprendizaje, productividad, habito, finanzas, fitness) con una estetica inmersiva de juego indie en lugar de un dashboard SaaS aburrido.
-- El usuario menciona conceptos como *game feel*, *juiciness*, *diegetic UI*, *screenshake*, *hit-stop*, cartas coleccionables, rachas (*streaks*), cofres/recompensas o referencias como *Balatro*, *Persona 5*, *Hades*, *Hollow Knight* o *Slay the Spire*.
+- El usuario pide crear o mejorar la interfaz (UI/UX), HUD, menú principal, hangar industrial, mercado P2P, inspector territorial o pantalla de combate/recompensas.
+- El usuario quiere gamificar una vista con estética inmersiva de juego indie (*Advance Wars meets Persona 5 / Hades*) en lugar de un dashboard SaaS aburrido.
+- El usuario menciona conceptos como *game feel*, *juiciness*, *diegetic UI*, *screenshake*, *hit-stop*, *ghost bar* o micro-interacciones táctiles.
 
 ## Steps
 
-### Paso 1: Comprometer una Direccion de Arte Indie (Anti-SaaS Gate)
+### Paso 1: Comprometer una Dirección de Arte Indie (Anti-SaaS Gate)
 
-Antes de escribir una sola linea de codigo, selecciona o infiere uno de los **4 Arquetipos Visuales Indie** y declara sus tokens CSS/visuales. Nunca uses el promedio estadistico de Tailwind/Bootstrap:
+Antes de escribir código, selecciona el arquetipo visual apropiado (en **GEOTACTICS ONLINE** la fusión canónica combina **Kinetic Rebel Cutout** + **Mythic Handcrafted Tactical C4ISR**):
 
-1. **Kinetic Rebel Cutout (Estilo *Persona 5* / *Hi-Fi Rush*)**:
-   - **Geometria**: Contenedores poligonales asimetricos (`clip-path: polygon(...)`) inclinados entre `-2deg` y `-6deg`. Cero esquinas redondeadas estandar.
-   - **Paleta (70-20-10)**: Negro Abisal (`#0A0A0C` 70%), Blanco Tiza (`#F4F4F0` 20%) y Carmesi Electrico (`#E60012` o Amarillo Acido `#FFE600` 10%).
-   - **Sombra y Textura**: Sombras duras desplazadas sin difuminado (`box-shadow: 8px 8px 0px #E60012`), tramas semitono (*halftone dots*) y tipografia display condensada en mayusculas con fuerte *tracking*.
+1. **Kinetic Rebel Cutout (Estilo *Persona 5* / *Hi-Fi Rush* / *Bark Engine*)**:
+   - **Geometría**: Contenedores poligonales asimétricos (`clip-path: polygon(...)`) o curvatura táctica `border-radius: 14px 4px 14px 4px` con inclinaciones dinámicas (`-2deg` a `-5deg`) en sellos pop-art.
+   - **Sombra y Textura**: Sombras duras desplazadas sin difuminado (`box-shadow: 4px 4px 0px #0A0B08`), tramas semitono Ben-Day (`radial-gradient(#7B8A4A 15%, transparent 16%)`) y tipografía display condensada en mayúsculas.
 
-2. **Tactile CRT Deckbuilder (Estilo *Balatro* / *Inscryption*)**:
-   - **Geometria**: Tapete de juego con textura o viñeta profunda, cartas fisicas con perspectiva 3D (`transform: perspective(800px) rotateX(...) rotateY(...)`) que reaccionan a la posicion del cursor.
-   - **Paleta**: Verde Tapete Oscuro (`#112218`) o Azul Noche CRT (`#0F1423`), Marfil Gastado (`#FFF8E7`), Fichas Azul Neon (`#0099FF`) y Multiplicador Rojo Fuego (`#FF4D29`).
-   - **Efectos Clave**: Shaders de brillo holografico/foil con `mix-blend-mode: color-dodge`, contadores numericos tipo odometro que saltan y escalan en cada incremento, y filtro opcional de scanlines CRT.
+2. **Tactical C4ISR Armor Console (Estilo *Advance Wars* / *Hades* Industrial)**:
+   - **Geometría**: Marcos biselados a 45° (`clip-path`), doble borde interior metálico y remaches en las esquinas.
+   - **Paleta Blindada**: Vacío de Búnker (`#161712` / `#0E100C`), Base de Blindaje (`#2B2C24`), Oliva Militar (`#46521F`), Canto de Metal (`#7B8A4A`), Alerta Óxido (`#C46A3A`) y Crema de Datos (`#F2E8D5`).
 
-3. **Mythic Handcrafted Ornate (Estilo *Hades* / *Hollow Knight* / *Slay the Spire*)**:
-   - **Geometria**: Marcos biselados con esquinas en chaflan o diamante (`clip-path`), doble borde interior metalico (`outline: 1px solid rgba(212, 175, 55, 0.4); outline-offset: -5px`) y remaches decorativos en las esquinas.
-   - **Paleta**: Obsidiana Profunda (`#0D0B14`), Purpura Estigia (`#1E192B`), Oro Bronceado (`#D4AF37`), Esmeralda Etereo (`#2CE8A2`) y Sangre Titan (`#C92A2A`).
-   - **Tipografia**: Fuentes serif epicas/caligraficas (`Cinzel`, `Cormorant SC`, `Playfair Display`) para titulos y sans humanista limpia para estadisticas.
+3. **Tactile Physical Switchboard (Hundimiento Físico 3D)**:
+   - **Geometría**: Botones físicos con grosor 3D real (`border-bottom: 5px solid #5a1e05`) que se hunden físicamente al presionarlos (`transform: translateY(3px) scale(1.04, 0.94); border-bottom-width: 2px`).
 
-4. **Cozy Tactile Toybox (Estilo *Stardew Valley* / *Celeste* / *Nintendo*)**:
-   - **Geometria**: Botones fisicos con grosor 3D real (`border-bottom: 6px solid #colorMasOscuro`) que se hunden fisicamente al presionarlos (`transform: translateY(4px); border-bottom-width: 2px`).
-   - **Paleta**: Tonos calidos de madera, pergamino suave (`#FDF3E7`), verde bosque (`#386641`) y naranja sol (`#F28482`) con bordes gruesos tipo tinta (`2px` a `3px solid #2B2D42`).
+### Paso 2: Distribuir la Información en las 4 Capas de Diegesis
 
-### Paso 2: Distribuir la Informacion en las 4 Capas de Diegesis
+1. **Capa Diegética (Dentro del mundo)**: Consolas blindadas, bahías físicas del hangar de 16 tropas, diorama C4ISR (`src/domains/world/components/TacticalC4ISRBaseDiorama.tsx`) y mapa vectorial WebGL (`src/domains/world/components/TacticalWorldMap.tsx`).
+2. **Capa Espacial (En las coordenadas de la acción)**: Daño flotante en escala 1–100 HP (`-24 HP`), trazadores balísticos, rutas viales $A^*$ y alertas `¡TRAP!`.
+3. **Capa Meta (En el cristal de la pantalla)**: Viñeta roja en DEFCON 1 / asedio activo (Handshake de 120s), destello dorado al activar SCOP y viñetas vivas (`src/domains/game-feel/components/CommanderLivingVignette.tsx`).
+4. **Capa No-Diegética (HUD de lectura en <100ms)**: Cabecera de recursos duales (`src/domains/world/components/DualResourceHeader.tsx`), barras con *ghost trail* (`src/shared/ui/TacticalGhostBar.tsx`), reloj Fischer y badges de atajos de teclado (`[1]`–`[6]`, `[SPACE]`, `[ESC]`).
 
-No agrupes todos los datos en una barra superior o lateral plana. Organiza la interfaz usando el modelo de 4 cuadrantes de diseno de videojuegos:
+### Paso 3: Inyectar "Game Feel" y "Juice" Procedural (Física y Micro-interacciones)
 
-1. **Capa Diegetica (Dentro del mundo y la historia)**: Convierte contenedores de UI en objetos fisicos del mundo (un tablero de mando, un libro abierto, cartas sobre una mesa, un monitor tactico).
-2. **Capa Espacial (En el espacio 2D/3D de la accion)**: Muestra feedback inmediato en las coordenadas exactas del clic o evento (numeros flotantes de `+25 XP` o `CRIT!` con trayectoria parabolica y desvanecimiento, anillos de seleccion y tooltips magneticos).
-3. **Capa Meta (En el cristal de la pantalla)**: Usa los bordes del viewport para comunicar estado critico sin texto (pulso de viñeta roja cuando una racha o vida peligra, destello dorado en los bordes al subir de nivel, aberracion cromatica breve en impactos criticos).
-4. **Capa No-Diegetica (HUD de lectura rapida)**: Reserva las esquinas exclusivamente para telemetria que exige lectura en menos de 100ms (barras de vida/energia con *ghost trail*, multiplicadores de combo y atajos de teclado `[Q]`, `[E]`, `[SPACE]`).
+Toda acción del usuario debe recibir respuesta multisensorial en menos de 16ms (1 frame):
 
-### Paso 3: Inyectar "Game Feel" y "Juice" Procedural (Fisica y Micro-interacciones)
-
-Toda accion del usuario debe recibir una respuesta multisensorial en menos de 16ms (1 frame). Implementa obligatoriamente estas 5 primitivas tecnicas:
-
-1. **Prohibicion de Movimiento Lineal (Spring & Overshoot Easing)**:
+1. **Prohibición de Movimiento Lineal (Spring & Overshoot Easing)**:
    - Nunca uses `transition: all 0.3s ease` ni `linear`.
-   - Usa curvas de resorte con rebote (*overshoot*) para entradas y hovers: `cubic-bezier(0.34, 1.56, 0.64, 1)`.
-   - Usa desaceleracion explosiva para salidas y proyectiles: `cubic-bezier(0.22, 1, 0.36, 1)`.
+   - Usa curvas de resorte con rebote: `cubic-bezier(0.34, 1.56, 0.64, 1)` (`--ease-spring`).
+   - Usa desaceleración explosiva para salidas: `cubic-bezier(0.22, 1, 0.36, 1)` (`--ease-out-expo`).
+2. **Squash & Stretch (Conservación de Volumen)**:
+   - Al hacer `:active`, comprime primero (`scale(1.12, 0.88)`), estira al soltar y devuelve a `scale(1, 1)` con curva elástica.
+3. **Barras de Progreso de Doble Capa (`TacticalGhostBar`)**:
+   - Toda barra de HP (1–100), progreso industrial o puntos TCP (`10,000`/`15,000`) debe tener barra frontal inmediata y barra fantasma trasera con retardo de `220ms` y transición de `450ms`.
+4. **Modelo de Trauma Cuadrático para Screen Shake y Hit-Stop**:
+   - El desplazamiento visual es proporcional a `trauma ** 2`, respetando siempre interruptores de accesibilidad (`reduceMotion`).
+5. **Síntesis de Audio Procedural y Háptica (`@domains/game-feel`)**:
+   - Conecta cada botón y evento con `audioManager` (`src/domains/game-feel/core/audioManager.ts`: `playHoverTick`, `playComboAction`, `playGoldTick`, `playSFX`) y `triggerHaptic` (`src/domains/game-feel/core/hapticFeedback.ts`).
 
-2. **Squash & Stretch (Conservacion de Volumen)**:
-   - Al hacer `:active` o disparar un elemento, comprime primero (`scale(1.15, 0.85)`) durante `60ms`, estira al lanzar (`scale(0.92, 1.12)`) y devuelve a `scale(1, 1)` con curva elastica.
+### Paso 4: Arquitecturar los 3 Bucles de Gamificación (Octalysis Engine)
 
-3. **Barras de Progreso de Doble Capa (Ghost Drain / Surge Trail)**:
-   - Toda barra de HP, XP, Mana o Progreso de Mision debe tener **dos barras superpuestas**:
-     - La barra frontal cambia al instante con el nuevo valor.
-     - La barra trasera (*ghost bar* en color blanco o amarillo brillante) espera `250ms` y se desliza suavemente (`transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1)`) mostrando visualmente la magnitud exacta del daño o la ganancia de XP.
-
-4. **Modelo de Trauma Cuadratico para Screen Shake y Hit-Stop**:
-   - Implementa una funcion `addTrauma(amount)` donde `trauma` decae con el tiempo y el desplazamiento visual es proporcional a `trauma * trauma` (`shake = maxOffset * (trauma ** 2)`).
-   - En impactos criticos o logros mayores, aplica un **Hit-Stop** (pausa de `50ms` a `80ms` en la animacion acompañada de un flash blanco de `100ms` sobre el elemento afectado) antes de liberar las particulas.
-   - Incluye siempre un interruptor de accesibilidad (`reduceMotion`) que permita desactivar el *screenshake* y los destellos (cumpliendo WCAG 2.3.1, maximo 3 destellos por segundo).
-
-5. **Sintetizador de Audio Procedural Integrado (Web Audio API)**:
-   - Una UI de videojuego en silencio se siente rota. Incluye siempre un micro-motor de sonido con `AudioContext` (sin depender de archivos `.mp3` externos) que genere:
-     - **Hover tick**: Pulso corto de onda sinusoidal/triangular (`15ms` a `25ms`) con variacion aleatoria de tono (`pitch +/- 8%`) para evitar fatiga auditiva.
-     - **Click / Confirm thump**: Barrido rapido de frecuencia con envolvente percusiva.
-     - **Combo / Streak Escalation**: Escala pentatonica o semitonal ascendente (`baseFreq * Math.pow(1.059463, comboCount)`) donde cada accion consecutiva suena un semitono mas aguda.
-
-### Paso 4: Arquitecturar los 3 Bucles de Gamificacion (Octalysis Engine)
-
-No limites la gamificacion a una tabla estatica de puntos. Diseña un sistema de retencion en tres escalas de tiempo:
-
-1. **Micro-Bucle (0.1s a 3s - Gratificacion Tactil Inmediata)**:
-   - Cada tarea completada o clic dispara particulas locales en coordenadas del cursor, texto flotante (`+XP`), incremento tipo odometro del marcador y escalado del multiplicador de combo (`x1.5`, `x2.0`) con vibracion sutil.
-
-2. **Meso-Bucle (1 min a 15 min - Flujo de Sesion y Recompensa Variable)**:
-   - **Medidor de Racha / Combo con Tension de Perdida**: Muestra visualmente el estado activo (fuego, sobrecarga, racha) que cambia de color e intensidad conforme sube el nivel.
-   - **Ceremonia de Revelacion (Loot / Card / Milestone Unlock)**: Nunca entregues una recompensa con un simple `alert()` o modal plano. Crea una secuencia de 3 tiempos: *Anticipacion* (el sobre/cofre tiembla y brilla durante `400ms`) -> *Climax* (destello + hit-stop + explosion de particulas) -> *Presentacion por Rareza* (Comun, Raro, Epico, Legendario con marcos y brillos distintos).
-
-3. **Macro-Bucle (Progresion Meta y Efecto Zeigarnik)**:
-   - **Arboles de Habilidades / Constelaciones (Skill Trees)**: Representa el progreso a largo plazo mediante nodos conectados por lineas SVG que se iluminan al desbloquearse (estados: *Bloqueado/Silueta*, *Disponible con pulso*, *Dominado/Dorado*).
-   - **Coleccion / Compendio con Siluetas Misteriosas**: Muestra los huecos de logros o cartas aun no descubiertos como siluetas oscuras con pistas cripticas (`???`), activando la curiosidad intrinseca del jugador.
-
-## Blueprint de Referencia (CSS + JS Core Engine)
-
-Usa esta base arquitectonica como punto de partida para interfaces web o prototipos en Canvas y adaptala al arquetipo elegido:
-
-```html
-<style>
-  :root {
-    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-    --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
-    --bg-abyss: #0D0B14;
-    --surface-card: #1A1626;
-    --accent-gold: #F5B700;
-    --accent-crimson: #FF2A54;
-    --accent-cyan: #00F0FF;
-    --text-ivory: #F9F6F0;
-  }
-
-  /* Contenedor con silueta asimetrica indie y sombra dura */
-  .game-panel {
-    background: var(--surface-card);
-    border: 2px solid var(--accent-gold);
-    clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
-    box-shadow: 6px 6px 0px #000000;
-    transition: transform 0.25s var(--ease-spring), filter 0.15s ease;
-    position: relative;
-  }
-
-  /* Boton tactil con Squash & Stretch y hundimiento fisico */
-  .game-btn {
-    background: var(--accent-crimson);
-    color: var(--text-ivory);
-    border: 2px solid var(--text-ivory);
-    border-bottom-width: 6px;
-    padding: 12px 24px;
-    font-weight: 900;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: transform 0.18s var(--ease-spring), border-bottom-width 0.08s ease;
-  }
-  .game-btn:hover {
-    transform: translateY(-3px) scale(1.04) rotate(-1deg);
-  }
-  .game-btn:active {
-    transform: translateY(4px) scale(1.12, 0.88);
-    border-bottom-width: 2px;
-  }
-
-  /* Barra de doble capa con Ghost Trail */
-  .bar-track {
-    position: relative;
-    height: 18px;
-    background: #07050A;
-    border: 2px solid var(--text-ivory);
-    clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
-    overflow: hidden;
-  }
-  .bar-ghost {
-    position: absolute;
-    inset: 0;
-    background: var(--text-ivory);
-    width: var(--bar-pct, 50%);
-    transition: width 0.55s var(--ease-out-expo) 0.22s;
-  }
-  .bar-fill {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, var(--accent-crimson), var(--accent-gold));
-    width: var(--bar-pct, 50%);
-    transition: width 0.12s var(--ease-spring);
-  }
-</style>
-
-<script>
-  // Micro-Sintetizador Procedural Web Audio con escalado de Pitch por Combo
-  class JuiceAudio {
-    constructor() { this.ctx = null; }
-    init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
-    playPop(combo = 0) {
-      this.init();
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      const pitchShift = Math.pow(1.059463, Math.min(combo, 14)) * (0.95 + Math.random() * 0.1);
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(280 * pitchShift, this.ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(620 * pitchShift, this.ctx.currentTime + 0.08);
-      gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.09);
-      osc.connect(gain); gain.connect(this.ctx.destination);
-      osc.start(); osc.stop(this.ctx.currentTime + 0.09);
-    }
-  }
-</script>
-```
+1. **Micro-Bucle (0.1s a 3s - Gratificación Táctil Inmediata)**:
+   - Clic con hundimiento 3D, sonido procedural con pitch variable (`±4%` a `±8%`), texto flotante y vibración háptica (`10ms`–`25ms`).
+2. **Meso-Bucle (1 min a 15 min - Tensión Táctica y Ceremonia de Suministros)**:
+   - Cuenta atrás de ensamblaje en tiempo real en la Consola Paradox, medidor estelar de COP/SCOP y ceremonia de 3 tiempos en recompensas (Anticipación -> Clímax -> Presentación).
+3. **Macro-Bucle (Progresión Geopolítica e Industrial)**:
+   - Complejo industrial de 10 parcelas por feudo, conquista de capitales (+5% buff regional), soberanía De Facto/De Jure (ventana de 24h) y progresión de chasis de T1 a T5 (+2% por tier).
 
 ## Gotchas (Anti-Slop Checklist)
 
-Audita tu codigo antes de entregarlo y corrige cualquiera de estos antipatrones:
-
-- **PROHIBIDO el "SaaS Card Grid"**: Nunca entregues una cuadricula simetrica de tarjetas con `border-radius: 8px`, fondo `#ffffff` o `#1e293b` y `box-shadow: 0 4px 6px rgba(0,0,0,0.1)`. Usa siluetas recortadas (`clip-path`), bordes dobles, inclinaciones ligeras o cartas 3D interactivas.
-- **PROHIBIDAS las fuentes de sistema por defecto sin personalidad**: Nunca uses `Inter`, `Roboto`, `Arial` o `system-ui` para encabezados o numeros de impacto. Combina una fuente display expresiva (geometrica pesada, pixel-art, serif epica o display condensada) con numeros tabulares (`font-variant-numeric: tabular-nums`) para evitar que los contadores bailen al cambiar de digito.
-- **PROHIBIDOS los cambios de estado silenciosos o instantaneos**: Si un contador sube, debe animar sus digitos y escalar (`scale(1.3)` -> `scale(1)`). Si una tarea se completa, debe emitir particulas, actualizar una barra con *ghost trail* y disparar sonido procedural.
-- **PROHIBIDO ignorar el teclado y el mando (Gamepad/Hotkeys)**: Los jugadores esperan navegar sin depender solo del raton. Añade insignias visuales de atajos (`[1]`, `[2]`, `[SPACE]`, `[ESC]`) en los botones principales y soporta sus eventos de teclado reales.
+- **PROHIBIDO el "SaaS Card Grid"**: Nunca entregues tarjetas con `border-radius: 8px`, fondo blanco/gris plano y sombras difusas.
+- **PROHIBIDO introducir vocabulario de Cartas/TCG en GEOTACTICS**: Usa siempre *Chasis Físico*, *Bahía de Hangar (16 máx)*, *Patente Industrial (T1–T5)* y *Escala 1–100 HP*.
+- **PROHIBIDOS los cambios de estado mudos**: Toda interacción debe invocar `audioManager` y animar sus contadores con `tabular-nums`.
