@@ -64,3 +64,19 @@ export interface SovereignStateUpdateInput {
   customMotto?: string;
   sovereignProclamation?: string;
 }
+
+// ============================================================================
+// ESTRATOS SOCIALES PROVINCIALES (POPS) Y COHESIÓN INSTITUCIONAL (PARADOX LENS)
+// ============================================================================
+
+export interface ProvincialStrataState {
+  stateId: string;
+  militaristsLoyalty: number;        // 0-100% (Demandan inversión en búnkeres)
+  bureaucratsSatisfaction: number;   // 0-100% (Afectado por sobre-extensión imperial)
+  petroLaborUnrest: number;          // 0-100% (Sube por sobre-explotación de RGO)
+  oligarchCapitalFlight: number;     // 0-100% (Fuga de capital si impuestos > 15%)
+  secessionRiskPercent: number;      // Sube superlinealmente si Unrest > 70%
+  isRebelControlled: boolean;        // true si la provincia se declara en secesión armada
+  updatedAt: string;
+}
+

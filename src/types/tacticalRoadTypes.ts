@@ -82,7 +82,21 @@ export interface TacticalMapMark {
   expiresAt: string;
 }
 
+export interface TacticalMarkEffectResult {
+  damageInflicted: number;
+  speedMultiplier: number;
+  fowRevealed: boolean;
+  moralBonusPercent: number;
+}
+
 export type GarrisonTierLevel = 1 | 2 | 3 | 4;
+
+export type GarrisonDoctrineType =
+  | 'standard_infantry'
+  | 'anti_armor_ditch'
+  | 'ew_jammer_bubble'
+  | 'c_uas_air_defense'
+  | 'artillery_firebase';
 
 export interface GarrisonTierSpec {
   tier: GarrisonTierLevel;
@@ -93,6 +107,7 @@ export interface GarrisonTierSpec {
   ewJammingRadiusKm: number;
   antiDroneCoverage: boolean;
   artilleryRangeKm: number;
+  doctrine?: GarrisonDoctrineType;
 }
 
 export const GARRISON_TIER_SPECS: Record<GarrisonTierLevel, GarrisonTierSpec> = {
@@ -144,6 +159,7 @@ export interface RoadGarrison {
   roadSegmentId: string;
   clanId: string;
   tierLevel: GarrisonTierLevel;
+  doctrine?: GarrisonDoctrineType;
   currentHp: number;
   maxHp: number;
   hourlyUpkeepEc: number;
@@ -162,8 +178,10 @@ export interface RoadBattleEvent {
   defenderClanId: string;
   attackerHp: number;
   defenderHp: number;
-  attackerReinforcingPlayers: string[]; // Max 2 jugadores
-  defenderReinforcingPlayers: string[]; // Max 2 jugadores
+  attackerReinforcingPlayers: string[]; // Max 2 jugadores activos en combate directo
+  defenderReinforcingPlayers: string[]; // Max 2 jugadores activos en combate directo
+  attackerReservePlayers?: string[];    // 3er y 4to comandante en reserva de apoyo
+  defenderReservePlayers?: string[];    // 3er y 4to comandante en reserva de apoyo
   status: 'in_progress' | 'attacker_victory' | 'defender_victory';
   updatedAt: string;
 }
