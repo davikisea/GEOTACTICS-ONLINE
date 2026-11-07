@@ -248,34 +248,31 @@ Esta sección especifica la arquitectura de renderizado de alta frecuencia para 
 
 Para evitar el colapso de VRAM en el cliente y la saturación de canales WebSocket en Supabase Realtime, el motor cartográfico aplica una jerarquía estricta de **Nivel de Detalle Semántico (Semantic LOD)** gobernada por tres umbrales canónicos de cámara:
 
-| Nivel LOD | Constante Canónica | Rango de Zoom ($z$) | Estrato Visual Activo | Suscripción de Red (Supabase Realtime) | Presupuesto de Memoria / GPU |
+| Nivel LOD | Constante Canónica | Rango de Zoom ($z$) | Estrato Visual Activo | Suscripción de Red & RBAC | Presupuesto de Memoria / GPU |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Nivel 1: Macro-Globo (Estratégico)** | `ZOOM_GLOBAL = 3.5` | $1.5 \le z < 6.0$ | Polígonos vectoriales de países y macrorregiones (`provinces-fill`), colores heráldicos de clanes dominantes, escudos de Capitales Nacionales e iconos pulsantes de alerta de guerra (`status === 'under_siege'`). | Canal global ligero `world_sovereignty_ticker` (solo cambios de propietario, caídas de capitales y alertas de asedio). **0 canales tácticos activos.** | $< 45\text{ MB}$ VRAM. Renderizado 100% vectorial en GPU (`GeoJSONSource`). |
-| **Nivel 2: Operacional y Suministros** | `ZOOM_OPERACIONAL = 7.0` | $6.0 \le z < 13.0$ | Fronteras provinciales entintadas (`line-width: 2.5px`), barras de Puntos de Control Territorial ($\text{TCP}: 0 \dots 10,000$), nodos industriales (Refinerías, Altos Hornos, Silos), aristas del grafo topológico de adyacencia (estrechos marítimos y ferrocarriles) y trazado de convoyes logísticos mediante Bresenham. | Canal regional `theater_ops:{country_iso}` (actualización de barras TCP, cuenta atrás de Handshake de $120\text{ s}$ y tránsito de refuerzos cada 4 rondas). | $< 85\text{ MB}$ VRAM. Capas `fill`, `line` y `circle`/`symbol` combinadas. |
-| **Nivel 3: Combate Táctico en Vivo** | `ZOOM_TACTICO = 14.0` | $13.0 \le z \le 20.0$ | **Activación del `TileCanvas` ($1000 \times 1000\text{ px}$)** proyectado sobre los límites WGS 84 de la provincia en conflicto. Conmutación de muestreo de textura a `nearest` (pixel-art nítido). Renderizado de la cuadrícula táctica ($16 \times 16$ o $20 \times 20$), biomas, Niebla de Guerra binaria (`TacticalBitMap`) y unidades con barras de $1\text{–}100\text{ HP}$ combatiendo en tiempo real. | Suscripción exclusiva bajo demanda al canal `territorial_battle:{province_id}` (estado del tablero, reloj Fischer $15\text{–}30\text{ s}$ y eventos balísticos). | $< 140\text{ MB}$ VRAM. Máximo **1 `TileCanvas` activo** simultáneamente en memoria; auto-destrucción al bajar de $z < 13.0$. |
+| **Nivel 1: Macro-Globo & Soberanía de Estados** | `ZOOM_MACRO = 10.0` | $1.5 \le z < 10.0$ | Polígonos de soberanía nacional y regional (`theatre_regions.json`), `StateInspectorDrawer` al hacer click en el estado (PIB de guerra, rendimiento de recursos, nivel de defensa, facción y clan controlador). Panel de Control del Estado (`StateSovereignDeckModal`) con RBAC para Líderes de Clan y Gestores de Facción que muta el nombre soberano de Países y Estados en vivo. | Canal global ligero `world_sovereignty_ticker`. RLS en Postgres (`state_sovereignty_rbac.sql`) para proclamaciones oficiales. | $< 45\text{ MB}$ VRAM. Renderizado 100% vectorial en GPU (`GeoJSONSource`). |
+| **Nivel 2: Operacional & Red Vial Urbana Real** | `ZOOM_OPERACIONAL = 10.0` | $10.0 \le z < 15.0$ | Se activa a **$z = 10.0$**. Renderiza la **Red Vial Urbana Real** (`theatre_urban_roads.json`) con calles y avenidas fieles a ciudades reales (Caracas, Maracaibo, Cabimas, Valencia, Barquisimeto) junto a la red troncal nacional. Nombres de metrópolis reales (`theatre_cities.json`). Unidades y edificios operacionales desplegados (`operationalUnitsService`). | Canal regional `theater_ops:{country_iso}` (actualización de tropas operacionales, adyacencias y alertas). | $< 85\text{ MB}$ VRAM. Capas vectoriales MapLibre GL (`line`, `circle`, `symbol`). |
+| **Nivel 3: Microjuego Táctico & Construcción In-Situ** | `ZOOM_TACTICO = 15.0` | $15.0 \le z \le 20.0$ | Se activa a **$z = 15.0$**. Emerge el panel de microjuego `MicroTacticalDeckHUD`. Asignación espacial analítica $O(1)$ (`Sector X,Y`, `Cell X,Y`, WGS84, Cobertura 10-40% y estado de ocupación). Habilita despliegue in-situ de unidades militares (`TacticalUnitDeployModal`) y construcción in-situ de estructuras industriales (`TacticalConstructionDrawer`). Activación de cuadrícula `TileCanvas` dinámica ($20 \times 20$). | Suscripción bajo demanda a la celda espacial o sesión táctica. | $< 140\text{ MB}$ VRAM. Muestreo pixel-art `nearest`. Auto-destrucción al bajar de $z < 15.0$. |
 
-### Diagrama de Flujo de Cámara, Suscripción Dinámica y Ciclo de Vida de `TileCanvas`
+### Diagrama de Flujo de Cámara y Ciclo de Vida de las 3 Vistas
 
 ```mermaid
 flowchart TD
     START["Cámara en Movimiento: map.on('zoom' | 'moveend')"] --> EVAL_Z{"Evaluar Nivel de Zoom (z)"}
 
-    EVAL_Z -- "z < 6.0 (ZOOM_GLOBAL = 3.5)" --> LOD1["NIVEL 1: MACRO-GLOBO GEOPOLÍTICO"]
-    LOD1 --> LOD1_ACT["• Mostrar polígonos nacionales y colores de Clan\n• Ocultar grafo de adyacencia fino y barras TCP\n• Muestreo de raster: 'linear'"]
-    LOD1_ACT --> CLEANUP_1["Desmontar TileCanvas activo (si existe)\nDesuscribir canal 'territorial_battle:*'"]
+    EVAL_Z -- "z < 10.0 (LOD 1: Macro-Globo & Estados)" --> LOD1["NIVEL 1: MACRO-SOBERANÍA Y GOBERNANZA"]
+    LOD1 --> LOD1_ACT["• Polígonos de Estados y Fronteras Nacionales\n• Clic en Estado -> Abre StateInspectorDrawer (PIB, Recursos, TCP)\n• Botón Desbloquear Panel de Control -> StateSovereignDeckModal (RBAC)\n• Mutación en vivo de Nombres de País y Estado"]
+    LOD1_ACT --> CLEANUP_1["Ocultar red vial urbana fina y HUD de Microjuego"]
 
-    EVAL_Z -- "6.0 <= z < 13.0 (ZOOM_OPERACIONAL = 7.0)" --> LOD2["NIVEL 2: TEATRO OPERACIONAL Y LOGÍSTICA"]
-    LOD2 --> LOD2_ACT["• Renderizar fronteras cómic (2.5px #090D14)\n• Mostrar barras TCP (0-10,000) y Nodos Estratégicos\n• Trazar líneas de suministro (Algoritmo Bresenham)\n• Mostrar temporizador Handshake (120s)"]
-    LOD2_ACT --> CLEANUP_2["Si venía de z >= 13.0:\n• Ejecutar disposeTileCanvas()\n• Liberar textura WebGL y buffer 2D\n• Cerrar socket 'territorial_battle:{id}'"]
+    EVAL_Z -- "10.0 <= z < 15.0 (LOD 2: Operacional Urbano)" --> LOD2["NIVEL 2: RED VIAL URBANA Y CIUDADES REALES"]
+    LOD2 --> LOD2_ACT["• Inyección MapLibre de theatre_urban_roads.json (Av. Intercomunal, Av. 32, Bella Vista, etc.)\n• Nombres de ciudades reales (theatre_cities.json)\n• Visualización de unidades operacionales desplegadas con callsign y HP\n• Trazado de arterias nacionales y conectividad"]
+    LOD2_ACT --> CLEANUP_2["Ocultar HUD de Microjuego si venía de z >= 15.0"]
 
-    EVAL_Z -- "z >= 13.0 (ZOOM_TACTICO = 14.0)" --> LOD3["NIVEL 3: INMERSIÓN TÁCTICA EN VIVO"]
-    LOD3 --> PICK_SECTOR["Calcular Sector/Provincia bajo el centro de cámara\nvía lngLatToGridCoords(center) en O(1)"]
-    PICK_SECTOR --> CHECK_WAR{"¿Provincia con sesión activa\nen territorial_battle_sessions?"}
-
-    CHECK_WAR -- "No (Provincia en Paz)" --> RENDER_GARRISON["Instanciar TileCanvas Estático (Modo Inspección)\n• Pintar grilla topográfica y Guarnición IA\n• Sin suscripción WebSocket de combate"]
-    CHECK_WAR -- "Sí (Asedio en Curso)" --> MOUNT_CANVAS["1. Crear HTML5 Canvas 2D (1000x1000 px)\n2. Calcular 4 vértices WGS84 con getTileBounds()\n3. Inyectar map.addSource('battle-canvas', { type: 'canvas' })\n4. Conmutar raster-resampling a 'nearest'"]
-    MOUNT_CANVAS --> SUB_WS["Suscribir a Supabase Realtime:\nchannel('territorial_battle:' + provinceId)"]
-    SUB_WS --> PUMP_LOOP["Recibir diffs de estado (Unidades 1-100 HP + FoW Base64)\nEjecutar WebGL Canvas Pump Hack (play -> triggerRepaint -> pause)"]
+    EVAL_Z -- "z >= 15.0 (LOD 3: Microjuego Táctico)" --> LOD3["NIVEL 3: MICROJUEGO, DESPLIEGUE Y CONSTRUCCIÓN"]
+    LOD3 --> PICK_SECTOR["Asignación Espacial Analítica O(1):\nSector Mercator, Celda (0..19, 0..19), GPS y Cobertura (10-40%)"]
+    LOD3 --> HUD_TACTICAL["Despliegue del MicroTacticalDeckHUD en pantalla inferior"]
+    HUD_TACTICAL --> ACTIONS["Acciones In-Situ Habilitadas:\n1. DESPLEGAR: TacticalUnitDeployModal (Tanques, Recons, Artillería)\n2. CONSTRUIR: TacticalConstructionDrawer (Refinerías, Radares, Silos)"]
+    ACTIONS --> GRID_CANVAS["Renderizado de TileCanvas dinámico (textura GPU WebGL 2.0)"]
 ```
 
 ---

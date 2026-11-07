@@ -44,8 +44,8 @@ try {
   console.log('--- SUITE 1: CONSTANTES DE LOD SEMÁNTICO Y RESOLUCIÓN TILE ---');
 
   assert(ZOOM_GLOBAL === 3.5, 'ZOOM_GLOBAL debe ser exactamente 3.5');
-  assert(ZOOM_OPERACIONAL === 7.0, 'ZOOM_OPERACIONAL debe ser exactamente 7.0');
-  assert(ZOOM_TACTICO === 14.0, 'ZOOM_TACTICO debe ser exactamente 14.0');
+  assert(ZOOM_OPERACIONAL === 10.0, 'ZOOM_OPERACIONAL debe ser exactamente 10.0');
+  assert(ZOOM_TACTICO === 15.0, 'ZOOM_TACTICO debe ser exactamente 15.0');
   assert(TILE_SIZE === 1000, 'TILE_SIZE debe ser 1000 px para el TileCanvas 2D');
   console.log('✅ [PASSED] Test 1.1: Constantes de LOD y resolución coinciden con el SSOT');
   passedTests++;

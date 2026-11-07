@@ -684,3 +684,25 @@ Todas las tablas operan bajo `ENABLE ROW LEVEL SECURITY`:
   - Canal `match_team`: Restringido a participantes de la partida activa.
   - Canal `match_dm`: Exclusivo para el emisor y el destinatario (`sender_id = auth.uid() OR recipient_id = auth.uid()`).
 - **Partidas Activas y Niebla:** Vistas de niebla aisladas en `match_player_views` para prevenir ataques de lectura de memoria (Map-Hacking). Las mutaciones del tablero y asedios se ejecutan a través de funciones RPC securizadas (`SECURITY DEFINER`).
+
+---
+
+# 5. PERSISTENCIA REALTIME Y GOBERNANZA DE CATÁLOGOS SSOT
+
+### 5.1 Persistencia Realtime en Teatro Operacional (Cabimas / Zulia `REG_VE_02`)
+*Implementación de Referencia:* `supabase/migrations/20261107_theatre_cabimas_realtime.sql` y `src/services/spatialDeploymentService.ts`.
+- **`tactical_spatial_deployments`:** Persiste las divisiones militares desplegadas sobre la cuadrícula analítica WGS84 a microescala ($z \ge 15$, celdas de 20 m). Restricción `UNIQUE(region_id, cell_key)` que previene colisiones espaciales concurrentes.
+- **`tactical_fief_constructions`:** Persiste la infraestructura in-situ de feudos tácticos (refinerías, fundiciones de microchips, bases de radar y terminales portuarias) con su durabilidad, nivel y costes horarios.
+- **`region_operational_state`:** Persiste el estado de preparación militar, DEFCON, cuotas de peaje y actividad de asedio.
+- **Canal de Suscripción CDC:** Streaming bidireccional vía `supabase_realtime` en `theatre:${regionId}` filtrando eventos Postgres Changes (`INSERT`, `UPDATE`, `DELETE`) para sincronización multijugador sin polling HTTP.
+
+### 5.2 Catálogos Estáticos Compilados con Hot-Reloading vía Manifiesto SSOT
+*Implementación de Referencia:* `supabase/migrations/20261108_system_catalog_manifest.sql`, `scripts/syncCatalogsFromDb.ts` y `src/services/catalogRegistryService.ts`.
+- **Dilema Resuelto:** Se elimina el compromiso entre latencia de red y flexibilidad de balance.
+  - En combate y pathfinding a 60 FPS: consultas sincrónicas en memoria ($O(1)$ < 0.05 ms por lookup).
+  - Como Single Source of Truth (SSOT): PostgreSQL almacena las tablas canónicas (`units_catalog`, `terrain_catalog`, `unit_weapon_damage_matrix`, etc.).
+- **`system_catalog_manifest`:** Tabla que consolida un hash SHA-256 (`content_hash`) y el payload JSON del estado actual de balance (`bundle_json`).
+- **Mecanismo Anti-Drift:**
+  - Build-time: `npm run sync:catalogs` compila los catálogos en TypeScript (`src/engine/data/catalogs.generated.ts`).
+  - Runtime: `GeotacticsLoadingScreen` verifica `get_catalog_manifest_header()` (< 300 ms). Si detecta un nuevo hash, descarga el delta consolidado y aplica el parche reactivo en caliente (`applyDynamicPatch`) sin requerir despliegue de frontend.
+  - Offline-First: Si Supabase es inaccesible, el motor opera con el 100% de capacidades utilizando los catálogos compilados o la caché local previa.

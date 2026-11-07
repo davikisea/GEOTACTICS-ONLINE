@@ -15,7 +15,7 @@
  *   desmontar el estado del lobby ni reiniciar temporizadores.
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ArrowLeft,
@@ -62,6 +62,8 @@ import { TacticalWorldMap } from '../world/TacticalWorldMap';
 import { TerritoryInspectorModal } from '../world/TerritoryInspectorModal';
 import { UnitHangarModal } from '../world/UnitHangarModal';
 import { GarrisonManagementDrawer } from '../world/GarrisonManagementDrawer';
+import { StateInspectorDrawer } from '../world/StateInspectorDrawer';
+import type { UserRoleContext } from '../../types/stateSovereigntyTypes';
 import { MetaCommandConsole } from '../metagame/MetaCommandConsole';
 import { useTerritoryMap } from '../../hooks/useTerritoryMap';
 import { useTerritoryEconomyTicker } from '../../hooks/useTerritoryEconomyTicker';
@@ -217,9 +219,20 @@ export const WarLobbyHub: React.FC<WarLobbyHubProps> = ({
   const [isMetaConsoleOpen, setIsMetaConsoleOpen] = useState(true);
   const [isVignetteCollapsed, setIsVignetteCollapsed] = useState(false);
   const [selectedProvinceId, setSelectedProvinceId] = useState<string | null>('REG_VE_01');
+  const [isStateInspectorOpen, setIsStateInspectorOpen] = useState(false);
   const [userEc, setUserEc] = useState(4850);
   const [userRareEarth, setUserRareEarth] = useState(140);
   const [userComposites, setUserComposites] = useState(95);
+
+  const userRoleContext: UserRoleContext = useMemo(() => ({
+    userId: userId || 'a0000000-0000-0000-0000-000000000001',
+    userName: clan?.name || 'Comandante en Jefe',
+    clanId: clan?.id || 'clan-ferro',
+    clanTag: clan?.tag || 'FERR',
+    clanRole: (clan as any)?.userRole || 'leader',
+    factionId: 'blue_moon',
+    isFactionManager: true,
+  }), [userId, clan]);
 
   // Estados Fase 2: Consola Paradox y Bark Widget Interactivo
   const [isParadoxDrawerOpen, setIsParadoxDrawerOpen] = useState(false);
@@ -404,6 +417,7 @@ export const WarLobbyHub: React.FC<WarLobbyHubProps> = ({
 
   const handleSelectProvinceFromMap = useCallback((provId: string) => {
     setSelectedProvinceId(provId);
+    setIsStateInspectorOpen(true);
     setIsMetaConsoleOpen(true);
     if (provId.startsWith('BUF_')) {
       setBarkWidgetMessage({
@@ -719,6 +733,14 @@ export const WarLobbyHub: React.FC<WarLobbyHubProps> = ({
               activeProvinceId={selectedProvince?.id}
               onSelectProvince={handleSelectProvinceFromMap}
               userClanId={clan?.id ?? 'clan-ferro'}
+            />
+
+            {/* PANEL INSPECTOR DE ESTADO AL CLICK (SOBERANÍA Y DATOS DE JUEGO C4ISR) */}
+            <StateInspectorDrawer
+              stateId={selectedProvinceId}
+              isOpen={isStateInspectorOpen && Boolean(selectedProvinceId)}
+              onClose={() => setIsStateInspectorOpen(false)}
+              userContext={userRoleContext}
             />
 
             {/* C4ISR THEATER STRIP (BARRA DIEGÉTICA SUPERIOR FLOTANTE DEL MAPA) */}

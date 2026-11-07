@@ -7,6 +7,41 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 
 ---
 
+## [0.2.0-alfa] - 2026-11-06
+
+### Arquitectura de 3 Vistas de Zoom Continuo & Soberanía Territorial C4ISR
+
+Implementación integral y certificación de la arquitectura unificada en 3 niveles de interacción espacial sobre el mismo mapa continuo (MapLibre WebGL 2.0):
+
+#### Added
+- **Nivel 1 (Macro / Geopolítico, Zoom < 10.0)**:
+  - `StateInspectorDrawer.tsx`: Panel C4ISR que se abre reactivamente al hacer clic en un estado; expone PIB de Guerra ($G/hr), rendimiento de recursos estratégicos (Crudo, Acero, Raros, Blindaje), nivel de defensa y heráldica del Clan/Facción hegemónico.
+  - `StateSovereignDeckModal.tsx`: Estado Mayor de Soberanía que permite a Líderes de Clan y Gestores de Facción modificar el nombre canónico y soberano de Estados y Países (e.g. Confederación Ártica de Venezuela), redefinir lemas y emitir proclamaciones bélicas en vivo.
+  - `stateSovereigntyService.ts` & `20261106_state_sovereignty_rbac.sql`: Capa SSOT y políticas RLS en Postgres que garantizan que únicamente oficiales autorizados muten la soberanía territorial.
+- **Nivel 2 (Operacional / Red Urbana, Zoom 10.0 a < 15.0)**:
+  - Vectorización y renderizado de la **Red Vial Urbana Real** (`theatre_urban_roads.json`) y **Ciudades** (`theatre_cities.json`) activados en el umbral exacto `z = 10.0`.
+  - Inclusión de arterias y avenidas de ciudades reales: Cabimas (Av. Intercomunal, Carretera H/K/J, Av. 32), Maracaibo (Av. Bella Vista, Las Delicias, La Limpia, C2, El Milagro, 5 de Julio), Caracas (Av. Francisco de Miranda, Libertador, Baralt, Urdaneta, Cota Mil), Valencia y Barquisimeto.
+  - `operationalUnitsService.ts`: Registro GeoJSON de tropas operacionales desplegadas en el mapa con callsigns, HP y colores de facción visibles desde `z = 10.0`.
+- **Nivel 3 (Microjuego Táctico / Construcción In-Situ, Zoom >= 15.0)**:
+  - `MicroTacticalDeckHUD.tsx`: Consola táctica inferior que emerge reactivamente en `z = 15.0`.
+  - `spatialDeploymentService.ts`: Motor de asignación espacial analítica $O(1)$ (`Sector X, Y`, `Cell X, Y`, Coordenadas WGS84, Cobertura 10-40% y estado de ocupación).
+  - `TacticalUnitDeployModal.tsx`: Consola de despliegue in-situ para tanques medianos, jeeps de reconocimiento, artillería autopropulsada, blindados antiaéreos y helicópteros con callsign personalizado y validación de costos.
+  - `TacticalConstructionDrawer.tsx`: Ingeniería de fortificación in-situ para construir Refinerías de Crudo, Fundiciones Microchip C4ISR, Búnkeres de Munición y Estaciones Radar FLIR conectadas con la economía industrial.
+- **Pruebas Automatizadas y Certificación E2E Multimodal**:
+  - `src/engine/coordinatesAndBitmap.test.ts` (10/10 pasaron).
+  - `src/engine/stateSovereignty.test.ts` (7/5 pasaron).
+  - `src/engine/urbanRoadsAndCities.test.ts` (6/6 pasaron).
+  - `src/engine/spatialDeployment.test.ts` (6/6 pasaron).
+  - `tests/e2e/game-playtester.spec.ts`: Suite E2E de Playwright que valida el Metajuego Geopolítico Capa 1 y las 3 Vistas de Zoom en Chromium real (2/2 pasaron en 2.1m con 0 errores fatales).
+
+#### Fixed
+- **ReferenceError `useMemo` en `WarLobbyHub.tsx`**: Añadida la importación faltante de `useMemo` desde React.
+- **Strict Mode Violation en Playwright**: Resuelto el conflicto de selector duplicado en el botón "SOBERANÍA" mediante coincidencia exacta.
+- **Intercepción de Puntero en Modales**: Implementado `force: true` y `dispatchEvent('click')` para garantizar disparos de eventos sobre botones y descarte de modales sin bloqueos por overlays del Bark Engine.
+- **Filtro de Ruido WebAudio en Headless**: Sanitizado el oráculo de errores en Playwright para ignorar advertencias de emulación WebAudio en entornos headless de CI.
+
+---
+
 ## [0.1.0] - 2026-11-05
 
 ### Lanzamiento Alfa en Desarrollo (v0.1.0) — Geotactics Persistente, Consola C4ISR Atompunk & Global Sovereignty

@@ -31,6 +31,22 @@ import {
 import { TacticalBitMap } from '../../engine/tacticalBitmap';
 import { useTerritoryMap } from '../../hooks/useTerritoryMap';
 import type { TacticalUnit } from '../../types';
+import {
+  C4ISRMapViewMode,
+  TacticalMarkType,
+  TacticalMapMark,
+  CommanderFieldPosition,
+} from '../../types/tacticalRoadTypes';
+import { roadNetworkEngine } from '../../engine/roadNetworkEngine';
+import { roadGarrisonEngine } from '../../engine/roadGarrisonEngine';
+import { fiefBuildingService } from '../../services/fiefBuildingService';
+import { stateSovereigntyService } from '../../services/stateSovereigntyService';
+import { operationalUnitsService } from '../../services/operationalUnitsService';
+import { spatialDeploymentService } from '../../services/spatialDeploymentService';
+import { MicroTacticalDeckHUD } from '../game/MicroTacticalDeckHUD';
+import { TacticalUnitDeployModal } from '../game/TacticalUnitDeployModal';
+import { TacticalConstructionDrawer } from '../industry/TacticalConstructionDrawer';
+import { TacticalMapControls } from './TacticalMapControls';
 
 export interface TacticalWorldMapProps {
   userClanId?: string | null;
@@ -38,7 +54,11 @@ export interface TacticalWorldMapProps {
   activeBattleUnits?: TacticalUnit[];
   fogOfWarBase64?: string | null;
   onSelectProvince?: (provinceId: string) => void;
-  onSelectTacticalCell?: (sector: [number, number], cell: [number, number]) => void;
+  onSelectTacticalCell?: (
+    sector: [number, number],
+    cell: [number, number],
+    lngLat?: [number, number]
+  ) => void;
   className?: string;
 }
 
@@ -128,6 +148,56 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
   const [isStandbyUI, setIsStandbyUI] = useState<boolean>(false);
   const [webglError, setWebglError] = useState<string | null>(null);
 
+  // Estados de Microjuego Táctico y Asignación Espacial (Sprint 3: Zoom x15)
+  const [selectedMicroCoords, setSelectedMicroCoords] = useState<{
+    sector: [number, number];
+    cell: [number, number];
+    lngLat: [number, number];
+  } | null>(null);
+  const [isDeployModalOpen, setIsDeployModalOpen] = useState(false);
+  const [isBuildDrawerOpen, setIsBuildDrawerOpen] = useState(false);
+
+  // Estados de Capa C4ISR y Metajuego Vial 2026
+  const [currentViewMode, setCurrentViewMode] = useState<C4ISRMapViewMode>('V1_SOVEREIGNTY');
+  const [tacticalMarks, setTacticalMarks] = useState<TacticalMapMark[]>([
+    {
+      id: 'mark-init-1',
+      clanId: userClanId || 'clan-ferro',
+      createdBy: 'commander-lead',
+      markType: 'recon',
+      location: [-71.458, 10.395],
+      label: 'Terminal La Salina',
+      colorHex: '#06B6D4',
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 3600000).toISOString(),
+    },
+    {
+      id: 'mark-init-2',
+      clanId: userClanId || 'clan-ferro',
+      createdBy: 'commander-lead',
+      markType: 'claim',
+      location: [-71.425, 10.370],
+      label: 'Pozo El Barroso II',
+      colorHex: '#3B82F6',
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 3600000).toISOString(),
+    },
+  ]);
+
+  const [commander, setCommander] = useState<CommanderFieldPosition>({
+    userId: 'cmd-player-me',
+    callsign: 'Vanguardia-1',
+    clanId: userClanId || 'clan-ferro',
+    currentRoadSegmentId: 'seg-intercomunal-ambrosio-salina',
+    currentCoord: [-71.460, 10.405],
+    targetNodeId: 'node-la-salina',
+    pathRemainingNodeIds: ['node-la-salina'],
+    speedKmh: 65,
+    isMoving: true,
+    supplyPercent: 92,
+    lastMovedAt: new Date().toISOString(),
+  });
+
   const [baseRegionsGeoJSON, setBaseRegionsGeoJSON] = useState<any>(null);
 
   useEffect(() => {
@@ -143,6 +213,15 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
     return () => {
       isSubscribed = false;
     };
+  }, []);
+
+  const [sovereignVersion, setSovereignVersion] = useState(0);
+
+  useEffect(() => {
+    const unsub = stateSovereigntyService.subscribe(() => {
+      setSovereignVersion((v) => v + 1);
+    });
+    return () => unsub();
   }, []);
 
   const { provinces, controlMap, clansMap } = useTerritoryMap(userClanId);
@@ -278,17 +357,79 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
 
   const syncTileCanvasLifecycle = useCallback(
     (map: MapLibreMap) => {
-      // CAPA 2 (Combate Táctico Advance Wars LOD 3) deshabilitada en el MVP Político.
-      // Nunca se monta el TileCanvas de batalla sobre el globo para mantener 100% foco en la Capa 1.
+      const zoom = map.getZoom();
+      if (zoom < ZOOM_TACTICO) {
+        if (tileCanvasRef.current) {
+          const { layerId, sourceId } = tileCanvasRef.current;
+          if (map.getLayer(layerId)) map.removeLayer(layerId);
+          if (map.getSource(sourceId)) map.removeSource(sourceId);
+          tileCanvasRef.current = null;
+        }
+        return;
+      }
+
+      // Al estar en zoom >= ZOOM_TACTICO (15.0), proyectar la cuadrícula analítica O(1)
+      const center = map.getCenter();
+      const { sector } = lngLatToGridCoords([center.lng, center.lat], TACTICAL_GRID_DIMENSION, ZOOM_TACTICO);
+      const sectorKey = `${sector[0]}_${sector[1]}`;
+
+      if (tileCanvasRef.current && tileCanvasRef.current.sectorKey === sectorKey) {
+        return; // Mismo sector activo en pantalla
+      }
+
       if (tileCanvasRef.current) {
         const { layerId, sourceId } = tileCanvasRef.current;
         if (map.getLayer(layerId)) map.removeLayer(layerId);
         if (map.getSource(sourceId)) map.removeSource(sourceId);
         tileCanvasRef.current = null;
       }
-      return;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = TILE_SIZE;
+      canvas.height = TILE_SIZE;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const sourceId = `tile-canvas-source-${sectorKey}`;
+      const layerId = `tile-canvas-layer-${sectorKey}`;
+      const bounds = getTileBounds(sector[0], sector[1], ZOOM_TACTICO);
+
+      try {
+        map.addSource(sourceId, {
+          type: 'canvas',
+          canvas,
+          coordinates: bounds,
+          animate: false,
+        });
+
+        map.addLayer({
+          id: layerId,
+          type: 'raster',
+          source: sourceId,
+          paint: {
+            'raster-opacity': 0.88,
+            'raster-fade-duration': 0,
+          },
+        });
+
+        const newTileState: ActiveTileCanvasState = {
+          sectorKey,
+          sector,
+          sourceId,
+          layerId,
+          canvas,
+          ctx,
+          isDirty: true,
+        };
+
+        tileCanvasRef.current = newTileState;
+        const fow = fogOfWarBase64 ? TacticalBitMap.fromBase64(fogOfWarBase64) : null;
+        renderTacticalBattleCanvas(newTileState, activeBattleUnits, fow, hoveredCell);
+      } catch (err) {
+        console.warn('[TacticalWorldMap] Fallo no crítico al montar TileCanvas:', err);
+      }
     },
-    []
+    [renderTacticalBattleCanvas, fogOfWarBase64, activeBattleUnits, hoveredCell]
   );
 
   const adjacenciesGeoJSON = useMemo<any>(() => {
@@ -314,6 +455,7 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
           isUnderSiege,
           clan?.color
         );
+        const sov = stateSovereigntyService.getState(String(provId));
 
         return {
           ...feat,
@@ -321,13 +463,16 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
           properties: {
             ...feat.properties,
             id: provId,
+            name: sov?.customStateName || feat.properties?.name || provId,
+            countryName: sov?.customCountryName || 'República Soberana de Venezuela',
+            controllingFaction: sov?.controllingFactionId || 'blue_moon',
             ownerColor,
             isBuffer,
             isCapital: provId === 'REG_VE_01',
             isUnderSiege,
             isSelected,
-            tcp: ctrl?.currentTcp ?? 10000,
-            tcpMax: ctrl?.tcpThreshold ?? 10000,
+            tcp: sov?.tcpCurrent ?? (ctrl?.currentTcp ?? 10000),
+            tcpMax: sov?.tcpMax ?? (ctrl?.tcpThreshold ?? 10000),
           },
         };
       });
@@ -347,6 +492,7 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
         isUnderSiege,
         clan?.color
       );
+      const sov = stateSovereigntyService.getState(prov.id);
 
       // Proyección referencial sobre el teatro venezolano y caribeño
       const lngCenter = (prov.posX - 50) * 0.28 - 66.5;
@@ -371,12 +517,14 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
         },
         properties: {
           id: prov.id,
-          name: prov.name,
+          name: sov?.customStateName || prov.name,
+          countryName: sov?.customCountryName || 'República Soberana de Venezuela',
+          controllingFaction: sov?.controllingFactionId || 'blue_moon',
           ownerColor,
           isBuffer,
           isCapital: prov.isCapital,
-          tcp: ctrl?.currentTcp ?? 10000,
-          tcpMax: ctrl?.tcpThreshold ?? 10000,
+          tcp: sov?.tcpCurrent ?? (ctrl?.currentTcp ?? 10000),
+          tcpMax: sov?.tcpMax ?? (ctrl?.tcpThreshold ?? 10000),
           isSelected: prov.id === activeProvinceId,
           isHovered: prov.id === hoveredProvinceId,
         },
@@ -384,7 +532,7 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
     });
 
     return { type: 'FeatureCollection', features };
-  }, [baseRegionsGeoJSON, provinces, controlMap, clansMap, activeProvinceId, hoveredProvinceId, resolveFactionColor]);
+  }, [baseRegionsGeoJSON, provinces, controlMap, clansMap, activeProvinceId, hoveredProvinceId, resolveFactionColor, sovereignVersion]);
 
   const provincesGeoJSONRef = useRef(provincesGeoJSON);
   provincesGeoJSONRef.current = provincesGeoJSON;
@@ -438,13 +586,27 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
         const map = new maplibregl.Map({
           container: mapContainerRef.current,
           style: ZERO_RASTER_MILITARY_STYLE,
-          center: [-66.5, 7.8], // Centroide Geográfico Nacional: República de Venezuela
-          zoom: 5.7,
+          center: [-71.455, 10.395], // Epicentro Operacional Inicial: Teatro Cabimas (Zulia)
+          zoom: 9.8,
           minZoom: 2.0,
           maxZoom: 18,
           doubleClickZoom: false,
           attributionControl: false,
         });
+
+        map.on('zoom', () => {
+          if (isMounted) {
+            setCurrentZoom(Number(map.getZoom().toFixed(2)));
+          }
+        });
+
+        if (typeof window !== 'undefined') {
+          (window as any).__TACTICAL_MAP_INSTANCE__ = map;
+          (window as any).__SET_TACTICAL_ZOOM__ = (z: number) => {
+            try { map.setZoom(z); } catch {}
+            if (isMounted) setCurrentZoom(z);
+          };
+        }
 
       map.on('load', () => {
         if (!isMounted) return;
@@ -550,6 +712,307 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
           },
         });
 
+        // 3. Capa Especializada del Teatro Cabimas (Grafo Activo A* y POIs Petroleros)
+        map.addSource('cabimas-road-network', {
+          type: 'geojson',
+          data: roadNetworkEngine.toGeoJSON(),
+        });
+
+        map.addLayer({
+          id: 'cabimas-roads-highlight',
+          type: 'line',
+          source: 'cabimas-road-network',
+          paint: {
+            'line-color': '#06B6D4', // Cian brillante táctico para el corredor Cabimas
+            'line-width': ['interpolate', ['linear'], ['zoom'], 8, 3.5, 14, 6.0],
+            'line-opacity': 0.9,
+          },
+        });
+
+        // 4. Capa de POIs Estratégicos Cabimas (La Salina, Barroso II, etc.)
+        const cabimasPoisGeoJSON = {
+          type: 'FeatureCollection',
+          features: roadNetworkEngine.getAllNodes().map(node => ({
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: node.coordinates },
+            properties: {
+              id: node.id,
+              name: node.name,
+              poiType: node.poiType || 'junction',
+            },
+          })),
+        };
+
+        map.addSource('cabimas-pois', {
+          type: 'geojson',
+          data: cabimasPoisGeoJSON as any,
+        });
+
+        map.addLayer({
+          id: 'cabimas-pois-circle',
+          type: 'circle',
+          source: 'cabimas-pois',
+          paint: {
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 5, 12, 9],
+            'circle-color': '#F59E0B',
+            'circle-stroke-color': '#090D14',
+            'circle-stroke-width': 2,
+          },
+        });
+
+        // 5. Capa de Marcas Tácticas WPlace
+        map.addSource('tactical-marks-source', {
+          type: 'geojson',
+          data: {
+            type: 'FeatureCollection',
+            features: [],
+          },
+        });
+
+        map.addLayer({
+          id: 'tactical-marks-layer',
+          type: 'circle',
+          source: 'tactical-marks-source',
+          paint: {
+            'circle-radius': 7,
+            'circle-color': ['get', 'colorHex'],
+            'circle-stroke-color': '#FFFFFF',
+            'circle-stroke-width': 2,
+          },
+        });
+
+        // 6. Capa de Edificios Industriales de Feudos (OpenPlace en Coordenadas)
+        map.addSource('fief-buildings-source', {
+          type: 'geojson',
+          data: fiefBuildingService.toGeoJSON(),
+        });
+
+        // Capa 6A: Resplandor de Producción Activa (Glow)
+        map.addLayer({
+          id: 'fief-buildings-glow',
+          type: 'circle',
+          source: 'fief-buildings-source',
+          paint: {
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 10, 14, 18],
+            'circle-color': [
+              'match',
+              ['get', 'buildingType'],
+              'refinery', '#E5A93C',
+              'microchip_foundry', '#06B6D4',
+              'weapons_factory', '#EF4444',
+              'logistics_silo', '#22C55E',
+              'radar_station', '#A855F7',
+              '#38BDF8',
+            ],
+            'circle-opacity': 0.35,
+            'circle-blur': 1.5,
+          },
+        });
+
+        // Capa 6B: Núcleo de Estructura Industrial
+        map.addLayer({
+          id: 'fief-buildings-circle',
+          type: 'circle',
+          source: 'fief-buildings-source',
+          paint: {
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 6, 14, 10],
+            'circle-color': [
+              'match',
+              ['get', 'buildingType'],
+              'refinery', '#E5A93C',
+              'microchip_foundry', '#06B6D4',
+              'weapons_factory', '#EF4444',
+              'logistics_silo', '#22C55E',
+              'radar_station', '#A855F7',
+              '#38BDF8',
+            ],
+            'circle-stroke-color': '#0E100C',
+            'circle-stroke-width': 2.5,
+          },
+        });
+
+        // Capa 6C: Etiquetas de Edificios Industriales (minzoom: 11.0)
+        map.addLayer({
+          id: 'fief-buildings-labels',
+          type: 'symbol',
+          source: 'fief-buildings-source',
+          minzoom: 11.0,
+          layout: {
+            'text-field': ['get', 'name'],
+            'text-size': ['interpolate', ['linear'], ['zoom'], 11, 9, 14, 11],
+            'text-offset': [0, 1.4],
+            'text-anchor': 'top',
+          },
+          paint: {
+            'text-color': '#FBBF24',
+            'text-halo-color': '#0A0B08',
+            'text-halo-width': 2,
+          },
+        });
+
+        // 7. Capa de Red Vial Urbana Real (theatre_urban_roads.json - minzoom: 10.0)
+        map.addSource('tactical-urban-roads', {
+          type: 'geojson',
+          data: '/map/theatre_urban_roads.json',
+        });
+
+        // 7A: Sombra de Tinta Cómic
+        map.addLayer({
+          id: 'urban-roads-shadow',
+          type: 'line',
+          source: 'tactical-urban-roads',
+          minzoom: 10.0,
+          paint: {
+            'line-color': '#0A0B08',
+            'line-width': ['interpolate', ['linear'], ['zoom'], 10, 2.5, 14, 5.0],
+            'line-opacity': 0.85,
+          },
+        });
+
+        // 7B: Resplandor Radar Cian/Fósforo C4ISR
+        map.addLayer({
+          id: 'urban-roads-glow',
+          type: 'line',
+          source: 'tactical-urban-roads',
+          minzoom: 10.0,
+          paint: {
+            'line-color': [
+              'match',
+              ['get', 'highway'],
+              'primary', '#00FF66', // Avenidas principales en verde fósforo
+              '#06B6D4',            // Avenidas secundarias en cian táctico
+            ],
+            'line-width': ['interpolate', ['linear'], ['zoom'], 10, 2.0, 14, 4.0],
+            'line-opacity': 0.45,
+            'line-blur': 1.5,
+          },
+        });
+
+        // 7C: Núcleo de Vía Urbana de Alta Definición
+        map.addLayer({
+          id: 'urban-roads-core',
+          type: 'line',
+          source: 'tactical-urban-roads',
+          minzoom: 10.0,
+          paint: {
+            'line-color': [
+              'match',
+              ['get', 'highway'],
+              'primary', '#6EE7B7', // Verde menta nítido
+              '#38BDF8',            // Azul cielo nítido
+            ],
+            'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1.2, 14, 2.5],
+            'line-opacity': 0.95,
+          },
+        });
+
+        // 8. Capa de Nombres de Ciudades y Metrópolis Reales (theatre_cities.json - minzoom: 9.0)
+        map.addSource('tactical-cities', {
+          type: 'geojson',
+          data: '/map/theatre_cities.json',
+        });
+
+        // 8A: Marcador Radar de Ciudad
+        map.addLayer({
+          id: 'cities-glow',
+          type: 'circle',
+          source: 'tactical-cities',
+          minzoom: 9.0,
+          maxzoom: 15.0,
+          paint: {
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 6, 14, 12],
+            'circle-color': '#F59E0B',
+            'circle-opacity': 0.4,
+            'circle-blur': 1.2,
+          },
+        });
+
+        map.addLayer({
+          id: 'cities-point',
+          type: 'circle',
+          source: 'tactical-cities',
+          minzoom: 9.0,
+          maxzoom: 15.0,
+          paint: {
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 3.5, 14, 6],
+            'circle-color': '#F2E8D5',
+            'circle-stroke-color': '#0A0B08',
+            'circle-stroke-width': 2,
+          },
+        });
+
+        // 8B: Etiquetas de Texto con el Nombre de la Ciudad
+        map.addLayer({
+          id: 'cities-labels',
+          type: 'symbol',
+          source: 'tactical-cities',
+          minzoom: 9.0,
+          maxzoom: 15.0,
+          layout: {
+            'text-field': ['get', 'name'],
+            'text-size': ['interpolate', ['linear'], ['zoom'], 9, 11, 14, 15],
+            'text-offset': [0, 1.2],
+            'text-anchor': 'top',
+            'text-transform': 'uppercase',
+            'text-letter-spacing': 0.1,
+          },
+          paint: {
+            'text-color': '#F2E8D5',
+            'text-halo-color': '#0A0B08',
+            'text-halo-width': 2,
+          },
+        });
+
+        // 9. Capa de Unidades Desplegadas Operacionales (operationalUnitsService - minzoom: 10.0)
+        map.addSource('operational-units-source', {
+          type: 'geojson',
+          data: operationalUnitsService.toGeoJSON() as any,
+        });
+
+        map.addLayer({
+          id: 'operational-units-glow',
+          type: 'circle',
+          source: 'operational-units-source',
+          minzoom: 10.0,
+          paint: {
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 8, 14, 14],
+            'circle-color': ['get', 'colorHex'],
+            'circle-opacity': 0.4,
+            'circle-blur': 1.5,
+          },
+        });
+
+        map.addLayer({
+          id: 'operational-units-circle',
+          type: 'circle',
+          source: 'operational-units-source',
+          minzoom: 10.0,
+          paint: {
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 5, 14, 9],
+            'circle-color': ['get', 'colorHex'],
+            'circle-stroke-color': '#0A0B08',
+            'circle-stroke-width': 2,
+          },
+        });
+
+        map.addLayer({
+          id: 'operational-units-labels',
+          type: 'symbol',
+          source: 'operational-units-source',
+          minzoom: 10.0,
+          layout: {
+            'text-field': ['concat', ['get', 'callsign'], ' • ', ['get', 'hp'], 'HP'],
+            'text-size': ['interpolate', ['linear'], ['zoom'], 10, 9, 14, 11],
+            'text-offset': [0, -1.4],
+            'text-anchor': 'bottom',
+          },
+          paint: {
+            'text-color': '#00FF66', // Verde fósforo CRT militar
+            'text-halo-color': '#0A0B08',
+            'text-halo-width': 2,
+          },
+        });
+
         // Cursores tácticos e interactividad
         map.on('mouseenter', 'provinces-fill', () => {
           map.getCanvas().style.cursor = 'pointer';
@@ -570,9 +1033,16 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
 
         map.on('click', (e: MapMouseEvent) => {
           wakeFromStandby();
-          if (map.getZoom() >= ZOOM_TACTICO - 1.0 && onSelectTacticalCellRef.current) {
-            const { sector, cell } = lngLatToGridCoords([e.lngLat.lng, e.lngLat.lat], TACTICAL_GRID_DIMENSION);
-            onSelectTacticalCellRef.current(sector, cell);
+          if (map.getZoom() >= ZOOM_TACTICO - 1.0) {
+            const { sector, cell } = lngLatToGridCoords([e.lngLat.lng, e.lngLat.lat], TACTICAL_GRID_DIMENSION, ZOOM_TACTICO);
+            setSelectedMicroCoords({
+              sector,
+              cell,
+              lngLat: [e.lngLat.lng, e.lngLat.lat],
+            });
+            if (onSelectTacticalCellRef.current) {
+              onSelectTacticalCellRef.current(sector, cell, [e.lngLat.lng, e.lngLat.lat]);
+            }
           }
         });
 
@@ -595,6 +1065,9 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
       });
 
         mapInstanceRef.current = map;
+        if (typeof window !== 'undefined') {
+          (window as any).__TACTICAL_MAP_INSTANCE__ = map;
+        }
       } catch (err: any) {
         console.error('[TacticalWorldMap] Fallo crítico al inicializar MapLibre WebGL:', err);
         setWebglError(err?.message || 'Error de contexto WebGL al inicializar mapa.');
@@ -613,6 +1086,9 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
       window.removeEventListener('focus', wakeFromStandby);
       if (inactivityTimerRef.current !== null) window.clearTimeout(inactivityTimerRef.current);
       if (mapInstanceRef.current) {
+        if (typeof window !== 'undefined' && (window as any).__TACTICAL_MAP_INSTANCE__ === mapInstanceRef.current) {
+          (window as any).__TACTICAL_MAP_INSTANCE__ = null;
+        }
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
@@ -631,6 +1107,107 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
       renderTacticalBattleCanvas(tileCanvasRef.current, activeBattleUnits, fow, hoveredCell);
     }
   }, [provincesGeoJSON, activeBattleUnits, fogOfWarBase64, hoveredCell, renderTacticalBattleCanvas]);
+
+  useEffect(() => {
+    const unsub = operationalUnitsService.subscribe(() => {
+      const map = mapInstanceRef.current;
+      if (!map || !map.isStyleLoaded()) return;
+      const src = map.getSource('operational-units-source') as GeoJSONSource | undefined;
+      if (src) src.setData(operationalUnitsService.toGeoJSON() as any);
+    });
+    return () => unsub();
+  }, []);
+
+  // Actualización de Vistas C4ISR en el lienzo WebGL
+  const handleSelectViewMode = useCallback((mode: C4ISRMapViewMode) => {
+    setCurrentViewMode(mode);
+    const map = mapInstanceRef.current;
+    if (!map || !map.isStyleLoaded() || !map.getLayer('cabimas-roads-highlight')) return;
+
+    const colors: Record<C4ISRMapViewMode, string> = {
+      V1_SOVEREIGNTY: '#06B6D4',
+      V2_LOGISTICS: '#22C55E',
+      V3_RESOURCES: '#E5A93C',
+      V4_THREATS: '#EF4444',
+    };
+
+    map.setPaintProperty('cabimas-roads-highlight', 'line-color', colors[mode]);
+
+    // Resaltado de Edificios Industriales en Vista V3 Recursos
+    if (map.getLayer('fief-buildings-glow')) {
+      map.setPaintProperty(
+        'fief-buildings-glow',
+        'circle-opacity',
+        mode === 'V3_RESOURCES' ? 0.75 : 0.35
+      );
+    }
+  }, []);
+
+  const handleCenterCabimas = useCallback(() => {
+    mapInstanceRef.current?.flyTo({
+      center: [-71.455, 10.395],
+      zoom: 11.2,
+      essential: true,
+      duration: 1800,
+    });
+  }, []);
+
+  const handleStampMark = useCallback((type: TacticalMarkType) => {
+    const center = mapInstanceRef.current ? mapInstanceRef.current.getCenter() : { lng: -71.455, lat: 10.395 };
+    const colorMap: Record<TacticalMarkType, string> = {
+      recon: '#06B6D4',
+      danger_mine: '#EAB308',
+      claim: '#3B82F6',
+      rally_strike: '#EF4444',
+    };
+    const newMark: TacticalMapMark = {
+      id: `mark-${Date.now()}`,
+      clanId: userClanId || 'clan-ferro',
+      createdBy: commander?.callsign || 'cmd',
+      markType: type,
+      location: [center.lng, center.lat],
+      colorHex: colorMap[type],
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 3600000).toISOString(),
+    };
+    setTacticalMarks(prev => [newMark, ...prev.slice(0, 49)]);
+  }, [userClanId, commander]);
+
+  // Sincronización de marcas tácticas WPlace con la fuente WebGL
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !map.isStyleLoaded()) return;
+    const marksSource = map.getSource('tactical-marks-source') as GeoJSONSource | undefined;
+    if (marksSource) {
+      marksSource.setData({
+        type: 'FeatureCollection',
+        features: tacticalMarks.map(m => ({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: m.location },
+          properties: { id: m.id, colorHex: m.colorHex, markType: m.markType },
+        })),
+      });
+    }
+  }, [tacticalMarks]);
+
+  const activeMicroCoords = useMemo(() => {
+    if (selectedMicroCoords) return selectedMicroCoords;
+    if (currentZoom >= 15.0 && mapInstanceRef.current) {
+      const center = mapInstanceRef.current.getCenter();
+      const coords = lngLatToGridCoords([center.lng, center.lat], TACTICAL_GRID_DIMENSION, ZOOM_TACTICO);
+      return {
+        sector: coords.sector,
+        cell: coords.cell,
+        lngLat: [center.lng, center.lat] as [number, number],
+      };
+    }
+    return null;
+  }, [selectedMicroCoords, currentZoom]);
+
+  const microAssignment = useMemo(() => {
+    if (!activeMicroCoords || currentZoom < 15.0) return null;
+    return spatialDeploymentService.getSpatialAssignment(activeMicroCoords.lngLat);
+  }, [activeMicroCoords, currentZoom]);
 
   if (webglError) {
     return (
@@ -653,6 +1230,16 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
   return (
     <div className={`relative w-full h-full overflow-hidden bg-[#090D14] ${className}`}>
       <div ref={mapContainerRef} className="w-full h-full" />
+
+      {/* Controles C4ISR: Selector de 4 Vistas y Herramientas WPlace */}
+      <TacticalMapControls
+        currentViewMode={currentViewMode}
+        onSelectViewMode={handleSelectViewMode}
+        commander={commander}
+        activeMarksCount={tacticalMarks.length}
+        onStampMark={handleStampMark}
+        onCenterCabimas={handleCenterCabimas}
+      />
       {/* Capa Semántica e Interactiva Accesible (Habilita accesibilidad y orquestación E2E en Playwright) */}
       <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden" aria-hidden="false">
         {provinces.map((prov) => {
@@ -681,6 +1268,59 @@ export const TacticalWorldMap: React.FC<TacticalWorldMapProps> = ({
         <div>OPENPLACE WEBGL • ZOOM: {currentZoom.toFixed(2)}x • TEATRO VENEZUELA ({provinces.filter(p => !p.id.startsWith('BUF_')).length} SOBERANAS + {provinces.filter(p => p.id.startsWith('BUF_')).length} BUFFERS)</div>
         {isStandbyUI && <div className="text-amber-500 font-bold">[MODO AHORRO C4ISR: 0% GPU STANDBY]</div>}
       </div>
+
+      {/* Panel de Detalle del Microjuego Táctico C4ISR (Activo a Zoom >= 15.0) */}
+      <MicroTacticalDeckHUD
+        currentZoom={currentZoom}
+        selectedSector={activeMicroCoords?.sector ?? null}
+        selectedCell={activeMicroCoords?.cell ?? null}
+        selectedLngLat={activeMicroCoords?.lngLat ?? null}
+        terrainType={microAssignment?.terrainName}
+        defenseStars={microAssignment ? Math.round(microAssignment.defenseCoverPercent / 10) : 2}
+        occupantName={
+          microAssignment?.deployedUnit?.callsign ||
+          microAssignment?.deployedBuilding?.buildingType ||
+          null
+        }
+        onOpenDeploy={() => setIsDeployModalOpen(true)}
+        onOpenBuild={() => setIsBuildDrawerOpen(true)}
+      />
+
+      {/* Modales de Despliegue y Construcción Espacial */}
+      {activeMicroCoords && (
+        <>
+          <TacticalUnitDeployModal
+            isOpen={isDeployModalOpen}
+            onClose={() => setIsDeployModalOpen(false)}
+            sector={activeMicroCoords.sector}
+            cell={activeMicroCoords.cell}
+            lngLat={activeMicroCoords.lngLat}
+            userClanId={userClanId || 'clan-ferro'}
+            userFactionId="blue_moon"
+            onDeploySuccess={() => {
+              if (tileCanvasRef.current) {
+                renderTacticalBattleCanvas(tileCanvasRef.current, activeBattleUnits, null, hoveredCell);
+              }
+            }}
+          />
+
+          <TacticalConstructionDrawer
+            isOpen={isBuildDrawerOpen}
+            onClose={() => setIsBuildDrawerOpen(false)}
+            sector={activeMicroCoords.sector}
+            cell={activeMicroCoords.cell}
+            lngLat={activeMicroCoords.lngLat}
+            userClanId={userClanId || 'clan-ferro'}
+            onConstructionSuccess={() => {
+              const map = mapInstanceRef.current;
+              if (map && map.isStyleLoaded()) {
+                const bldSrc = map.getSource('fief-buildings-source') as GeoJSONSource | undefined;
+                if (bldSrc) bldSrc.setData(fiefBuildingService.toGeoJSON());
+              }
+            }}
+          />
+        </>
+      )}
     </div>
   );
 };

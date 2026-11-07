@@ -1,0 +1,858 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "road-cab-intercomunal-1",
+      "properties": {
+        "id": "road-cab-intercomunal-1",
+        "name": "Avenida Intercomunal Cabimas",
+        "city": "Cabimas",
+        "highway": "primary",
+        "lanes": 4,
+        "speedLimit": 60
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -71.465,
+            10.42
+          ],
+          [
+            -71.46,
+            10.405
+          ],
+          [
+            -71.454,
+            10.395
+          ],
+          [
+            -71.448,
+            10.38
+          ],
+          [
+            -71.439,
+            10.36
+          ],
+          [
+            -71.428,
+            10.335
+          ],
+          [
+            -71.39,
+            10.27
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "road-cab-av32",
+      "properties": {
+        "id": "road-cab-av32",
+        "name": "Avenida 32 Cabimas",
+        "city": "Cabimas",
+        "highway": "primary",
+        "lanes": 4,
+        "speedLimit": 50
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -71.45,
+            10.425
+          ],
+          [
+            -71.445,
+            10.408
+          ],
+          [
+            -71.438,
+            10.39
+          ],
+          [
+            -71.43,
+            10.37
+          ],
+          [
+            -71.42,
+            10.345
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "road-cab-carretera-h",
+      "properties": {
+        "id": "road-cab-carretera-h",
+        "name": "Carretera H (Eje Este-Oeste)",
+        "city": "Cabimas",
+        "highway": "primary",
+        "lanes": 4,
+        "speedLimit": 60
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -71.46,
+            10.395
+          ],
+          [
+            -71.448,
+            10.396
+          ],
+          [
+            -71.438,
+            10.396
+          ],
+          [
+            -71.415,
+            10.397
+          ],
+          [
+            -71.37,
+            10.398
+          ],
+          [
+            -71.32,
+            10.4
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "road-cab-carretera-j",
+      "properties": {
+        "id": "road-cab-carretera-j",
+        "name": "Carretera J Cabimas",
+        "city": "Cabimas",
+        "highway": "secondary",
+        "lanes": 2,
+        "speedLimit": 45
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -71.456,
+            10.382
+          ],
+          [
+            -71.446,
+            10.382
+          ],
+          [
+            -71.434,
+            10.383
+          ],
+          [
+            -71.41,
+            10.384
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "road-cab-carretera-k",
+      "properties": {
+        "id": "road-cab-carretera-k",
+        "name": "Carretera K (Acceso Barroso)",
+        "city": "Cabimas",
+        "highway": "primary",
+        "lanes": 4,
+        "speedLimit": 50
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -71.451,
+            10.37
+          ],
+          [
+            -71.44,
+            10.37
+          ],
+          [
+            -71.425,
+            10.37
+          ],
+          [
+            -71.405,
+            10.371
+          ],
+          [
+            -71.365,
+            10.373
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "road-cab-av-miraflores",
+      "properties": {
+        "id": "road-cab-av-miraflores",
+        "name": "Avenida Miraflores Cabimas",
+        "city": "Cabimas",
+        "highway": "secondary",
+        "lanes": 2,
+        "speedLimit": 40
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -71.462,
+            10.402
+          ],
+          [
+            -71.455,
+            10.401
+          ],
+          [
+            -71.448,
+            10.4
+          ],
+          [
+            -71.442,
+            10.398
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "road-cab-av-andres-bello",
+      "properties": {
+        "id": "road-cab-av-andres-bello",
+        "name": "Avenida Andrés Bello Cabimas",
+        "city": "Cabimas",
+        "highway": "secondary",
+        "lanes": 2,
+        "speedLimit": 45
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -71.468,
+            10.415
+          ],
+          [
+            -71.463,
+            10.4
+          ],
+          [
+            -71.458,
+            10.385
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "road-mcbo-av-bella-vista",
+      "properties": {
+        "id": "road-mcbo-av-bella-vista",
+        "name": "Avenida 4 (Bella Vista)",
+        "city": "Maracaibo",
+        "highway": "primary",
+        "lanes": 4,
+        "speedLimit": 50
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -71.605,
+            10.635
+          ],
+          [
+            -71.608,
+            10.65
+          ],
+          [
+            -71.611,
+            10.665
+          ],
+          [
+            -71.614,
+            10.68
+          ],
+          [
+            -71.617,
+            10.695
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "road-mcbo-av-delicias",
+      "properties": {
+        "id": "road-mcbo-av-delicias",
+        "name": "Avenida 15 (Las Delicias)",
+        "city": "Maracaibo",
+        "highway": "primary",
+        "lanes": 4,
+        "speedLimit": 50
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -71.618,
+            10.632
+          ],
+          [
+            -71.621,
+            10.65
+          ],
+          [
+            -71.624,
+            10.67
+          ],
+          [
+            -71.627,
+            10.69
+          ],
+          [
+            -71.63,
+            10.71
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "road-mcbo-av-la-limpia",
+      "properties": {
+        "id": "road-mcbo-av-la-limpia",
+        "name": "Avenida La Limpia",
+        "city": "Maracaibo",
+        "highway": "primary",
+        "lanes": 4,
+        "speedLimit": 55
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -71.625,
+            10.638
+          ],
+          [
+            -71.642,
+            10.65
+          ],
+          [
+            -71.66,
+            10.662
+          ],
+          [
+            -71.678,
+            10.674
+          ],
+          [
+            -71.695,
+            10.685
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "road-mcbo-circunvalacion-2",
+      "properties": {
+        "id": "road-mcbo-circunvalacion-2",
+        "name": "Avenida Circunvalación 2 (C2)",
+        "city": "Maracaibo",
+        "highway": "primary",
+        "lanes": 6,
+        "speedLimit": 70
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -71.65,
+            10.605
+          ],
+          [
+            -71.658,
+            10.63
+          ],
+          [
+            -71.652,
+            10.66
+          ],
+          [
+            -71.64,
+            10.685
+          ],
+          [
+            -71.62,
+            10.705
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "road-mcbo-av-el-milagro",
+      "properties": {
+        "id": "road-mcbo-av-el-milagro",
+        "name": "Avenida El Milagro (Costanera)",
+        "city": "Maracaibo",
+        "highway": "primary",
+        "lanes": 4,
+        "speedLimit": 60
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -71.6,
+            10.63
+          ],
+          [
+            -71.597,
+            10.65
+          ],
+          [
+            -71.595,
+            10.67
+          ],
+          [
+            -71.592,
+            10.69
+          ],
+          [
+            -71.585,
+            10.71
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "road-mcbo-av-5-de-julio",
+      "properties": {
+        "id": "road-mcbo-av-5-de-julio",
+        "name": "Calle 77 (Avenida 5 de Julio)",
+        "city": "Maracaibo",
+        "highway": "secondary",
+        "lanes": 4,
+        "speedLimit": 45
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -71.595,
+            10.665
+          ],
+          [
+            -71.61,
+            10.665
+          ],
+          [
+            -71.625,
+            10.665
+          ],
+          [
+            -71.64,
+            10.665
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "road-ccs-av-fco-miranda",
+      "properties": {
+        "id": "road-ccs-av-fco-miranda",
+        "name": "Avenida Francisco de Miranda",
+        "city": "Caracas",
+        "highway": "primary",
+        "lanes": 6,
+        "speedLimit": 50
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -66.885,
+            10.49
+          ],
+          [
+            -66.865,
+            10.492
+          ],
+          [
+            -66.845,
+            10.494
+          ],
+          [
+            -66.825,
+            10.496
+          ],
+          [
+            -66.805,
+            10.498
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "road-ccs-av-libertador",
+      "properties": {
+        "id": "road-ccs-av-libertador",
+        "name": "Avenida Libertador (Trinchera)",
+        "city": "Caracas",
+        "highway": "primary",
+        "lanes": 6,
+        "speedLimit": 60
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -66.9,
+            10.5
+          ],
+          [
+            -66.885,
+            10.497
+          ],
+          [
+            -66.87,
+            10.495
+          ],
+          [
+            -66.855,
+            10.493
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "road-ccs-av-baralt",
+      "properties": {
+        "id": "road-ccs-av-baralt",
+        "name": "Avenida Baralt (Centro)",
+        "city": "Caracas",
+        "highway": "secondary",
+        "lanes": 4,
+        "speedLimit": 40
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -66.918,
+            10.515
+          ],
+          [
+            -66.917,
+            10.505
+          ],
+          [
+            -66.916,
+            10.495
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "road-ccs-av-urdaneta",
+      "properties": {
+        "id": "road-ccs-av-urdaneta",
+        "name": "Avenida Urdaneta",
+        "city": "Caracas",
+        "highway": "secondary",
+        "lanes": 4,
+        "speedLimit": 40
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -66.92,
+            10.508
+          ],
+          [
+            -66.91,
+            10.508
+          ],
+          [
+            -66.9,
+            10.508
+          ],
+          [
+            -66.89,
+            10.508
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "road-ccs-av-bolivar",
+      "properties": {
+        "id": "road-ccs-av-bolivar",
+        "name": "Avenida Bolívar Caracas",
+        "city": "Caracas",
+        "highway": "primary",
+        "lanes": 6,
+        "speedLimit": 50
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -66.918,
+            10.5
+          ],
+          [
+            -66.908,
+            10.499
+          ],
+          [
+            -66.898,
+            10.498
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "road-ccs-cota-mil",
+      "properties": {
+        "id": "road-ccs-cota-mil",
+        "name": "Avenida Boyacá (Cota Mil)",
+        "city": "Caracas",
+        "highway": "primary",
+        "lanes": 4,
+        "speedLimit": 70
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -66.92,
+            10.52
+          ],
+          [
+            -66.895,
+            10.518
+          ],
+          [
+            -66.87,
+            10.515
+          ],
+          [
+            -66.845,
+            10.513
+          ],
+          [
+            -66.82,
+            10.51
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "road-val-av-bolivar-norte",
+      "properties": {
+        "id": "road-val-av-bolivar-norte",
+        "name": "Avenida Bolívar Norte Valencia",
+        "city": "Valencia",
+        "highway": "primary",
+        "lanes": 4,
+        "speedLimit": 50
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -68.005,
+            10.18
+          ],
+          [
+            -68.006,
+            10.2
+          ],
+          [
+            -68.008,
+            10.22
+          ],
+          [
+            -68.01,
+            10.24
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "road-val-av-cedeno",
+      "properties": {
+        "id": "road-val-av-cedeno",
+        "name": "Avenida Cedeño",
+        "city": "Valencia",
+        "highway": "secondary",
+        "lanes": 4,
+        "speedLimit": 45
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -68.02,
+            10.19
+          ],
+          [
+            -68.006,
+            10.19
+          ],
+          [
+            -67.995,
+            10.19
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "road-val-av-lara",
+      "properties": {
+        "id": "road-val-av-lara",
+        "name": "Avenida Lara Valencia",
+        "city": "Valencia",
+        "highway": "primary",
+        "lanes": 4,
+        "speedLimit": 45
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -68.015,
+            10.175
+          ],
+          [
+            -68,
+            10.175
+          ],
+          [
+            -67.985,
+            10.175
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "road-barq-av-venezuela",
+      "properties": {
+        "id": "road-barq-av-venezuela",
+        "name": "Avenida Venezuela Barquisimeto",
+        "city": "Barquisimeto",
+        "highway": "primary",
+        "lanes": 6,
+        "speedLimit": 55
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -69.345,
+            10.07
+          ],
+          [
+            -69.325,
+            10.07
+          ],
+          [
+            -69.305,
+            10.07
+          ],
+          [
+            -69.285,
+            10.07
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "road-barq-av-libertador",
+      "properties": {
+        "id": "road-barq-av-libertador",
+        "name": "Avenida Libertador Barquisimeto",
+        "city": "Barquisimeto",
+        "highway": "primary",
+        "lanes": 4,
+        "speedLimit": 50
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -69.35,
+            10.08
+          ],
+          [
+            -69.33,
+            10.08
+          ],
+          [
+            -69.31,
+            10.08
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "road-barq-av-vargas",
+      "properties": {
+        "id": "road-barq-av-vargas",
+        "name": "Avenida Vargas",
+        "city": "Barquisimeto",
+        "highway": "secondary",
+        "lanes": 4,
+        "speedLimit": 40
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -69.318,
+            10.06
+          ],
+          [
+            -69.318,
+            10.075
+          ],
+          [
+            -69.318,
+            10.09
+          ]
+        ]
+      }
+    }
+  ]
+}

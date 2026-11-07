@@ -4,6 +4,15 @@ import { Database } from '../../types/database.types';
 let browserClient: SupabaseClient<Database> | null = null;
 
 /**
+ * Retorna true si Supabase está configurado con credenciales de entorno válidas (no placeholders)
+ */
+export function isSupabaseConfigured(): boolean {
+  const env = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : ({} as Record<string, string | undefined>);
+  const url = env.VITE_SUPABASE_URL || '';
+  return !!url && !url.includes('placeholder') && !url.includes('your-project-id');
+}
+
+/**
  * Crea o retorna una instancia singleton del cliente Supabase para el navegador
  */
 export function createBrowserClient(): SupabaseClient<Database> {

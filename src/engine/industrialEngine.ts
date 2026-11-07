@@ -21,8 +21,22 @@
  */
 
 export type CorporateSpecialization = 'none' | 'vulcan' | 'aegis' | 'titan';
-export type RawResourceType = 'raw_iron' | 'raw_stone' | 'raw_rare_earth';
-export type RefinedResourceType = 'refined_steel' | 'refined_concrete' | 'refined_microchip';
+export type RawResourceType =
+  | 'raw_iron'
+  | 'raw_stone'
+  | 'raw_rare_earth'
+  | 'raw_heavy_crude'
+  | 'raw_silicon';
+
+export type RefinedResourceType =
+  | 'refined_steel'
+  | 'refined_concrete'
+  | 'refined_microchip'
+  | 'synthetic_fuel'
+  | 'optical_flir_sensor'
+  | 'composite_armor_plate'
+  | 'c4isr_bunker_kit';
+
 export type IndustrialResourceType = RawResourceType | RefinedResourceType;
 
 export type PlotEnterpriseType =
@@ -111,6 +125,42 @@ export const REFINING_RECIPES: Record<RefinedResourceType, RefiningRecipe> = {
     outputAmount: 5,
     baseDurationMinutes: 240, // 4 horas (optimizado con cola multi-batch)
     description: 'Sistemas electrónicos de radar para cazas, misiles y drones',
+  },
+  synthetic_fuel: {
+    id: 'synthetic_fuel',
+    name: 'Combustible Sintético y Polímeros',
+    inputResource: 'raw_heavy_crude',
+    inputAmount: 100,
+    outputAmount: 20,
+    baseDurationMinutes: 180, // 3 horas
+    description: 'Combustible de alta densidad energética para convoyes terrestres y generadores',
+  },
+  optical_flir_sensor: {
+    id: 'optical_flir_sensor',
+    name: 'Módulo Óptico Térmico FLIR',
+    inputResource: 'raw_silicon',
+    inputAmount: 80,
+    outputAmount: 4,
+    baseDurationMinutes: 300, // 5 horas
+    description: 'Sensores electro-ópticos infrarrojos de precisión para drones y torretas C4ISR',
+  },
+  composite_armor_plate: {
+    id: 'composite_armor_plate',
+    name: 'Placa de Blindaje Compuesto',
+    inputResource: 'raw_iron',
+    inputAmount: 120,
+    outputAmount: 8,
+    baseDurationMinutes: 270, // 4.5 horas
+    description: 'Blindaje multicapa reactivo para fortificaciones de asedio y vehículos pesados',
+  },
+  c4isr_bunker_kit: {
+    id: 'c4isr_bunker_kit',
+    name: 'Kit Prefabricado de Búnker C4ISR',
+    inputResource: 'raw_stone',
+    inputAmount: 200,
+    outputAmount: 2,
+    baseDurationMinutes: 360, // 6 horas
+    description: 'Estructura modular prefabricada con inhibidor EW para despliegue de guarniciones Nivel 3 y 4',
   },
 };
 

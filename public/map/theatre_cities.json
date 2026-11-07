@@ -1,0 +1,335 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "CITY_CARACAS",
+      "properties": {
+        "id": "CITY_CARACAS",
+        "name": "Caracas",
+        "stateId": "REG_VE_01",
+        "stateName": "Distrito Capital",
+        "type": "national_capital",
+        "importance": "capital",
+        "population": 2950000,
+        "factionId": "orange_star",
+        "strategicRole": "Centro de Mando Nacional y Banco Central"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -66.9036,
+          10.4806
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "CITY_CABIMAS",
+      "properties": {
+        "id": "CITY_CABIMAS",
+        "name": "Cabimas",
+        "stateId": "REG_VE_02",
+        "stateName": "Zulia",
+        "type": "petroleum_metropolis",
+        "importance": "major",
+        "population": 320000,
+        "factionId": "blue_moon",
+        "strategicRole": "Epicentro Petrolero Génesis • Terminal La Salina"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.4539,
+          10.3994
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "CITY_MARACAIBO",
+      "properties": {
+        "id": "CITY_MARACAIBO",
+        "name": "Maracaibo",
+        "stateId": "REG_VE_02",
+        "stateName": "Zulia",
+        "type": "port_metropolis",
+        "importance": "major",
+        "population": 1650000,
+        "factionId": "blue_moon",
+        "strategicRole": "Puerto Occidental y Estrecho de Maracaibo"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.6406,
+          10.6544
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "CITY_CIUDAD_OJEDA",
+      "properties": {
+        "id": "CITY_CIUDAD_OJEDA",
+        "name": "Ciudad Ojeda",
+        "stateId": "REG_VE_02",
+        "stateName": "Zulia",
+        "type": "industrial_hub",
+        "importance": "secondary",
+        "population": 180000,
+        "factionId": "blue_moon",
+        "strategicRole": "Complejo de Servicios Petroleros Costa Oriental"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3087,
+          10.2078
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "CITY_VALENCIA",
+      "properties": {
+        "id": "CITY_VALENCIA",
+        "name": "Valencia",
+        "stateId": "REG_VE_05",
+        "stateName": "Carabobo",
+        "type": "industrial_hub",
+        "importance": "major",
+        "population": 1550000,
+        "factionId": "yellow_comet",
+        "strategicRole": "Complejo Industrial Metalmecánico y Ensamblaje"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -68.0077,
+          10.162
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "CITY_BARQUISIMETO",
+      "properties": {
+        "id": "CITY_BARQUISIMETO",
+        "name": "Barquisimeto",
+        "stateId": "REG_VE_07",
+        "stateName": "Lara",
+        "type": "logistics_hub",
+        "importance": "major",
+        "population": 1100000,
+        "factionId": "green_earth",
+        "strategicRole": "Nudo Logístico Ferroviario y Vial Centro-Occidente"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -69.3228,
+          10.0647
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "CITY_MARACAY",
+      "properties": {
+        "id": "CITY_MARACAY",
+        "name": "Maracay",
+        "stateId": "REG_VE_08",
+        "stateName": "Aragua",
+        "type": "military_citadel",
+        "importance": "major",
+        "population": 950000,
+        "factionId": "orange_star",
+        "strategicRole": "Base Aérea El Libertador y Arsenal Central"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -67.5958,
+          10.2469
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "CITY_PUERTO_LA_CRUZ",
+      "properties": {
+        "id": "CITY_PUERTO_LA_CRUZ",
+        "name": "Puerto La Cruz / Barcelona",
+        "stateId": "REG_VE_04",
+        "stateName": "Anzoátegui",
+        "type": "refinery_port",
+        "importance": "major",
+        "population": 850000,
+        "factionId": "orange_star",
+        "strategicRole": "Refinería El Chaure y Terminal Petrolero de Oriente"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -64.6344,
+          10.2189
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "CITY_CIUDAD_GUAYANA",
+      "properties": {
+        "id": "CITY_CIUDAD_GUAYANA",
+        "name": "Ciudad Guayana (Puerto Ordaz)",
+        "stateId": "REG_VE_03",
+        "stateName": "Bolívar",
+        "type": "heavy_metallurgy",
+        "importance": "major",
+        "population": 900000,
+        "factionId": "black_hole",
+        "strategicRole": "Siderúrgica SIDOR, Bauxita y Represa de Guri"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -62.7118,
+          8.3077
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "CITY_SAN_CRISTOBAL",
+      "properties": {
+        "id": "CITY_SAN_CRISTOBAL",
+        "name": "San Cristóbal",
+        "stateId": "REG_VE_10",
+        "stateName": "Táchira",
+        "type": "border_fortress",
+        "importance": "major",
+        "population": 480000,
+        "factionId": "black_hole",
+        "strategicRole": "Fortaleza Andina y Frontera Occidental"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -72.225,
+          7.7669
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "CITY_MERIDA",
+      "properties": {
+        "id": "CITY_MERIDA",
+        "name": "Mérida",
+        "stateId": "REG_VE_15",
+        "stateName": "Mérida",
+        "type": "mountain_citadel",
+        "importance": "secondary",
+        "population": 310000,
+        "factionId": "black_hole",
+        "strategicRole": "Red de Telecomunicaciones y Bastión de Altura"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.145,
+          8.5983
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "CITY_CORO",
+      "properties": {
+        "id": "CITY_CORO",
+        "name": "Coro (Punto Fijo / Paraguaná)",
+        "stateId": "REG_VE_09",
+        "stateName": "Falcón",
+        "type": "refining_complex",
+        "importance": "secondary",
+        "population": 340000,
+        "factionId": "yellow_comet",
+        "strategicRole": "Complejo Refinador de Amuay y Cardón"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -69.6734,
+          11.4045
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "CITY_MATURIN",
+      "properties": {
+        "id": "CITY_MATURIN",
+        "name": "Maturín",
+        "stateId": "REG_VE_12",
+        "stateName": "Monagas",
+        "type": "petroleum_basin",
+        "importance": "secondary",
+        "population": 520000,
+        "factionId": "orange_star",
+        "strategicRole": "Cuenca Gasífera y Petrolera del Furrial"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -63.1767,
+          9.7456
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "CITY_BARINAS",
+      "properties": {
+        "id": "CITY_BARINAS",
+        "name": "Barinas",
+        "stateId": "REG_VE_14",
+        "stateName": "Barinas",
+        "type": "agricultural_plains",
+        "importance": "secondary",
+        "population": 400000,
+        "factionId": "green_earth",
+        "strategicRole": "Granero de Campaña y Corredor Llanero"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -70.2075,
+          8.6226
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "CITY_LA_GUAIRA",
+      "properties": {
+        "id": "CITY_LA_GUAIRA",
+        "name": "La Guaira",
+        "stateId": "REG_VE_24",
+        "stateName": "La Guaira",
+        "type": "strategic_port",
+        "importance": "secondary",
+        "population": 360000,
+        "factionId": "orange_star",
+        "strategicRole": "Puerto Internacional y Aeropuerto de Maiquetía"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -66.9322,
+          10.6017
+        ]
+      }
+    }
+  ]
+}

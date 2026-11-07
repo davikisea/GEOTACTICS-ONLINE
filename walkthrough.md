@@ -1,0 +1,53 @@
+# 🛰️ RESUMEN DE AUDITORÍA ARQUITECTÓNICA Y ESPECIFICACIÓN DE ESTRATEGIA TÁCTICA
+## *Geotactics: Online — Auditoría Forense y Síntesis de Diseño (/plan /grill-me)*
+
+---
+
+## 1. Resultados de la Auditoría Read-Only (Fase 1)
+
+### 1.1 Subsistemas Existentes vs. Contratos Tipados
+- **Combate y Balística**: El motor canónico de combate (`canonicalCombat.ts`, `canonicalDamageChart.ts`) está 100% desarrollado y probado con escala continua 1-100 HP, mitigación por estrellas de terreno, torres de comunicación y bonificaciones por Tier industrial.
+- **Jerarquía Cartográfica de 3 Vistas**: Integrada en `TacticalWorldMap.tsx` con WebGL 2.0 MapLibre GL Zero-Raster:
+  - **Nivel 1 (Macro, $z < 10$)**: Soberanía de los 24 estados de Venezuela (`theatre_regions.json`), PIB bélico por hora, recursos estratégicos y gobernanza RBAC (`stateSovereigntyService.ts`).
+  - **Nivel 2 (Operacional, $10 \le z < 15$)**: Red vial urbana real (`theatre_urban_roads.json`), ciudades reales y despliegue de tropas operacionales (`operationalUnitsService.ts`).
+  - **Nivel 3 (Táctico, $z \ge 15$)**: Asignación analítica de celda $O(1)$ (`coordinates.ts`, `spatialDeploymentService.ts`), despliegue in-situ (`TacticalUnitDeployModal.tsx`) y construcción modular (`TacticalConstructionDrawer.tsx`).
+- **Gaps Identificados**:
+  - En runtime, el combate táctico previo estaba desacoplado de la interacción en vivo a zoom x15, operando como simulación o lobby por turnos en pausa.
+  - La sincronización multijugador en tiempo real por WebSockets para escaramuzas de celda requería una definición clara entre tiempo real continuo y turnos secuenciales.
+
+---
+
+## 2. Acuerdos de Diseño Consensuados en la Entrevista (/grill-me) (Fase 2)
+
+Durante la sesión estructurada de diseño, se tomaron las siguientes cuatro decisiones estratégicas:
+
+1. **Resolución de Combate en Celda ($z \ge 15.0$)**:
+   - **Opción Elegida**: **RTS Continuo con Cooldowns Tácticos**.
+   - **Justificación**: Mantiene la inmersión fluida sin congelar el mapa continuo en lobbies aislados. Las unidades se mueven y disparan en tiempo real gobernadas por cooldowns de recarga (ej. 3.5s tanque medio, 1.2s recon, 5.5s artillería) y velocidades según tipo de chasis.
+2. **Defensa Territorial Offline**:
+   - **Opción Elegida**: **Ventanas Fijas de Vulnerabilidad (Timers de 2 a 4 Horas)**.
+   - **Justificación**: Mecánica estilo *EVE Online* y *Albion Online*. Cada clan defensor define una ventana horaria diaria de vulnerabilidad. Fuera de ese horario, los 10,000 TCP del territorio y los edificios son inmunes al daño permanente, erradicando los asedios nocturnos desleales (*offline raiding*).
+3. **Bucle de Construcción y Recolección**:
+   - **Opción Elegida**: **Simulación por Rendimiento Matemático en DB + Inyección Vectorial WebGL**.
+   - **Justificación**: La extracción y refino se calculan analíticamente por fórmulas horarias en Postgres. A zoom x10 y x15, los edificios y convoyes son marcadores vectoriales en GPU (MapLibre), garantizando 60 FPS estables sin saturar CPU con micro-obreros individuales.
+4. **Barrera Anti-P2W y Esport**:
+   - **Opción Elegida**: **Esports Tier 1 Espejo (+0.0%) + Guerra Territorial con Techo Suave (+2% por Tier, máx +8% en T5) + Tienda 100% Cosmética**.
+   - **Justificación**: En torneos clasificados y arenas competitivas rige una simetría total a Tier 1 (estadísticas idénticas). En el MMO geopolítico, los tiers industriales ofrecen ventajas ligeras siempre superables por flanqueo y terreno táctico. Cero venta de tropas, recursos o aceleradores por dinero real.
+
+---
+
+## 3. Entregables Generados (Fase 3)
+
+- **Documento Maestro**: [`docs/03_TACTICAL_STRATEGY_SYSTEM_DESIGN.md`](file:///c:/Users/Mor%C3%ADn/GEOTACTICS-ONLINE/docs/03_TACTICAL_STRATEGY_SYSTEM_DESIGN.md)
+  - Diagrama de flujo de arquitectura de ciclo cerrado (Macro -> Operacional -> Micro-RTS).
+  - Reglas de simulación de combate continuo a 10 ticks/s con fórmulas deterministas 1-100 HP.
+  - Especificación matemática de timers de vulnerabilidad y defensa soberana.
+  - Matriz balanceada de las 10 unidades tácticas principales con sus cooldowns y roles.
+  - Hoja de ruta técnica de los Sprints 4, 5, 6 y 7.
+
+---
+
+## 4. Estado de Validación y Verificación
+
+- **Compilación de Producción (`npm run build`)**: ✅ Exitosa (21.07s, 0 errores, bundles optimizados en `dist/`).
+- **Integridad del Código Fuente**: Ningún archivo bajo `src/` fue modificado, preservando el 100% de la integridad arquitectónica y suite de tests existente.

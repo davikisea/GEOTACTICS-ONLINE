@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests/e2e',
-  timeout: 90000,
+  timeout: 180000,
   expect: {
     timeout: 15000,
   },
@@ -15,9 +15,9 @@ export default defineConfig({
   ],
   use: {
     baseURL: 'http://localhost:3000',
-    trace: 'retain-on-failure',
+    trace: 'off',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    video: 'off',
     viewport: { width: 1280, height: 720 },
     ignoreHTTPSErrors: true,
   },

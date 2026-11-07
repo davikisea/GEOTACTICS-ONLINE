@@ -8,9 +8,9 @@
  * ==============================================================================
  */
 
-export const ZOOM_GLOBAL = 3.5;       // Nivel 1: Macro-Geopolítica (Continentes y Países)
-export const ZOOM_OPERACIONAL = 7.0;  // Nivel 2: Provincias, Rutas de Suministro y TCP
-export const ZOOM_TACTICO = 14.0;     // Nivel 3: Cuadrícula de Combate Advance Wars en vivo
+export const ZOOM_GLOBAL = 3.5;       // Nivel 1: Macro-Geopolítica (Continentes y Países - z < 10)
+export const ZOOM_OPERACIONAL = 10.0; // Nivel 2: Red Urbana, Ciudades, Avenidas y Unidades (z = 10 a < 15)
+export const ZOOM_TACTICO = 15.0;     // Nivel 3: Microjuego, Asignación Espacial y Construcción (z >= 15)
 
 export const TILE_SIZE = 1000;        // Resolución canónica en píxeles de cada TileCanvas (1000x1000 px)
 export const EARTH_RADIUS_M = 6_371_000;
@@ -74,6 +74,22 @@ export function tileFractionToLngLat(
   const latRad = Math.atan(Math.sinh(Math.PI * (1 - (2 * tileYFloat) / n)));
   const lat = (latRad * 180) / Math.PI;
   return [lng, lat];
+}
+
+/**
+ * Convierte un Sector y Celda táctica dada a la coordenada geográfica central (Lng, Lat) de la loseta.
+ */
+export function gridCoordsToLngLat(
+  sector: [number, number],
+  cell: [number, number],
+  gridSize: number = 20,
+  zoom: number = ZOOM_TACTICO
+): LngLat {
+  const [sectorX, sectorY] = sector;
+  const [cellX, cellY] = cell;
+  const tileXFloat = sectorX + (cellX + 0.5) / gridSize;
+  const tileYFloat = sectorY + (cellY + 0.5) / gridSize;
+  return tileFractionToLngLat(tileXFloat, tileYFloat, zoom);
 }
 
 /**

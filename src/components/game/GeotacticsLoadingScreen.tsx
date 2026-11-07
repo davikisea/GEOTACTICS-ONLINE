@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Volume2, VolumeX, Shield, Radio, CheckCircle2, Crosshair, Cpu } from 'lucide-react';
+import { catalogRegistry } from '../../services/catalogRegistryService';
 
 interface GeotacticsLoadingScreenProps {
   mapName?: string;
@@ -73,6 +74,11 @@ export const GeotacticsLoadingScreen: React.FC<GeotacticsLoadingScreenProps> = (
 
   // Reloj militar Zulu en tiempo real
   useEffect(() => {
+    // Sincronización en caliente de catálogos SSOT en segundo plano (< 300 ms)
+    catalogRegistry.synchronizeWithServer().catch((e) => {
+      console.warn('[GeotacticsLoadingScreen] Sincronización de catálogos omitida:', e);
+    });
+
     const updateZulu = () => {
       const now = new Date();
       const h = String(now.getUTCHours()).padStart(2, '0');
